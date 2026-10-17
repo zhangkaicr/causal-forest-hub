@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme-default="light">
+<head>
+<script>
+(function(){
+  var KEY="share-theme", d=document.documentElement;
+  try{var saved=localStorage.getItem(KEY);}catch(e){var saved=null;}
+  d.setAttribute("data-theme", saved || d.getAttribute("data-theme-default") || "light");
+  document.addEventListener("DOMContentLoaded",function(){
+    var b=document.getElementById("theme-toggle"); if(!b) return;
+    function sync(){
+      var dark=d.getAttribute("data-theme")==="dark";
+      b.setAttribute("aria-pressed", dark?"true":"false");
+      b.setAttribute("title", dark?"切换到亮色主题 (Alt+T)":"切换到暗色主题 (Alt+T)");
+    }
+    b.addEventListener("click",function(){
+      var nxt=d.getAttribute("data-theme")==="dark"?"light":"dark";
+      d.setAttribute("data-theme",nxt);
+      try{localStorage.setItem(KEY,nxt);}catch(e){}
+      sync();
+    });
+    document.addEventListener("keydown",function(e){
+      if(e.altKey&&(e.key==="t"||e.key==="T")) b.click();
+    });
+    sync();
+  });
+})();
+</script>
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},
+options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《用 RATE 评估异质性》 · grf 中文教程</title>
+<style>
+:root{
+  --bg:#f7f7f5; --card:#ffffff; --text:#2c2c2a; --muted:#6b6a65;
+  --line:#e3e2dd; --accent:#534ab7; --accent-soft:#eeedfe; --tag:#f1efe8;
+  --code-bg:#f4f3ef; --code-line:#e7e5df; --code-text:#2c2c2a;
+  --note-bg:#eef6ff; --note-line:#bcd6f5; --note-text:#1f3a5f;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  line-height:1.8; margin:0;
+}
+.wrap{max-width:840px;margin:0 auto;padding:32px 22px 80px}
+.topbar{margin-bottom:26px}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;
+  font-size:14px;font-weight:600}
+.back:hover{text-decoration:underline}
+h1{font-size:30px;font-weight:700;letter-spacing:-.3px;margin:6px 0 4px;line-height:1.3}
+.sub{color:var(--muted);font-size:14px;margin-bottom:8px}
+.sub a{color:var(--accent)}
+.lead{font-size:16px;color:var(--text);margin:14px 0 22px;border-left:3px solid var(--accent);
+  padding:4px 0 4px 16px;background:var(--accent-soft);border-radius:0 8px 8px 0}
+.content h2{font-size:22px;font-weight:700;margin:38px 0 12px;padding-bottom:6px;
+  border-bottom:1px solid var(--line)}
+.content h3{font-size:18px;font-weight:700;margin:26px 0 10px}
+.content h4{font-size:16px;font-weight:700;margin:20px 0 8px}
+.content p{margin:12px 0}
+.content ul,.content ol{margin:12px 0;padding-left:26px}
+.content li{margin:6px 0}
+.content a{color:var(--accent);text-decoration:none}
+.content a:hover{text-decoration:underline}
+.content img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;
+  margin:14px 0;background:#fff;display:block}
+.content table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+.content th,.content td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+.content th{background:var(--accent-soft);font-weight:600}
+.content tr:nth-child(even) td{background:var(--card)}
+.content blockquote{margin:16px 0;padding:12px 16px;border-left:3px solid var(--line);
+  color:var(--muted);background:var(--card);border-radius:0 8px 8px 0}
+.content code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13.5px;background:var(--code-bg);padding:2px 5px;border-radius:4px;color:var(--code-text)}
+pre{background:var(--code-bg);border:1px solid var(--code-line);border-radius:10px;
+  padding:16px 18px;overflow-x:auto;margin:16px 0;line-height:1.6}
+pre code{background:none;padding:0;font-size:13.5px;color:var(--code-text)}
+.content .sourceCode{margin:16px 0}
+/* downlit token coloring (light) */
+.content .co{color:#6a737d}
+.content .st{color:#032f62}
+.content .fu{color:#4078f2}
+.content .cf{color:#d73a49}
+.content .kw{color:#a626a4}
+.content .fl,.content .cn{color:#b9520f}
+.content .op{color:#444}
+/* 背景与解释 callout */
+.note{margin:18px 0;padding:14px 18px;border:1px solid var(--note-line);
+  background:var(--note-bg);border-radius:10px;color:var(--note-text)}
+.note .nt{display:inline-block;font-weight:700;font-size:13px;letter-spacing:.04em;
+  margin-bottom:6px;color:var(--accent)}
+.note p{margin:6px 0}
+.note code{background:rgba(255,255,255,.6)}
+.foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--muted)}
+.foot a{color:var(--accent)}
+
+:root[data-theme="dark"]{
+  --bg:#0f1116; --card:#181b22; --text:#e4e6ea; --muted:#98a0ac;
+  --line:#2a2f3a; --accent:#7aa2f7; --accent-soft:#16203a; --tag:#1e222b;
+  --code-bg:#0b0d12; --code-line:#1d2129; --code-text:#d7dae0;
+  --note-bg:#15233b; --note-line:#274168; --note-text:#bcd6f5;
+}
+:root[data-theme="dark"] .content th{background:var(--accent-soft)}
+:root[data-theme="dark"] .content tr:nth-child(even) td{background:#14171e}
+:root[data-theme="dark"] .content img{background:#0b0d12}
+:root[data-theme="dark"] .content .co{color:#7f8b9a}
+:root[data-theme="dark"] .content .st{color:#9ecbff}
+:root[data-theme="dark"] .content .fu{color:#82aaff}
+:root[data-theme="dark"] .content .cf{color:#f07178}
+:root[data-theme="dark"] .content .kw{color:#c792ea}
+:root[data-theme="dark"] .content .fl,.content .cn{color:#f78c6c}
+
+.tt{
+  position:fixed; top:16px; right:16px; z-index:9999; width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center; border-radius:50%;
+  cursor:pointer; color:var(--text); background:var(--card);
+  border:1px solid var(--line);
+  box-shadow:0 2px 10px rgba(0,0,0,.24); transition:transform .15s, border-color .15s, background .15s;
+}
+.tt:hover{transform:translateY(-1px); border-color:var(--accent)}
+.tt:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tt svg{display:none}
+[data-theme="dark"] .ico-sun{display:block}
+[data-theme="dark"] .ico-moon{display:none}
+[data-theme="light"] .ico-sun{display:none}
+[data-theme="light"] .ico-moon{display:block}
+@media(max-width:640px){.tt{top:10px; right:10px; width:36px; height:36px}}
+@media print{.tt{display:none}}
+</style>
+<style>
+/* ---- 全局搜索 ---- */
+.sbox{position:relative;display:inline-flex;align-items:center;margin-left:10px}
+.sbox input{background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);color:inherit;
+ border-radius:6px;padding:4px 9px 4px 25px;font-size:13px;width:170px;font-family:inherit;outline:none}
+.sbox input:focus{border-color:#4ea1ff;width:220px}
+.sbox .si{position:absolute;left:8px;font-size:12px;opacity:.6;pointer-events:none}
+.spanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:440px;max-width:88vw;
+ max-height:64vh;overflow-y:auto;z-index:900;background:var(--panel,#262c34);
+ border:1px solid var(--border,#3a4350);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.spanel.open{display:block}
+.spanel .sh{padding:7px 10px;font-size:12px;opacity:.7;border-bottom:1px solid var(--border,#3a4350);margin-bottom:4px}
+.spanel .sempty{font-size:12px;opacity:.65;padding:16px 10px;text-align:center}
+.sres{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:inherit}
+.sres:hover,.sres.sel{background:var(--panel2,#2e3540)}
+.sres .c{font-size:11px;opacity:.65;margin-bottom:1px}
+.sres .s{font-size:12px;color:#4ea1ff;margin-bottom:2px}
+.sres .t{font-size:13px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sres mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+.srch-main{margin:22px 0}
+.srch-main input{width:100%;background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);
+ color:inherit;border-radius:8px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none}
+.srch-main input:focus{border-color:#4ea1ff}
+.srch-meta{font-size:13px;opacity:.7;margin:12px 0 6px}
+.srch-list{list-style:none;margin:0;padding:0}
+.srch-list .sres{border:1px solid var(--border,#3a4350);margin:7px 0;padding:9px 11px}
+.srch-list .sres:hover{border-color:#4ea1ff}
+@media (max-width:640px){.sbox input{width:110px}.sbox input:focus{width:150px}.spanel{width:86vw}}
+</style><!--search.css-marker-->
+<style>
+/* ===== 因果森林知识库 · 统一导航 ===== */
+.cfh-nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:10px;
+ padding:8px 16px;background:var(--bg,#181b22);border-bottom:1px solid var(--line,#2a2f3a);
+ font-size:13.5px;flex-wrap:wrap}
+.cfh-nav .cfh-home{font-weight:600;color:var(--text,#e4e6ea);text-decoration:none;font-size:14px;
+ display:flex;align-items:center;gap:6px}
+.cfh-nav .cfh-home:hover{color:var(--accent,#7aa2f7)}
+.cfh-nav .cfh-crumb{color:var(--muted,#98a0ac);font-size:12.5px}
+.cfh-nav .cfh-crumb a{color:var(--accent,#7aa2f7);text-decoration:none}
+.cfh-nav .cfh-sp{flex:1}
+.cfh-nav select{background:var(--card,#181b22);color:var(--text,#e4e6ea);
+ border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:4px 8px;font-size:12.5px;
+ font-family:inherit;outline:none;cursor:pointer;max-width:230px}
+.cfh-nav select:hover{border-color:var(--accent,#7aa2f7)}
+.cfh-nav a.cfh-sbtn{color:var(--text,#e4e6ea);text-decoration:none;border:1px solid var(--line,#2a2f3a);
+ border-radius:6px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.cfh-nav a.cfh-sbtn:hover{border-color:var(--accent,#7aa2f7);color:var(--accent,#7aa2f7)}
+@media (max-width:700px){.cfh-nav .cfh-crumb{display:none}.cfh-nav select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="cfh-nav">
+<a class="cfh-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="cfh-crumb">/ <a href="index.html">grf 广义随机森林</a> / rate</span>
+<span class="cfh-sp"></span>
+<select onchange="if(this.value)location.href=this.value" aria-label="切换库">
+<option value="grf-cn/index.html" selected>grf 广义随机森林</option>
+<option value="policytree-cn/index.html">policytree 策略树</option>
+<option value="surefq/surefq.html">SURE / QRF 充分表示</option>
+<option value="tidyhte-cn/index.html">tidyhte 优雅的 HTE</option>
+<option value="metalearner-cn/index.html">Meta-Learner 元学习器</option>
+<option value="model4you-cn/index.html">model4you 个体化治疗</option>
+<option value="evalITR-cn/index.html">evalITR 规则评估</option>
+<option value="rj-dlc-cn/index.html">DeepLearningCausal</option>
+<option value="survlearners-cn/index.html">survlearners 生存 HTE</option>
+<option value="bocf-cn/index.html">BOCF 基线观测结转</option>
+<option value="hte-course/index.html">HTE 公开课讲义</option>
+<option value="causal-tools-cn/index.html">因果推断三件工具</option>
+<option value="imputeTS-cn/index.html">imputeTS 缺失填补</option>
+</select>
+<a class="cfh-sbtn" href="search.html">&#128269; 搜索本页</a>
+</div>
+<button id="theme-toggle" class="tt" type="button" aria-label="切换明暗主题" title="切换明暗主题 (Alt+T)">
+  <svg class="ico-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7"/></svg>
+  <svg class="ico-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.2 8.2 0 1 0 10.5 10.5z"/></svg>
+</button>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">&larr; grf 教程总览</a><span class="sbox"><span class="si">&#128269;</span>
+<input type="search" id="s-q" placeholder="搜索本站…（按 /）" autocomplete="off" aria-label="搜索本站">
+<span class="spanel" id="s-panel"></span></span>
+  </div>
+  <h1>《用 RATE 评估异质性》</h1>
+  <p class="sub">原文：<a href="https://grf-labs.github.io/grf/articles/rate.html" target="_blank" rel="noopener">Assessing heterogeneity with RATE</a>（英文）&nbsp;·&nbsp;grf 官方文档中文译本</p>
+
+  <div class="content">
+<p>本篇教程简要介绍 grf 包中 <a href="https://grf-labs.github.io/grf/reference/rank_average_treatment_effect.html">rank_average_treatment_effect</a> 函数所提供的<em>排序加权平均处理效应</em>（<em>RATE</em>，Rank-Weighted Average Treatment Effect）的用法：它可以评估"处理优先规则"（treatment prioritization rules，例如条件平均处理效应的估计值）的优劣——也就是说，看这些规则能否把处理效应不同的亚群体区分开来，以及数据中到底有没有值得关注的异质性（heterogeneity）。教程的后半部分给出医学场景下的一个完整示例，使用的是 SPRINT 与 ACCORD 两项高血压药物试验的（合成）数据。若想了解更完整的细节，以及如何用 RATE 评估增益模型（uplift model），请参阅 <a href="https://arxiv.org/abs/2111.07966">RATE 论文</a>。</p>
+<div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">grf</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">ggplot2</span>)</pre></div>
+<div id="treatment-prioritization-rules" class="section level2">
+<h2 class="hasAnchor" id="sec-处理优先规则">
+<a href="#treatment-prioritization-rules" class="anchor"></a>处理优先规则</h2>
+<p>我们考虑一个大家都很熟悉的情形：在随机化试验（或满足无混杂假设的观察性研究）中，想要决定应该把二值处理（binary treatment）<span class="math inline">\(W=\{0, 1\}\)</span> 分配给哪些个体，以及这种分配策略究竟有多大价值。给定某些个体特征 <span class="math inline">\(X_i\)</span>，我们有一个针对个体的<em>处理优先规则</em> <span class="math inline">\(S(X_i)\)</span>，它会为每个个体打一个分数。这个优先规则应当给"我们认为处理获益很大"的个体打高分，给"处理获益很小"的个体打低分。这里说的"处理获益"，是指给定个体特征 <span class="math inline">\(X_i\)</span> 后，接受处理带来的结局（outcome）<span class="math inline">\(Y\)</span> 上的差异，也就是条件平均处理效应（CATE，conditional average treatment effect）</p>
+<p><span class="math display">\[\tau(x) = E[Y_i(1) - Y_i(0) \,|\, X_i =
+x],\]</span> 其中 <span class="math inline">\(Y(1)\)</span> 和 <span class="math inline">\(Y(0)\)</span> 分别是两种处理状态下对应的潜在结局（potential outcome）。</p>
+<p>你可能会问：既然我们已经用 <span class="math inline">\(\tau(X_i)\)</span> 来衡量获益，为什么还要绕一个弯子，去关注一个任意的规则 <span class="math inline">\(S(X_i)\)</span>？直接用估计出来的 CATE 来做处理定向（treatment targeting）难道不是最好的吗？答案是：这种一般化的问题设定其实非常方便。因为在某些情境下，我们的数据不足以支撑一个准确的 CATE 估计器，只能依赖别的办法来做处理定向。其他办法的例子包括领域专家总结出的经验法则（heuristics），或者更简单的"风险评分"模型（其中风险定义为 <span class="math inline">\(P[Y = 1 | X_i = x]\)</span>，且 <span class="math inline">\(Y \in \{0, 1\}\)</span>，<span class="math inline">\(Y=1\)</span> 表示不良结局），这类做法在临床应用中相当常见。因此，在有限样本下，有时依赖那些与 CATE 相关的、更简单的规则，反而比依赖带有噪声、结构又复杂的 CATE 估计效果更好——请记住：估计 CATE 本身是件很难的统计任务；而把问题聚焦在一个"一般规则"上，我们就可以绕开"获得精确非参数点估计"这个难题，转而只要求估计结果能按处理获益对个体进行<em>排序</em>。此外，即便你已经有了一个准确的 CATE 估计器，可供选择的估计器也可能有很多（神经网络 / 随机森林 / 各种 metalearner 等等）。于是问题就变成：给定一组处理优先规则 <span class="math inline">\(S(X_i)\)</span>，我们究竟该用哪一个（如果有的话）？</p>
+<p>我们建议在这种情况下使用的工具是 RATE 指标。它以一个优先规则 <span class="math inline">\(S(X_i)\)</span> 作为输入——这个规则可以基于估计的 CATE、风险评分等等——并输出一个标量指标，用来评估它做处理定向的效果（它衡量的是一条优先规则的<em>价值</em>，至于这条规则具体是怎么得来的，它并不关心）。一个 RATE 指标由两部分构成："TOC"以及 TOC 下方的面积，我们在下一节解释。</p>
+</div>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>RATE 想解决的根本问题是什么？</strong>在医学研究中，我们常问"这个药平均有效吗"。但平均有效，不代表对每个人都一样有效——有些人用了获益巨大，有些人几乎没差别，甚至还有人可能受损。<strong>异质性处理效应（HTE，heterogeneous treatment effect）</strong>指的就是这种"处理效应因人而异"的现象。传统做法报告一个全人群平均处理效应（ATE，average treatment effect），会把不同 subgroup 之间的差异"抹平"，从而掩盖了"哪些人特别该用药"的关键信息。</p>
+<p>RATE 的聪明之处在于：它不要求你精确估计每个人的效应，而只要求你能把"获益大的人"排到前面、"获益小的人"排到后面。<strong>只要排序对了，就能判断优先规则是否有用、异质性是否真实存在。</strong>正因为只问排序、不问精确数值，RATE 对 CATE 估计中的噪声更鲁棒，在医学小样本场景下尤为实用。</p>
+</div>
+
+<div id="quantifying-treatment-benefit-the-targeting-operator-characteristic" class="section level2">
+<h2 class="hasAnchor" id="sec-量化处理获益-靶向作用特征曲线-targeting-operator-chara">
+<a href="#quantifying-treatment-benefit-the-targeting-operator-characteristic" class="anchor"></a>量化处理获益：靶向作用特征曲线（Targeting Operator Characteristic）</h2>
+<p>如上一节所述，我们关心的是"是否存在异质性"，以及"利用这种异质性、按优先规则 <span class="math inline">\(S(X_i)\)</span> 来做处理定向能带来多大获益"。这里说的"获益"，是指：与其随机挑选同等比例的人群去处理，不如把处理集中给优先分数 <span class="math inline">\(S(X_i)\)</span> 最高的那部分人，从而期望带来的结局提升。</p>
+<p>为了构造一个合适的指标来评估这件事，先来点直观的可视化会很有帮助。一个合理的做法是：按 <span class="math inline">\(S(X_i)\)</span> 把人群切成若干组，然后把这些组里的 ATE 与"给所有人处理"的总体 ATE 作比较，再把结果画出来。这正是<em>靶向作用特征曲线</em>（TOC，Targeting Operator Characteristic）所做的事——其中每一组，就是优先分数 <span class="math inline">\(S(X_i)\)</span> 排名前 q 比例的那部分个体。</p>
+<p>设 <span class="math inline">\(F\)</span> 为 <span class="math inline">\(S(X_i)\)</span> 的分布函数，<span class="math inline">\(q \in (0, 1]\)</span> 为被处理样本的比例，则 q 处的 TOC 定义为</p>
+<p><span class="math display">\[\begin{equation*}
+\begin{split}
+&amp;\textrm{TOC}(q) = E[Y_i(1) - Y_i(0) \,|\, S(X_i) \geq
+F^{-1}_{S(X_i)}(1 - q)]\\
+&amp; \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \  - E[Y_i(1) - Y_i(0)],
+\end{split}
+\end{equation*}\]</span></p>
+<p>其中 <span class="math inline">\(F_{S(X_i)}\)</span> 是 <span class="math inline">\(S(X_i)\)</span> 的分布函数。TOC 曲线的灵感来自<em>受试者工作特征曲线</em>（ROC，Receiver Operating Characteristic）——后者是评估分类规则表现时广为使用的指标。</p>
+<p>作为玩具示例，假设我们令 <span class="math inline">\(\tau(X_i) = X_1\)</span>，其中 <span class="math inline">\(X_1 \sim N(0, 1)\)</span>。那么用 <span class="math inline">\(S(X_i) =
+\tau(X_i)\)</span> 作为优先规则时，TOC 曲线长这样：</p>
+<p><img src="https://grf-labs.github.io/grf/articles/rate_files/figure-html/toc-plot-1.png" alt="" width="700"></p>
+<p>注意看：在接受处理的最初几个个体上，TOC 的值非常高。这很直观，因为我们的玩具 CATE 服从均值为 0 的正态分布；如果我们只挑出处理效应大于 <span class="math inline">\(z_{0.95}\)</span> 的前 5% 个体来治疗，那么相比"给所有人治疗"（效应为 0），获益是很大的。但随着曲线向右延伸，越来越多处理效应较低的人混进来，我们逐渐逼近 ATE，直到 <span class="math inline">\(q=1\)</span> 时与之相等。</p>
+</div>
+<div id="rate-the-area-under-the-toc" class="section level2">
+<h2 class="hasAnchor" id="sec-rate-toc-下方的面积">
+<a href="#rate-the-area-under-the-toc" class="anchor"></a>RATE：TOC 下方的面积</h2>
+<p>上图自然地提示了一个总结 TOC 曲线的方式——既然 <span class="math inline">\(S(X_i)\)</span> 的作用是按处理获益对个体排序，那么只要把曲线下方的面积加起来即可。这正是 <strong>RATE</strong> 的定义：它是 TOC 下方的<em>面</em>积（<em>A</em>rea <em>U</em>nder the <em>TOC</em>，简称 "AUTOC"）。</p>
+<p><span class="math display">\[\textrm{RATE} = \int_0^1 \textrm{TOC}(q)
+dq .\]</span> 如果 <span class="math inline">\(\tau(X_i)\)</span> 几乎不存在异质性，那么这个面积会小到可以忽略；在 <span class="math inline">\(\tau(X_i)\)</span> 为常数的特殊情况下，面积就是 0。再往前想一步：如果我们的<em>估计</em>规则 <span class="math inline">\(S(X_i)\)</span> 能很好地识别出获益截然不同的个体，我们会预期这个指标为<em>正</em>；反过来，如果它表现很差，或者根本没什么可分层处理的获益，我们会分别预期它为<em>负</em>或接近<em>零</em>。</p>
+<p><img src="https://grf-labs.github.io/grf/articles/rate_files/figure-html/toc-plot-autoc-1.png" alt="" width="700"></p>
+<p>这个面积可以用不同的方式来求和，从而得到不同的 RATE 指标。我们把上面的积分称为 "AUTOC"。它对"期望处理获益最大"的那段曲线下方区域赋予更大的权重。当非零处理效应集中在一小部分人群身上时，这种加权方式在检验"尖锐零假设"（AUTOC = 0）时很有力。</p>
+<p>求和面积的另一种方式，是用 <span class="math inline">\(q\)</span> 给曲线上每一点加权：<span class="math inline">\(\int_0^1 q \textrm{TOC}(q) dq\)</span>。我们把这个指标称为 "QINI"（Radcliffe, 2007）。这种加权意味着：对处理效应低的个体与处理效应高的个体赋予同样的权重。当非零处理效应在整个群体中分布得更弥散时，这种加权在检验"零效应"时往往更有检验功效。</p>
+<p>另外值得一提：Athey 和 Wager (2019) 中使用的"高低袋外 CATE 分位数"构造，也可以看作一种 RATE——它用 Qini 的恒等加权替代为在给定分位数 q 处的点质量（point mass）。</p>
+</div>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>怎么读 RATE？AUTOC 与 BLIP。</strong>本文主打的是 <strong>AUTOC</strong>（Area Under the TOC，TOC 下面积）——它对"受益最大的那一小撮人"所在曲线段给的权重更大，因此非常适合检验"有没有人特别受益"这种集中型异质性。与它配套的还有一种叫 <strong>BLIP</strong>（Best Linear Projection，最优线性投影）的思路：它不直接看排序，而是把估计出的 CATE 投影到一条最优线性方向上，再用经典的 Wald 检验来判断"沿这个方向的异质性是否显著不为零"。</p>
+<p>两者的分工可以这样理解：<strong>AUTOC 问的是"按你的规则优先治疗，是否真的比随机好"</strong>（侧重实用价值）；<strong>BLIP 问的是"处理效应到底有没有系统性地随协变量变化"</strong>（侧重统计显著性）。在 RATE 论文里，二者通常一起报告：AUTOC 显著为正说明定向治疗有价值，BLIP 显著说明异质性在统计上站得住脚。如果 AUTOC 接近 0 甚至为负，往往意味着你的优先规则并没有抓到真正的异质性。</p>
+</div>
+
+<div id="estimating-the-rate" class="section level2">
+<h2 class="hasAnchor" id="sec-估计-rate">
+<a href="#estimating-the-rate" class="anchor"></a>估计 RATE</h2>
+<p>上一节的概览是在一个理想化的设定下介绍的——我们假设自己已经知道了 <span class="math inline">\(\tau(X_i)\)</span>。实际操作中这些量必须被估计出来，而相应的<em>可行定义</em>（以 <span class="math inline">\(S(X_i) = \hat \tau(X_i)\)</span> 为例）是：TOC 曲线在测试集 <span class="math inline">\(X^{test}\)</span> 上，按照在训练集上估计出的 CATE 函数 <span class="math inline">\(\hat \tau^{train}(\cdot)\)</span> 对所有观测排序，再把由 <span class="math inline">\(\hat
+\tau^{train}(X^{test})\)</span> 优先出的前 q 比例个体，其 ATE 与总体 ATE 进行比较：</p>
+<p><span class="math display">\[\begin{equation*}
+\begin{split}
+&amp;\textrm{TOC}(q) = E[Y^{test}_i(1) - Y^{test}_i(0) \,|\, \hat
+\tau^{train}(X^{test}_i) \geq \hat F^{-1}(1 - q)]\\
+&amp; \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \  - E[Y^{test}_i(1) -
+Y^{test}_i(0)],
+\end{split}
+\end{equation*}\]</span></p>
+<p>其中 <span class="math inline">\(\hat F\)</span> 是 <span class="math inline">\(\hat
+\tau^{train}(X^{test})\)</span> 的经验分布函数。<code>rank_average_treatment_effect</code> 函数借助一个在独立评估集上训练的森林，给出 TOC 与 RATE 的 AIPW 风格<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>双稳健（doubly robust）估计量。关于该双稳健估计量及其相应中心极限定理的推导细节，参见 Yadlowsky 等人 (2025)。</p>
+</div>
+<div id="an-application-to-sprint-and-accord" class="section level2">
+<h2 class="hasAnchor" id="sec-sprint-与-accord-的一个应用">
+<a href="#an-application-to-sprint-and-accord" class="anchor"></a>SPRINT 与 ACCORD 的一个应用</h2>
+<p>为了说明 RATE，我们考虑一个来自医学场景的示例应用。两项大规模随机试验 <em>ACCORD</em>（ACCORD Study Group, 2010）和 <em>SPRINT</em>（SPRINT Research Group, 2015）在相似的人群上开展，都旨在衡量一种高血压治疗的疗效，却得出了不同的结论：SPRINT 发现治疗有效，而 ACCORD 发现治疗无效。对此已有多种解释被提出，这里我们特别关注其中一种：即差异源于<em>处理效应的异质性</em>这一假设（参见 Yadlowsky 等人, 2025 的参考文献）。</p>
+<p>这个假设在上节的基础上有一个可被检验的推论：如果确实存在显著的异质性，并且我们能用有力的 CATE 估计器有效地估计出它们，那么在 ACCORD 和 SPRINT 上估计出的 RATE 应当为正且显著。具体来说，我们的设定给出了如下"菜谱"：</p>
+<ol style="list-style-type: decimal">
+<li><p>在 ACCORD 与 SPRINT 数据上分别估计 CATE 函数 <span class="math inline">\(\hat
+\tau^{ACCORD}(\cdot)\)</span> 和 <span class="math inline">\(\hat
+\tau^{SPRINT}(\cdot)\)</span>。</p></li>
+<li><p>用 <span class="math inline">\(\hat
+\tau^{ACCORD}(X^{SPRINT})\)</span> 在 SPRINT 上评估 RATE，反之亦然：用 <span class="math inline">\(\hat
+\tau^{SPRINT}(X^{ACCORD})\)</span> 在 ACCORD 上评估 RATE。</p></li>
+<li><p>如果两个人群表现出相似的 HTE，那么有力的 CATE 估计器应当给出一个为正且显著的 RATE 估计。</p></li>
+</ol>
+<p>就本教程示例而言，我们并不分析原始的 SPRINT/ACCORD 数据，而是使用一份<em>较小的模拟</em>示例，存放于 <a href="https://github.com/grf-labs/grf/tree/master/r-package/grf/vignettes/data">GRF 代码仓库</a>。关于模拟器的细节，请参阅 <a href="https://github.com/som-shahlab/RATE-experiments/">论文配套仓库</a>。</p>
+<p>这项试验的结局数据是<em>右删失（right-censored）</em>的，因此我们不能用任何普通的"开箱即用"的 CATE 估计器来估计处理效应，而需要使用一个能考虑删失的估计器。为此我们使用 GRF 的 <code>causal_survival_forest</code>（详见 <a href="https://grf-labs.github.io/grf/reference/causal_survival_forest.html">文档</a>）。下图展示了这份模拟试验数据。</p>
+<div class="sourceCode" id="cb2"><pre class="r"><span class="co"># 读取半合成数据，来源 https://github.com/grf-labs/grf/tree/master/r-package/grf/vignettes</span>
+<span class="fu"><a href="https://rdrr.io/r/base/load.html">load</a></span>(<span class="st">"data/synthetic_SPRINT_ACCORD.RData"</span>)
+<span class="no">df</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span>(<span class="kw">Y</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="no">Y.sprint</span>, <span class="no">Y.accord</span>),
+                 <span class="kw">D</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="no">D.sprint</span>, <span class="no">D.accord</span>),
+                 <span class="kw">data</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="st">"synthetic-SPRINT"</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span>(<span class="no">Y.sprint</span>)),
+                          <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="st">"synthetic-ACCORD"</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span>(<span class="no">Y.accord</span>))))
+<span class="no">df</span>$<span class="no">Censored</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span>(<span class="no">df</span>$<span class="no">D</span>, <span class="kw">labels</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"Yes"</span>, <span class="st">"No"</span>))
+
+<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="no">df</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">x</span> <span class="kw">=</span> <span class="no">Y</span>, <span class="kw">fill</span> <span class="kw">=</span> <span class="no">Censored</span>)) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html">facet_wrap</a></span>(<span class="no">data</span> ~ <span class="no">.</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_histogram.html">geom_histogram</a></span>(<span class="kw">alpha</span> <span class="kw">=</span> <span class="fl">0.5</span>, <span class="kw">bins</span> <span class="kw">=</span> <span class="fl">30</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">xlab</a></span>(<span class="st">"Time until primary outcome (days)"</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ylab</a></span>(<span class="st">"Frequency"</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_classic</a></span>()</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/rate_files/figure-html/unnamed-chunk-2-1.png" alt="" width="700"></p>
+<p>SPRINT 试验因事件发生数过少而提前终止，因此删失率非常高。我们在本例中考虑的目标估计量（estimand）是条件于协变量的限制平均生存时间（RMST，restricted mean survival time）之差：</p>
+<p><span class="math display">\[\tau(x) = E[T(1) \land h - T(0) \land h
+\, | X = x],\]</span> 其中 <span class="math inline">\(T\)</span> 是（删失的）生存时间，我们把 <span class="math inline">\(h\)</span>（GRF 包中的 <code>horizon</code>）设为约 3 年，超过这个时点后 SPRINT 试验数据几乎不再出现事件。由于处理是随机化的，我们把倾向得分 <code>W.hat</code><span class="math inline">\(=E[W_i
+\, | X_i = x]\)</span> 设为接受治疗个体的平均比例。</p>
+<div class="sourceCode" id="cb3"><pre class="r"><span class="no">horizon</span> <span class="kw">&lt;-</span> <span class="fl">3</span> * <span class="fl">365</span>
+<span class="no">csf.sprint</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_survival_forest.html">causal_survival_forest</a></span>(<span class="no">X.sprint</span>, <span class="no">Y.sprint</span>, <span class="no">W.sprint</span>, <span class="no">D.sprint</span>,
+                                     <span class="kw">W.hat</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">W.sprint</span>), <span class="kw">target</span> <span class="kw">=</span> <span class="st">"RMST"</span>, <span class="kw">horizon</span> <span class="kw">=</span> <span class="no">horizon</span>)
+
+<span class="no">csf.accord</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_survival_forest.html">causal_survival_forest</a></span>(<span class="no">X.accord</span>, <span class="no">Y.accord</span>, <span class="no">W.accord</span>, <span class="no">D.accord</span>,
+                                     <span class="kw">W.hat</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">W.accord</span>), <span class="kw">target</span> <span class="kw">=</span> <span class="st">"RMST"</span>, <span class="kw">horizon</span> <span class="kw">=</span> <span class="no">horizon</span>)
+
+<span class="no">tau.hat.sprint</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">csf.accord</span>, <span class="no">X.sprint</span>)$<span class="no">predictions</span>
+<span class="no">tau.hat.accord</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">csf.sprint</span>, <span class="no">X.accord</span>)$<span class="no">predictions</span></pre></div>
+<p>在 SPRINT 与 ACCORD 上评估 RATE，分别使用来自 ACCORD 和 SPRINT 的估计 CATE 函数，得到</p>
+<div class="sourceCode" id="cb4"><pre class="r"><span class="no">rate.sprint</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.html">rank_average_treatment_effect</a></span>(<span class="no">csf.sprint</span>, <span class="no">tau.hat.sprint</span>, <span class="kw">target</span> <span class="kw">=</span> <span class="st">"AUTOC"</span>)
+<span class="no">rate.accord</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.html">rank_average_treatment_effect</a></span>(<span class="no">csf.accord</span>, <span class="no">tau.hat.accord</span>, <span class="kw">target</span> <span class="kw">=</span> <span class="st">"AUTOC"</span>)
+
+<span class="no">rate.sprint</span>
+<span class="co">#&gt;  estimate  std.err             target</span>
+<span class="co">#&gt;  4.762887 6.228628 priorities | AUTOC</span>
+<span class="no">rate.accord</span>
+<span class="co">#&gt;  estimate  std.err             target</span>
+<span class="co">#&gt;  2.244216 11.98976 priorities | AUTOC</span></pre></div>
+<div class="sourceCode" id="cb5"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/graphics/par.html">par</a></span>(<span class="kw">mfrow</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">1</span>, <span class="fl">2</span>))
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">rate.sprint</span>, <span class="kw">xlab</span> <span class="kw">=</span> <span class="st">"Treated fraction"</span>, <span class="kw">main</span> <span class="kw">=</span> <span class="st">"TOC evaluated on SPRINT\n tau(X) estimated from ACCORD"</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">rate.accord</span>, <span class="kw">xlab</span> <span class="kw">=</span> <span class="st">"Treated fraction"</span>, <span class="kw">main</span> <span class="kw">=</span> <span class="st">"TOC evaluated on ACCORD\n tau(X) estimated from SPRINT"</span>)</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/rate_files/figure-html/unnamed-chunk-5-1.png" alt="" width="700"></p>
+<p>在这个半合成例子中，两个 AUTOC 在常规显著性水平下都不显著，说明这两项试验中没有证据表明存在显著的 HTE。注意：这也可能归因于 a) 检验功效不足——也许样本量不够大，检测不出 HTE；b) HTE 估计器本身未能把它们检测出来；或者 c) 沿着可观测的预测变量，处理效应的异质性可以忽略不计。关于在 SPRINT 与 ACCORD 数据集上比较不同优先策略的更广泛分析，参见 Yadlowsky 等人 (2025)。</p>
+<p>关于不依赖单一训练/测试集切分的 RATE 估计替代方案，请参阅 <a href="https://grf-labs.github.io/grf/articles/rate_cv.html">这篇教程</a>。</p>
+</div>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>怎样判断"异质性"是不是真的存在？</strong>看到 RATE 不显著（如本例），先别急着下"没有异质性"的结论。RATE（以及 AUTOC/BLIP）给出的是带有标准误的估计，判读时要看三件事：</p>
+<p>① <strong>估计值的正负与大小</strong>：为正说明按规则优先治疗比随机好；为负或接近 0 则说明规则没抓到真实差异。<br>
+② <strong>标准误与置信区间</strong>：<code>std.err</code> 很大、置信区间跨过 0，意味着"检测不出差异"，可能是真没有，也可能是样本太小。<br>
+③ <strong>别把"不显著"等同于"不存在"</strong>。本文明确列出三种可能：a) 检验功效不足（样本量小）；b) 估计器本身偏弱、没把异质性挖出来；c) 可观测变量上的异质性确实可忽略。换句话说，RATE 告诉你的是"用现有的规则和样本，能不能证明异质性"——它是一道"证据"题，不是"真相"题。</p>
+</div>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>RATE 与医学"亚型发现"（subtype discovery）有什么关系？</strong>精准医学的核心诉求，就是找到"对某种治疗特别有效 / 特别无效"的患者亚型，从而实现个体化治疗。SPRINT 与 ACCORD 的"一有效一无效"矛盾，正是真实世界 heterogeneity 的典型写照：也许药对某一亚型有效、对另一亚型无效，把所有人混在一起算 ATE 就把信号抵消了。</p>
+<p>RATE 的价值正在于此：它不先验地规定"按哪个变量分层"，而是用数据驱动的 CATE 估计（因果森林）去学习优先规则，再用 RATE 客观地检验"这条规则是否真的能区分出获益不同的人群"。这比传统"先拍脑袋定一个亚组、再去看交互项 p 值"的做法更稳健，也更能避免"亚组分析多重比较导致假阳性"。从这个角度看，RATE 是连接"异质性存在性检验"与"可落地临床分型"之间的一座桥。</p>
+</div>
+
+<div id="funding" class="section level2">
+<h2 class="hasAnchor" id="sec-资助">
+<a href="#funding" class="anchor"></a>资助</h2>
+<p>GRF 中 RATE 功能的开发部分得到了美国国立卫生研究院（National Institutes of Health）5R01HL144555 号基金的资助。</p>
+</div>
+<div id="references" class="section level2">
+<h2 class="hasAnchor" id="sec-参考文献">
+<a href="#references" class="anchor"></a>参考文献</h2>
+<p>ACCORD Study Group. Effects of Intensive Blood-Pressure Control in Type 2 Diabetes Mellitus. <em>New England Journal of Medicine</em>, 362(17):1575–1585, 2010.</p>
+<p>Susan Athey and Stefan Wager. Estimating Treatment Effects with Causal Forests: An Application. <em>Observational Studies</em>, 5, 2019.</p>
+<p>Radcliffe, Nicholas. Using control groups to target on predicted lift: Building and assessing uplift model. <em>Direct Marketing Analytics Journal</em> (14-21), 2007.</p>
+<p>SPRINT Research Group. A Randomized Trial of Intensive Versus Standard Blood-Pressure Control. <em>New England Journal of Medicine</em>, 373(22):2103–2116, 2015.</p>
+<p>Yadlowsky, Steve, Scott Fleming, Nigam Shah, Emma Brunskill, and Stefan Wager. Evaluating Treatment Prioritization Rules via Rank-Weighted Average Treatment Effects. <em>Journal of the American Statistical Association</em>, 120(549), 2025 (<a href="https://arxiv.org/abs/2111.07966">arxiv</a>)</p>
+</div>
+<div class="footnotes footnotes-end-of-document">
+<hr>
+<ol>
+<li id="fn1"><p>AIPW = 增强型逆概率加权（Augmented Inverse-Propensity Weighting，Robins, Rotnitzky, and Zhao, 1994）<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+</ol>
+</div>
+  </div>
+
+  <div class="foot">
+    <p>本页为 <a href="https://grf-labs.github.io/grf/articles/rate.html" target="_blank" rel="noopener">grf 官方文档</a> 的中文译本，原文版权归 grf 作者所有，依据项目许可（MIT）翻译并注明出处，仅供学习交流。代码与公式保持原样，译文新增的「背景与解释」框为译者补充。</p>
+  </div>
+</div>
+<script src="search.js"></script>
+</body>
+</html>
