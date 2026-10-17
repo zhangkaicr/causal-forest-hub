@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme-default="light">
+<head>
+<script>
+(function(){
+  var KEY="share-theme", d=document.documentElement;
+  try{var saved=localStorage.getItem(KEY);}catch(e){var saved=null;}
+  d.setAttribute("data-theme", saved || d.getAttribute("data-theme-default") || "light");
+  document.addEventListener("DOMContentLoaded",function(){
+    var b=document.getElementById("theme-toggle"); if(!b) return;
+    function sync(){
+      var dark=d.getAttribute("data-theme")==="dark";
+      b.setAttribute("aria-pressed", dark?"true":"false");
+      b.setAttribute("title", dark?"切换到亮色主题 (Alt+T)":"切换到暗色主题 (Alt+T)");
+    }
+    b.addEventListener("click",function(){
+      var nxt=d.getAttribute("data-theme")==="dark"?"light":"dark";
+      d.setAttribute("data-theme",nxt);
+      try{localStorage.setItem(KEY,nxt);}catch(e){}
+      sync();
+    });
+    document.addEventListener("keydown",function(e){
+      if(e.altKey&&(e.key==="t"||e.key==="T")) b.click();
+    });
+    sync();
+  });
+})();
+</script>
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},
+options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《估计条件均值（回归森林）》 · grf 中文教程</title>
+<style>
+:root{
+  --bg:#f7f7f5; --card:#ffffff; --text:#2c2c2a; --muted:#6b6a65;
+  --line:#e3e2dd; --accent:#534ab7; --accent-soft:#eeedfe; --tag:#f1efe8;
+  --code-bg:#f4f3ef; --code-line:#e7e5df; --code-text:#2c2c2a;
+  --note-bg:#eef6ff; --note-line:#bcd6f5; --note-text:#1f3a5f;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  line-height:1.8; margin:0;
+}
+.wrap{max-width:840px;margin:0 auto;padding:32px 22px 80px}
+.topbar{margin-bottom:26px}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;
+  font-size:14px;font-weight:600}
+.back:hover{text-decoration:underline}
+h1{font-size:30px;font-weight:700;letter-spacing:-.3px;margin:6px 0 4px;line-height:1.3}
+.sub{color:var(--muted);font-size:14px;margin-bottom:8px}
+.sub a{color:var(--accent)}
+.lead{font-size:16px;color:var(--text);margin:14px 0 22px;border-left:3px solid var(--accent);
+  padding:4px 0 4px 16px;background:var(--accent-soft);border-radius:0 8px 8px 0}
+.content h2{font-size:22px;font-weight:700;margin:38px 0 12px;padding-bottom:6px;
+  border-bottom:1px solid var(--line)}
+.content h3{font-size:18px;font-weight:700;margin:26px 0 10px}
+.content h4{font-size:16px;font-weight:700;margin:20px 0 8px}
+.content p{margin:12px 0}
+.content ul,.content ol{margin:12px 0;padding-left:26px}
+.content li{margin:6px 0}
+.content a{color:var(--accent);text-decoration:none}
+.content a:hover{text-decoration:underline}
+.content img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;
+  margin:14px 0;background:#fff;display:block}
+.content table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+.content th,.content td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+.content th{background:var(--accent-soft);font-weight:600}
+.content tr:nth-child(even) td{background:var(--card)}
+.content blockquote{margin:16px 0;padding:12px 16px;border-left:3px solid var(--line);
+  color:var(--muted);background:var(--card);border-radius:0 8px 8px 0}
+.content code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13.5px;background:var(--code-bg);padding:2px 5px;border-radius:4px;color:var(--code-text)}
+pre{background:var(--code-bg);border:1px solid var(--code-line);border-radius:10px;
+  padding:16px 18px;overflow-x:auto;margin:16px 0;line-height:1.6}
+pre code{background:none;padding:0;font-size:13.5px;color:var(--code-text)}
+.content .sourceCode{margin:16px 0}
+/* downlit token coloring (light) */
+.content .co{color:#6a737d}
+.content .st{color:#032f62}
+.content .fu{color:#4078f2}
+.content .cf{color:#d73a49}
+.content .kw{color:#a626a4}
+.content .fl,.content .cn{color:#b9520f}
+.content .op{color:#444}
+/* 背景与解释 callout */
+.note{margin:18px 0;padding:14px 18px;border:1px solid var(--note-line);
+  background:var(--note-bg);border-radius:10px;color:var(--note-text)}
+.note .nt{display:inline-block;font-weight:700;font-size:13px;letter-spacing:.04em;
+  margin-bottom:6px;color:var(--accent)}
+.note p{margin:6px 0}
+.note code{background:rgba(255,255,255,.6)}
+.foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--muted)}
+.foot a{color:var(--accent)}
+
+:root[data-theme="dark"]{
+  --bg:#0f1116; --card:#181b22; --text:#e4e6ea; --muted:#98a0ac;
+  --line:#2a2f3a; --accent:#7aa2f7; --accent-soft:#16203a; --tag:#1e222b;
+  --code-bg:#0b0d12; --code-line:#1d2129; --code-text:#d7dae0;
+  --note-bg:#15233b; --note-line:#274168; --note-text:#bcd6f5;
+}
+:root[data-theme="dark"] .content th{background:var(--accent-soft)}
+:root[data-theme="dark"] .content tr:nth-child(even) td{background:#14171e}
+:root[data-theme="dark"] .content img{background:#0b0d12}
+:root[data-theme="dark"] .content .co{color:#7f8b9a}
+:root[data-theme="dark"] .content .st{color:#9ecbff}
+:root[data-theme="dark"] .content .fu{color:#82aaff}
+:root[data-theme="dark"] .content .cf{color:#f07178}
+:root[data-theme="dark"] .content .kw{color:#c792ea}
+:root[data-theme="dark"] .content .fl,.content .cn{color:#f78c6c}
+
+.tt{
+  position:fixed; top:16px; right:16px; z-index:9999; width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center; border-radius:50%;
+  cursor:pointer; color:var(--text); background:var(--card);
+  border:1px solid var(--line);
+  box-shadow:0 2px 10px rgba(0,0,0,.24); transition:transform .15s, border-color .15s, background .15s;
+}
+.tt:hover{transform:translateY(-1px); border-color:var(--accent)}
+.tt:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tt svg{display:none}
+[data-theme="dark"] .ico-sun{display:block}
+[data-theme="dark"] .ico-moon{display:none}
+[data-theme="light"] .ico-sun{display:none}
+[data-theme="light"] .ico-moon{display:block}
+@media(max-width:640px){.tt{top:10px; right:10px; width:36px; height:36px}}
+@media print{.tt{display:none}}
+</style>
+<style>
+/* ---- 全局搜索 ---- */
+.sbox{position:relative;display:inline-flex;align-items:center;margin-left:10px}
+.sbox input{background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);color:inherit;
+ border-radius:6px;padding:4px 9px 4px 25px;font-size:13px;width:170px;font-family:inherit;outline:none}
+.sbox input:focus{border-color:#4ea1ff;width:220px}
+.sbox .si{position:absolute;left:8px;font-size:12px;opacity:.6;pointer-events:none}
+.spanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:440px;max-width:88vw;
+ max-height:64vh;overflow-y:auto;z-index:900;background:var(--panel,#262c34);
+ border:1px solid var(--border,#3a4350);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.spanel.open{display:block}
+.spanel .sh{padding:7px 10px;font-size:12px;opacity:.7;border-bottom:1px solid var(--border,#3a4350);margin-bottom:4px}
+.spanel .sempty{font-size:12px;opacity:.65;padding:16px 10px;text-align:center}
+.sres{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:inherit}
+.sres:hover,.sres.sel{background:var(--panel2,#2e3540)}
+.sres .c{font-size:11px;opacity:.65;margin-bottom:1px}
+.sres .s{font-size:12px;color:#4ea1ff;margin-bottom:2px}
+.sres .t{font-size:13px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sres mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+.srch-main{margin:22px 0}
+.srch-main input{width:100%;background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);
+ color:inherit;border-radius:8px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none}
+.srch-main input:focus{border-color:#4ea1ff}
+.srch-meta{font-size:13px;opacity:.7;margin:12px 0 6px}
+.srch-list{list-style:none;margin:0;padding:0}
+.srch-list .sres{border:1px solid var(--border,#3a4350);margin:7px 0;padding:9px 11px}
+.srch-list .sres:hover{border-color:#4ea1ff}
+@media (max-width:640px){.sbox input{width:110px}.sbox input:focus{width:150px}.spanel{width:86vw}}
+</style><!--search.css-marker-->
+<style>
+/* ===== 因果森林知识库 · 统一导航 ===== */
+.cfh-nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:10px;
+ padding:8px 16px;background:var(--bg,#181b22);border-bottom:1px solid var(--line,#2a2f3a);
+ font-size:13.5px;flex-wrap:wrap}
+.cfh-nav .cfh-home{font-weight:600;color:var(--text,#e4e6ea);text-decoration:none;font-size:14px;
+ display:flex;align-items:center;gap:6px}
+.cfh-nav .cfh-home:hover{color:var(--accent,#7aa2f7)}
+.cfh-nav .cfh-crumb{color:var(--muted,#98a0ac);font-size:12.5px}
+.cfh-nav .cfh-crumb a{color:var(--accent,#7aa2f7);text-decoration:none}
+.cfh-nav .cfh-sp{flex:1}
+.cfh-nav select{background:var(--card,#181b22);color:var(--text,#e4e6ea);
+ border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:4px 8px;font-size:12.5px;
+ font-family:inherit;outline:none;cursor:pointer;max-width:230px}
+.cfh-nav select:hover{border-color:var(--accent,#7aa2f7)}
+.cfh-nav a.cfh-sbtn{color:var(--text,#e4e6ea);text-decoration:none;border:1px solid var(--line,#2a2f3a);
+ border-radius:6px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.cfh-nav a.cfh-sbtn:hover{border-color:var(--accent,#7aa2f7);color:var(--accent,#7aa2f7)}
+@media (max-width:700px){.cfh-nav .cfh-crumb{display:none}.cfh-nav select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="cfh-nav">
+<a class="cfh-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="cfh-crumb">/ <a href="index.html">grf 广义随机森林</a> / muhats</span>
+<span class="cfh-sp"></span>
+<select onchange="if(this.value)location.href=this.value" aria-label="切换库">
+<option value="grf-cn/index.html" selected>grf 广义随机森林</option>
+<option value="policytree-cn/index.html">policytree 策略树</option>
+<option value="surefq/surefq.html">SURE / QRF 充分表示</option>
+<option value="tidyhte-cn/index.html">tidyhte 优雅的 HTE</option>
+<option value="metalearner-cn/index.html">Meta-Learner 元学习器</option>
+<option value="model4you-cn/index.html">model4you 个体化治疗</option>
+<option value="evalITR-cn/index.html">evalITR 规则评估</option>
+<option value="rj-dlc-cn/index.html">DeepLearningCausal</option>
+<option value="survlearners-cn/index.html">survlearners 生存 HTE</option>
+<option value="bocf-cn/index.html">BOCF 基线观测结转</option>
+<option value="hte-course/index.html">HTE 公开课讲义</option>
+<option value="causal-tools-cn/index.html">因果推断三件工具</option>
+<option value="imputeTS-cn/index.html">imputeTS 缺失填补</option>
+</select>
+<a class="cfh-sbtn" href="search.html">&#128269; 搜索本页</a>
+</div>
+<button id="theme-toggle" class="tt" type="button" aria-label="切换明暗主题" title="切换明暗主题 (Alt+T)">
+  <svg class="ico-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7"/></svg>
+  <svg class="ico-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.2 8.2 0 1 0 10.5 10.5z"/></svg>
+</button>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">&larr; grf 教程总览</a><span class="sbox"><span class="si">&#128269;</span>
+<input type="search" id="s-q" placeholder="搜索本站…（按 /）" autocomplete="off" aria-label="搜索本站">
+<span class="spanel" id="s-panel"></span></span>
+  </div>
+  <h1>《估计条件均值（回归森林）》</h1>
+  <p class="sub">原文：<a href="https://grf-labs.github.io/grf/articles/muhats.html" target="_blank" rel="noopener">Estimating conditional means</a>（英文）&nbsp;·&nbsp;grf 官方文档中文译本</p>
+
+  <div class="content">
+
+    
+    
+
+    
+
+    
+<div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">grf</span>)</pre></div>
+<div id="conditional-means-and-average-treatment-estimates" class="section level2">
+<h2 class="hasAnchor" id="sec-条件均值与平均处理效应估计">
+<a href="#conditional-means-and-average-treatment-estimates" class="anchor"></a>条件均值与平均处理效应估计</h2>
+<p>grf 基于一种<strong>双稳健（doubly robust）</strong>校正来计算平均处理效应（average treatment effect），由此得到"增广逆概率加权平均处理效应"（augmented inverse-propensity weighted average treatment effect，简称 AIPW）。对于一个处理为二分类（binary treatment）的因果森林（causal forest），其精确的表达式如下（Athey 与 Wager，2019 年第 (8) 式）：</p>
+<p><span class="math inline">\(\hat \Gamma_i = \hat \tau^{(-i)}(X_i) +
+\frac{W_i - \hat e^{(-i)}(X_i)}{\hat e^{(-i)}(X_i)[1 - \hat
+e^{(-i)}(X_i)]} [Y_i - \hat \mu^{(-i)}(X_i, W_i)]\)</span></p>
+<p>其中：</p>
+<ol style="list-style-type: decimal">
+<li><p><span class="math inline">\(\hat \tau^{(-i)}(X_i)\)</span> 是处理效应的估计值（由 grf 的 <code>predict</code> 方法返回）。用潜在结果（potential outcomes）记号来写，它按定义就是 <span class="math inline">\(E[Y_i(1) - Y_i(0) | X_i] = \mu(X_i, 0) -
+\mu(X_i, 1)\)</span>。</p></li>
+<li><p><span class="math inline">\(W_i\)</span> 是个体 <span class="math inline">\(i\)</span> 的二分类处理指示变量（0/1）。</p></li>
+<li><p><span class="math inline">\(\hat e^{(-i)}(X_i)\)</span> 是个体 <span class="math inline">\(i\)</span> 的倾向得分（propensity score），即接受处理的概率；默认情况下，它由一个拟合处理分配变量的回归森林（regression forest）来估计。</p></li>
+<li><p><span class="math inline">\(Y_i\)</span> 是个体 <span class="math inline">\(i\)</span> 实际观测到的结局（realized outcome）。</p></li>
+<li><p><span class="math inline">\(\hat \mu^{(-i)}(X_i, W_i) = \hat
+m^{(-i)}(X_i) + [W_i - \hat e^{(-i)}(X_i)] \hat
+\tau^{(-i)}(X_i)\)</span> 是个体 <span class="math inline">\(i\)</span> 实际条件均值（realized conditional mean）的估计，其中 <span class="math inline">\(m(X_i) = E[Y | X_i]\)</span>（默认情况下，它用一个回归森林来估计，并在处理变量上做了边缘化（marginalizing）处理）。</p></li>
+</ol>
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>什么是"条件均值"？</strong> 在因果推断里，我们常关心"给定一组协变量（covariate）X 时，结局 Y 的平均取值"。这就是条件均值 <code>m(X) = E[Y | X]</code>。它和"预测"很像——给定病人的年龄、病情、合并症（X），预测他的血压（Y）。关键在于：条件均值不区分处理与否，它把整个人群（不管吃没吃药）混在一起估计；而后面要讲的 <code>μ(X, 0)</code>、<code>μ(X, 1)</code> 则是分别针对"不吃药"和"吃药"两种情况的条件均值。医学研究中，前者常用于风险分层/预后建模，后者才是计算处理效应所需的反事实（counterfactual）量。</p>
+</div>
+<p>上标 <span class="math inline">\(-i\)</span> 表示<strong>交叉拟合（cross-fitting）</strong>，也就是说，该估计是在把第 <span class="math inline">\(i\)</span> 条观测"留出"（leave out）的情况下计算出来的。对于袋外（out-of-bag，OOB）森林估计而言，这一点是天然成立的。</p>
+<p>要理解最后一个式子是怎么来的，注意到我们有：</p>
+<ol start="6" style="list-style-type: decimal">
+<li>
+<p><span class="math inline">\(m(X_i)\)</span></p>
+<p><span class="math inline">\(= E[Y | X_i]\)</span></p>
+<p><span class="math inline">\(= E[Y_i(0) | X_i] + E[W_i [Y_i(1) -
+Y_i(0)] | X_i]\)</span></p>
+<p><span class="math inline">\(= \mu(X_i, 0) + e(X_i)
+\tau(X_i)\)</span></p>
+</li>
+</ol>
+<p>其中最后一行成立，依据的是<strong>无混杂性（unconfoundedness）</strong>假设——在给定协变量集合 <span class="math inline">\(X_i\)</span> 的条件下，潜在结果与处理分配相互独立。</p>
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>为什么需要"无混杂"假设？</strong> 第 6 步把总体条件均值 <code>m(X)</code> 拆成了"未处理时的均值 μ(X, 0)"＋"因为处理带来的增量 e(X)·τ(X)"。这个拆分的合法性，依赖于一个核心假设：在调整了 X 之后，是否接受处理就完全是"随机的"（即潜在结果 Y(0)、Y(1) 与处理 W 独立）。在观测性医学研究中，这通常意味着 X 已经包含了所有同时影响"是否被治疗"和"结局"的混杂因素。如果该假设不成立（比如病情更重的病人更可能被用药，而 X 里没包含病情严重度），那么这里的 μ 和条件均值估计就会有偏——这也是为什么真实研究里要反复推敲"有没有遗漏的混杂变量"。</p>
+</div>
+<p>由此，我们便得到了如下反事实响应曲面（counterfactual response surfaces）的表达式：</p>
+<ol start="7" style="list-style-type: decimal">
+<li><p><span class="math inline">\(\mu(X_i, 0) = m(X_i) - e(X_i)
+\tau(X_i)\)</span></p></li>
+<li><p><span class="math inline">\(\mu(X_i, 1) = \tau(X_i) + \mu(X_i, 0)
+= m(X_i) + [1 - e(X_i)] \tau(X_i)\)</span></p></li>
+</ol>
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>这套公式和因果森林是什么关系？</strong> 因果森林本身只直接给出处理效应 τ(X)（即 <code>predict(c.forest)</code> 的输出）。但很多时候我们还需要"若不吃药，这群病人的平均结局是多少""若吃药又是多少"——也就是 μ(X, 0) 和 μ(X, 1)。第 7、8 式告诉我们，它们可以由因果森林的 τ 加上两个回归森林（一个估 m(X)=E[Y|X]，一个估倾向得分 e(X)）<strong>拼出来</strong>，而不必单独再跑一个模型。这正是 grf 内置 ATE 函数的底层思路，也是下文代码手动复现的逻辑。把它拆开有助于理解：因果森林估计效应，回归森林估计"基线水平"，二者配合才得到完整的条件均值/反事实结局。</p>
+</div>
+<p>上述这些量都由 grf 内置的 ATE 函数自动计算。下面这段代码演示了如何手动取得条件均值 <span class="math inline">\(E[Y | X_i,
+W_i]\)</span> 的估计：</p>
+<div class="sourceCode" id="cb2"><pre class="r"><span class="no">n</span> <span class="kw">&lt;-</span> <span class="fl">250</span>
+<span class="no">p</span> <span class="kw">&lt;-</span> <span class="fl">5</span>
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+<span class="no">W</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="fl">0.5</span>)
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmax</a></span>(<span class="no">X</span>[, <span class="fl">1</span>], <span class="fl">0</span>) * <span class="no">W</span> + <span class="no">X</span>[, <span class="fl">2</span>] + <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="no">X</span>[, <span class="fl">3</span>], <span class="fl">0</span>) + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+<span class="co"># 这些是 m(X) = E[Y | X] 的估计</span>
+<span class="no">forest.Y</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/regression_forest.html">regression_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>)
+<span class="no">Y.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest.Y</span>)$<span class="no">predictions</span>
+
+<span class="co"># 这些是倾向得分 E[W | X] 的估计</span>
+<span class="no">forest.W</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/regression_forest.html">regression_forest</a></span>(<span class="no">X</span>, <span class="no">W</span>)
+<span class="no">W.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest.W</span>)$<span class="no">predictions</span>
+
+<span class="no">c.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>, <span class="no">Y.hat</span>, <span class="no">W.hat</span>)
+<span class="no">tau.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">c.forest</span>)$<span class="no">predictions</span>
+
+<span class="co"># E[Y | X, W = 0]</span>
+<span class="no">mu.hat.0</span> <span class="kw">&lt;-</span> <span class="no">Y.hat</span> - <span class="no">W.hat</span> * <span class="no">tau.hat</span>
+<span class="co"># E[Y | X, W = 1]</span>
+<span class="no">mu.hat.1</span> <span class="kw">&lt;-</span> <span class="no">Y.hat</span> + (<span class="fl">1</span> - <span class="no">W.hat</span>) * <span class="no">tau.hat</span></pre></div>
+<p>这段代码里，<code>regression_forest(X, Y)</code> 估计的是<strong>总体</strong>条件均值 m(X)；<code>regression_forest(X, W)</code> 估计的是倾向得分；再用二者与因果森林的 <code>tau.hat</code>，按公式拼出 <code>μ(X, 0)</code> 和 <code>μ(X, 1)</code>。注意这里用的是 <code>Y.hat</code> / <code>W.hat</code> 作为因果森林的"honest"估计输入——把结局和倾向的森林预测先算好再喂给因果森林，正是提升稳健性的标准做法。</p>
+</div>
+<div id="references" class="section level2">
+<h2 class="hasAnchor" id="sec-参考文献">
+<a href="#references" class="anchor"></a>参考文献</h2>
+<p>Athey, Susan 与 Stefan Wager。Estimating Treatment Effects with
+Causal Forests: An Application（用因果森林估计处理效应：一个应用）。<em>Observational Studies</em>，5，2019。
+(<a href="https://arxiv.org/abs/1902.07409">arxiv</a>)</p>
+</div>
+  
+  </div>
+
+  <div class="foot">
+    <p>本页为 <a href="https://grf-labs.github.io/grf/articles/muhats.html" target="_blank" rel="noopener">grf 官方文档</a> 的中文译本，原文版权归 grf 作者所有，依据项目许可（MIT）翻译并注明出处，仅供学习交流。代码与公式保持原样，译文新增的「背景与解释」框为译者补充。</p>
+  </div>
+</div>
+<script src="search.js"></script>
+</body>
+</html>
