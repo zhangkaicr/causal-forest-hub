@@ -1,0 +1,136 @@
+
+    
+
+    
+    
+<div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">grf</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">policytree</span>)</pre></div>
+<p>Using GRF it is possible to non-parametrically estimate a CATE
+function <span class="math inline">\(\hat \tau(\cdot)\)</span>, then use
+this as a treatment assignment policy, by for example treating units
+where the predictions <span class="math inline">\(\hat
+\tau(X_i)\)</span> are positive. Let’s denote our policy by the symbol
+<span class="math inline">\(\pi\)</span>, which is a function that takes
+as input covariates <span class="math inline">\(X_i\)</span> describing
+characteristics of a unit and outputs a treatment decision where <span class="math inline">\(0\)</span> means don’t treat and <span class="math inline">\(1\)</span> treat, i.e.</p>
+<p><span class="math display">\[
+\pi(\cdot) \mapsto \{0, 1\}
+\]</span></p>
+<p>If we are using our estimated CATEs to assign treatment we may
+express <span class="math inline">\(\pi\)</span> simply as <span class="math inline">\(\pi(X_i) = 1(\hat \tau(X_i) &gt; 0)\)</span>. The
+vignette on <em>Qini curves</em> gives some examples of metrics one can
+construct on a held-out test set in order to evaluate this policy, as
+well as how to incorporate budget constraints.</p>
+<p>In some settings, assigning treatment in this manner may be
+undesirable. Consider for example a welfare program that gives people
+job training skills. Deciding who to assign this program to based on a
+complicated black-box CATE function may be undesirable if policymakers
+want transparent criteria for who should be eligible for the program.
+Likewise, it may be problematic for potential recipients to learn they
+were denied a beneficial job training program solely because a black-box
+algorithm predicted they would not benefit sufficiently. In settings
+like these, we are interested in <em>interpretable</em> policies. I.e.,
+we want a simple rule that looks at a unit’s characteristics <span class="math inline">\(X_i\)</span> and gives a treatment decision. An
+example could be “Alice is assigned treatment because she is under 25
+and lives in a disadvantaged neighborhood”. An example of such an
+interpretable policy would be the policy embedded in a shallow decision
+tree.</p>
+<div id="tree-based-treatment-assignment-rules" class="section level2">
+<h2 class="hasAnchor">
+<a href="#tree-based-treatment-assignment-rules" class="anchor"></a>Tree-based treatment assignment rules</h2>
+<p>In order to learn a policy <span class="math inline">\(\pi\)</span>
+from experimental or observational data, we need an efficient scoring
+rule, and an algorithm to find trees. The approach where we use “doubly
+robust” scoring and decision trees that optimize empirical welfare, is
+implemented in the package <a href="https://github.com/grf-labs/policytree">policytree</a>. In order
+to learn a <em>good</em> shallow decision tree it is important to learn
+the branching decisions right at each level. Typical approaches to
+decision tree learning are based on greedy criteria (such as “CART”) and
+may not necessarily learn globally optimal branching decisions, the
+<code>policytree</code> package takes a tree learning approach that is
+more computationally involved but finds a globally optimal decision
+tree.<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a></p>
+<p>The brief example below demonstrates learning a depth-2 tree using
+doubly robust scores obtained from a causal forest. The function
+<code>policy_tree</code> and <code>double_robust_scores</code> belong to
+the <code>policytree</code> package.</p>
+<div class="sourceCode" id="cb2"><pre class="r"><span class="co"># Fit a causal forest.</span>
+<span class="no">n</span> <span class="kw">&lt;-</span> <span class="fl">15000</span>
+<span class="no">p</span> <span class="kw">&lt;-</span> <span class="fl">5</span>
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>), <span class="fl">2</span>)
+<span class="no">W</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="fl">1</span> / (<span class="fl">1</span> + <span class="fu"><a href="https://rdrr.io/r/base/Log.html">exp</a></span>(<span class="no">X</span>[, <span class="fl">3</span>])))
+<span class="no">tau</span> <span class="kw">&lt;-</span> <span class="fl">1</span> / (<span class="fl">1</span> + <span class="fu"><a href="https://rdrr.io/r/base/Log.html">exp</a></span>((<span class="no">X</span>[, <span class="fl">1</span>] + <span class="no">X</span>[, <span class="fl">2</span>]) / <span class="fl">2</span>)) - <span class="fl">0.5</span>
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="no">X</span>[, <span class="fl">3</span>] + <span class="no">W</span> * <span class="no">tau</span> + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+<span class="no">c.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+
+<span class="co"># Compute doubly robust scores.</span>
+<span class="co"># (In observational settings it is usually a good idea to plot the estimated propensity</span>
+<span class="co"># scores (`hist(c.forest$W.hat)`) to ensure we have sufficient overlap)</span>
+<span class="no">dr.scores</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/policytree/man/double_robust_scores.html">double_robust_scores</a></span>(<span class="no">c.forest</span>)
+<span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(<span class="no">dr.scores</span>)
+<span class="co">#&gt;         control    treated</span>
+<span class="co">#&gt; [1,] -0.1539377  0.5839477</span>
+<span class="co">#&gt; [2,]  0.1551353  2.3079034</span>
+<span class="co">#&gt; [3,] -0.5674259 -0.5864615</span>
+<span class="co">#&gt; [4,]  0.6370039 -1.2796316</span>
+<span class="co">#&gt; [5,]  2.0428953  0.5937339</span>
+<span class="co">#&gt; [6,] -3.6164526 -0.2545393</span>
+
+<span class="co"># Fit a depth-2 tree on the doubly robust scores.</span>
+<span class="no">tree</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/policytree/man/policy_tree.html">policy_tree</a></span>(<span class="no">X</span>, <span class="no">dr.scores</span>, <span class="kw">depth</span> <span class="kw">=</span> <span class="fl">2</span>)
+
+<span class="co"># Print and plot the tree - action 1 corresponds to control, and 2 treated.</span>
+<span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span>(<span class="no">tree</span>)
+<span class="co">#&gt; policy_tree object </span>
+<span class="co">#&gt; Tree depth:  2 </span>
+<span class="co">#&gt; Actions:  1: control 2: treated </span>
+<span class="co">#&gt; Variable splits: </span>
+<span class="co">#&gt; (1) split_variable: X1  split_value: -0.73 </span>
+<span class="co">#&gt;   (2) split_variable: X2  split_value: 1.42 </span>
+<span class="co">#&gt;     (4) * action: 2 </span>
+<span class="co">#&gt;     (5) * action: 1 </span>
+<span class="co">#&gt;   (3) split_variable: X2  split_value: -0.36 </span>
+<span class="co">#&gt;     (6) * action: 2 </span>
+<span class="co">#&gt;     (7) * action: 1</span>
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">tree</span>)</pre></div>
+<div class="grViz html-widget html-fill-item" id="htmlwidget-f2ae413a99db091538b4" style="width:700px;height:432.632880098888px;"></div>
+<script type="application/json" data-for="htmlwidget-f2ae413a99db091538b4">{"x":{"diagram":"digraph nodes { \n node [shape=box] ;\n0 [label=\" X1 <= -0.73 \"] ;\n0 -> 1 [labeldistance=2.5, labelangle=45, headlabel=\"True\"];\n0 -> 2 [labeldistance=2.5, labelangle=-45, headlabel=\"False\"]\n1 [label=\" X2 <= 1.42 \"] ;\n1 -> 3  ;\n1 -> 4  ;\n3  [shape=box,style=filled,color=\".7 .3 1.0\" , label=\" leaf node\n action = 2 \"];\n4  [shape=box,style=filled,color=\".7 .3 1.0\" , label=\" leaf node\n action = 1 \"];\n2 [label=\" X2 <= -0.36 \"] ;\n2 -> 5  ;\n2 -> 6  ;\n5  [shape=box,style=filled,color=\".7 .3 1.0\" , label=\" leaf node\n action = 2 \"];\n6  [shape=box,style=filled,color=\".7 .3 1.0\" , label=\" leaf node\n action = 1 \"];\n}","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script><p>The 45-degree line in the following plot separates units with a
+negative effect (above the line), and a positive effect (below the
+line).</p>
+<div class="sourceCode" id="cb3"><pre class="r"><span class="co"># Predict the treatment assignment {1, 2} for each sample.</span>
+<span class="no">predicted</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">tree</span>, <span class="no">X</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">X</span>[, <span class="fl">1</span>], <span class="no">X</span>[, <span class="fl">2</span>], <span class="kw">col</span> <span class="kw">=</span> <span class="no">predicted</span>)
+<span class="fu"><a href="https://rdrr.io/r/graphics/legend.html">legend</a></span>(<span class="st">"topright"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"control"</span>, <span class="st">"treat"</span>), <span class="kw">col</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">1</span>, <span class="fl">2</span>), <span class="kw">pch</span> <span class="kw">=</span> <span class="fl">19</span>)
+<span class="fu"><a href="https://rdrr.io/r/graphics/abline.html">abline</a></span>(<span class="fl">0</span>, -<span class="fl">1</span>, <span class="kw">lty</span> <span class="kw">=</span> <span class="fl">2</span>)</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/policy_learning_files/figure-html/unnamed-chunk-3-1.png" alt="" width="700"></p>
+<p>Alternatively, <code>predict</code> can return the leaf node each
+sample falls into, which we can use to calculate statistics, such as
+average treatment effects, for each group (note that to avoid
+overfitting, statistics like these should be computed on a held-out test
+set separate from the one used for learning the policy, and can thus
+serve as a practical way do to train/test evaluation of a fit
+policy).</p>
+<div class="sourceCode" id="cb4"><pre class="r"><span class="no">node.id</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">tree</span>, <span class="no">X</span>, <span class="kw">type</span> <span class="kw">=</span> <span class="st">"node.id"</span>)
+
+<span class="co"># The value of all arms (along with SEs) by each leaf node.</span>
+<span class="no">values</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span>(<span class="no">dr.scores</span>, <span class="kw">by</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="kw">leaf.node</span> <span class="kw">=</span> <span class="no">node.id</span>),
+                    <span class="kw">FUN</span> <span class="kw">=</span> <span class="kw">function</span>(<span class="no">x</span>) <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="kw">mean</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">x</span>), <span class="kw">se</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/sd.html">sd</a></span>(<span class="no">x</span>) / <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span>(<span class="no">x</span>))))
+<span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span>(<span class="no">values</span>, <span class="kw">digits</span> <span class="kw">=</span> <span class="fl">2</span>)
+<span class="co">#&gt;   leaf.node control.mean control.se treated.mean treated.se</span>
+<span class="co">#&gt; 1         4       -0.103      0.034        0.177      0.034</span>
+<span class="co">#&gt; 2         5        0.184      0.111        0.043      0.100</span>
+<span class="co">#&gt; 3         6       -0.022      0.028        0.071      0.029</span>
+<span class="co">#&gt; 4         7        0.020      0.022       -0.158      0.022</span></pre></div>
+<p>For more statistical details, please see the chapter on <em>Policy
+Learning</em> in <a href="https://web.stanford.edu/~swager/causal_inf_book.pdf">Causal
+Inference: A Statistical Learning Approach</a>.</p>
+</div>
+<div class="footnotes footnotes-end-of-document">
+<hr>
+<ol>
+<li id="fn1"><p>A description of the tree search algorithm is given in
+<a href="https://joss.theoj.org/papers/10.21105/joss.02232.pdf">this
+paper</a>.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+</ol>
+</div>
+  
