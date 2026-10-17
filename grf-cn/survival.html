@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme-default="light">
+<head>
+<script>
+(function(){
+  var KEY="share-theme", d=document.documentElement;
+  try{var saved=localStorage.getItem(KEY);}catch(e){var saved=null;}
+  d.setAttribute("data-theme", saved || d.getAttribute("data-theme-default") || "light");
+  document.addEventListener("DOMContentLoaded",function(){
+    var b=document.getElementById("theme-toggle"); if(!b) return;
+    function sync(){
+      var dark=d.getAttribute("data-theme")==="dark";
+      b.setAttribute("aria-pressed", dark?"true":"false");
+      b.setAttribute("title", dark?"切换到亮色主题 (Alt+T)":"切换到暗色主题 (Alt+T)");
+    }
+    b.addEventListener("click",function(){
+      var nxt=d.getAttribute("data-theme")==="dark"?"light":"dark";
+      d.setAttribute("data-theme",nxt);
+      try{localStorage.setItem(KEY,nxt);}catch(e){}
+      sync();
+    });
+    document.addEventListener("keydown",function(e){
+      if(e.altKey&&(e.key==="t"||e.key==="T")) b.click();
+    });
+    sync();
+  });
+})();
+</script>
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},
+options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>含时间事件的因果森林（生存结局） · grf 中文教程</title>
+<style>
+:root{
+  --bg:#f7f7f5; --card:#ffffff; --text:#2c2c2a; --muted:#6b6a65;
+  --line:#e3e2dd; --accent:#534ab7; --accent-soft:#eeedfe; --tag:#f1efe8;
+  --code-bg:#f4f3ef; --code-line:#e7e5df; --code-text:#2c2c2a;
+  --note-bg:#eef6ff; --note-line:#bcd6f5; --note-text:#1f3a5f;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  line-height:1.8; margin:0;
+}
+.wrap{max-width:840px;margin:0 auto;padding:32px 22px 80px}
+.topbar{margin-bottom:26px}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;
+  font-size:14px;font-weight:600}
+.back:hover{text-decoration:underline}
+h1{font-size:30px;font-weight:700;letter-spacing:-.3px;margin:6px 0 4px;line-height:1.3}
+.sub{color:var(--muted);font-size:14px;margin-bottom:8px}
+.sub a{color:var(--accent)}
+.lead{font-size:16px;color:var(--text);margin:14px 0 22px;border-left:3px solid var(--accent);
+  padding:4px 0 4px 16px;background:var(--accent-soft);border-radius:0 8px 8px 0}
+.content h2{font-size:22px;font-weight:700;margin:38px 0 12px;padding-bottom:6px;
+  border-bottom:1px solid var(--line)}
+.content h3{font-size:18px;font-weight:700;margin:26px 0 10px}
+.content h4{font-size:16px;font-weight:700;margin:20px 0 8px}
+.content p{margin:12px 0}
+.content ul,.content ol{margin:12px 0;padding-left:26px}
+.content li{margin:6px 0}
+.content a{color:var(--accent);text-decoration:none}
+.content a:hover{text-decoration:underline}
+.content img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;
+  margin:14px 0;background:#fff;display:block}
+.content table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+.content th,.content td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+.content th{background:var(--accent-soft);font-weight:600}
+.content tr:nth-child(even) td{background:var(--card)}
+.content blockquote{margin:16px 0;padding:12px 16px;border-left:3px solid var(--line);
+  color:var(--muted);background:var(--card);border-radius:0 8px 8px 0}
+.content code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13.5px;background:var(--code-bg);padding:2px 5px;border-radius:4px;color:var(--code-text)}
+pre{background:var(--code-bg);border:1px solid var(--code-line);border-radius:10px;
+  padding:16px 18px;overflow-x:auto;margin:16px 0;line-height:1.6}
+pre code{background:none;padding:0;font-size:13.5px;color:var(--code-text)}
+.content .sourceCode{margin:16px 0}
+/* downlit token coloring (light) */
+.content .co{color:#6a737d}
+.content .st{color:#032f62}
+.content .fu{color:#4078f2}
+.content .cf{color:#d73a49}
+.content .kw{color:#a626a4}
+.content .fl,.content .cn{color:#b9520f}
+.content .op{color:#444}
+/* 背景与解释 callout */
+.note{margin:18px 0;padding:14px 18px;border:1px solid var(--note-line);
+  background:var(--note-bg);border-radius:10px;color:var(--note-text)}
+.note .nt{display:inline-block;font-weight:700;font-size:13px;letter-spacing:.04em;
+  margin-bottom:6px;color:var(--accent)}
+.note p{margin:6px 0}
+.note code{background:rgba(255,255,255,.6)}
+.foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--muted)}
+.foot a{color:var(--accent)}
+
+:root[data-theme="dark"]{
+  --bg:#0f1116; --card:#181b22; --text:#e4e6ea; --muted:#98a0ac;
+  --line:#2a2f3a; --accent:#7aa2f7; --accent-soft:#16203a; --tag:#1e222b;
+  --code-bg:#0b0d12; --code-line:#1d2129; --code-text:#d7dae0;
+  --note-bg:#15233b; --note-line:#274168; --note-text:#bcd6f5;
+}
+:root[data-theme="dark"] .content th{background:var(--accent-soft)}
+:root[data-theme="dark"] .content tr:nth-child(even) td{background:#14171e}
+:root[data-theme="dark"] .content img{background:#0b0d12}
+:root[data-theme="dark"] .content .co{color:#7f8b9a}
+:root[data-theme="dark"] .content .st{color:#9ecbff}
+:root[data-theme="dark"] .content .fu{color:#82aaff}
+:root[data-theme="dark"] .content .cf{color:#f07178}
+:root[data-theme="dark"] .content .kw{color:#c792ea}
+:root[data-theme="dark"] .content .fl,.content .cn{color:#f78c6c}
+
+.tt{
+  position:fixed; top:16px; right:16px; z-index:9999; width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center; border-radius:50%;
+  cursor:pointer; color:var(--text); background:var(--card);
+  border:1px solid var(--line);
+  box-shadow:0 2px 10px rgba(0,0,0,.24); transition:transform .15s, border-color .15s, background .15s;
+}
+.tt:hover{transform:translateY(-1px); border-color:var(--accent)}
+.tt:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tt svg{display:none}
+[data-theme="dark"] .ico-sun{display:block}
+[data-theme="dark"] .ico-moon{display:none}
+[data-theme="light"] .ico-sun{display:none}
+[data-theme="light"] .ico-moon{display:block}
+@media(max-width:640px){.tt{top:10px; right:10px; width:36px; height:36px}}
+@media print{.tt{display:none}}
+</style>
+<style>
+/* ---- 全局搜索 ---- */
+.sbox{position:relative;display:inline-flex;align-items:center;margin-left:10px}
+.sbox input{background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);color:inherit;
+ border-radius:6px;padding:4px 9px 4px 25px;font-size:13px;width:170px;font-family:inherit;outline:none}
+.sbox input:focus{border-color:#4ea1ff;width:220px}
+.sbox .si{position:absolute;left:8px;font-size:12px;opacity:.6;pointer-events:none}
+.spanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:440px;max-width:88vw;
+ max-height:64vh;overflow-y:auto;z-index:900;background:var(--panel,#262c34);
+ border:1px solid var(--border,#3a4350);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.spanel.open{display:block}
+.spanel .sh{padding:7px 10px;font-size:12px;opacity:.7;border-bottom:1px solid var(--border,#3a4350);margin-bottom:4px}
+.spanel .sempty{font-size:12px;opacity:.65;padding:16px 10px;text-align:center}
+.sres{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:inherit}
+.sres:hover,.sres.sel{background:var(--panel2,#2e3540)}
+.sres .c{font-size:11px;opacity:.65;margin-bottom:1px}
+.sres .s{font-size:12px;color:#4ea1ff;margin-bottom:2px}
+.sres .t{font-size:13px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sres mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+.srch-main{margin:22px 0}
+.srch-main input{width:100%;background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);
+ color:inherit;border-radius:8px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none}
+.srch-main input:focus{border-color:#4ea1ff}
+.srch-meta{font-size:13px;opacity:.7;margin:12px 0 6px}
+.srch-list{list-style:none;margin:0;padding:0}
+.srch-list .sres{border:1px solid var(--border,#3a4350);margin:7px 0;padding:9px 11px}
+.srch-list .sres:hover{border-color:#4ea1ff}
+@media (max-width:640px){.sbox input{width:110px}.sbox input:focus{width:150px}.spanel{width:86vw}}
+</style><!--search.css-marker-->
+<style>
+/* ===== 因果森林知识库 · 统一导航 ===== */
+.cfh-nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:10px;
+ padding:8px 16px;background:var(--bg,#181b22);border-bottom:1px solid var(--line,#2a2f3a);
+ font-size:13.5px;flex-wrap:wrap}
+.cfh-nav .cfh-home{font-weight:600;color:var(--text,#e4e6ea);text-decoration:none;font-size:14px;
+ display:flex;align-items:center;gap:6px}
+.cfh-nav .cfh-home:hover{color:var(--accent,#7aa2f7)}
+.cfh-nav .cfh-crumb{color:var(--muted,#98a0ac);font-size:12.5px}
+.cfh-nav .cfh-crumb a{color:var(--accent,#7aa2f7);text-decoration:none}
+.cfh-nav .cfh-sp{flex:1}
+.cfh-nav select{background:var(--card,#181b22);color:var(--text,#e4e6ea);
+ border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:4px 8px;font-size:12.5px;
+ font-family:inherit;outline:none;cursor:pointer;max-width:230px}
+.cfh-nav select:hover{border-color:var(--accent,#7aa2f7)}
+.cfh-nav a.cfh-sbtn{color:var(--text,#e4e6ea);text-decoration:none;border:1px solid var(--line,#2a2f3a);
+ border-radius:6px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.cfh-nav a.cfh-sbtn:hover{border-color:var(--accent,#7aa2f7);color:var(--accent,#7aa2f7)}
+@media (max-width:700px){.cfh-nav .cfh-crumb{display:none}.cfh-nav select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="cfh-nav">
+<a class="cfh-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="cfh-crumb">/ <a href="index.html">grf 广义随机森林</a> / survival</span>
+<span class="cfh-sp"></span>
+<select onchange="if(this.value)location.href=this.value" aria-label="切换库">
+<option value="grf-cn/index.html" selected>grf 广义随机森林</option>
+<option value="policytree-cn/index.html">policytree 策略树</option>
+<option value="surefq/surefq.html">SURE / QRF 充分表示</option>
+<option value="tidyhte-cn/index.html">tidyhte 优雅的 HTE</option>
+<option value="metalearner-cn/index.html">Meta-Learner 元学习器</option>
+<option value="model4you-cn/index.html">model4you 个体化治疗</option>
+<option value="evalITR-cn/index.html">evalITR 规则评估</option>
+<option value="rj-dlc-cn/index.html">DeepLearningCausal</option>
+<option value="survlearners-cn/index.html">survlearners 生存 HTE</option>
+<option value="bocf-cn/index.html">BOCF 基线观测结转</option>
+<option value="hte-course/index.html">HTE 公开课讲义</option>
+<option value="causal-tools-cn/index.html">因果推断三件工具</option>
+<option value="imputeTS-cn/index.html">imputeTS 缺失填补</option>
+</select>
+<a class="cfh-sbtn" href="search.html">&#128269; 搜索本页</a>
+</div>
+<button id="theme-toggle" class="tt" type="button" aria-label="切换明暗主题" title="切换明暗主题 (Alt+T)">
+  <svg class="ico-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7"/></svg>
+  <svg class="ico-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.2 8.2 0 1 0 10.5 10.5z"/></svg>
+</button>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">&larr; grf 教程总览</a><span class="sbox"><span class="si">&#128269;</span>
+<input type="search" id="s-q" placeholder="搜索本站…（按 /）" autocomplete="off" aria-label="搜索本站">
+<span class="spanel" id="s-panel"></span></span>
+  </div>
+  <h1>含时间事件的因果森林（生存结局）</h1>
+  <p class="sub">原文：<a href="https://grf-labs.github.io/grf/articles/survival.html" target="_blank" rel="noopener">Causal forest with time-to-event data</a>（英文）&nbsp;·&nbsp;grf 官方文档中文译本</p>
+
+  <div class="content">
+<p class="lead">如何用广义随机森林（GRF）在生存 / 时间事件数据中估计处理效应？本文从右删失讲起，依次介绍 IPCW 加权因果森林，再到更稳健的因果生存森林（CSF），并解释 RMST、删失、双稳健等医学研究者最关心的概念。</p>
+
+<div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">grf</span>)</pre></div>
+<p>本文用一篇面向初学者的简明概览，介绍如何借助 GRF 这类非参数估计量，在生存分析（survival）场景下灵活地估计处理效应（treatment effect），同时我们尽量不去对删失（censoring）与生存过程做过多假设。前半部分先介绍右删失（right-censored）数据，以及估计平均生存时间时遇到的问题；后半部分展示 GRF 如何利用 <code>sample.weights</code> 构建基于逆概率删失加权（IPCW）的 <a href="https://grf-labs.github.io/grf/reference/causal_forest.html">causal_forest</a>，并讲解 <a href="https://grf-labs.github.io/grf/reference/causal_survival_forest.html">causal_survival_forest</a> 函数中更加强大的估计方法。</p>
+<div id="right-censored-data" class="section level2">
+<h2 class="hasAnchor" id="sec-右删失数据">
+<a href="#right-censored-data" class="anchor"></a>右删失数据</h2>
+<p><img src="https://grf-labs.github.io/grf/articles/data/California_Sea_Otter.jpg" align="right" height="120" alt="加州海獭，摄影 Michael Baird">
+设想我们想估计 <span class="math inline">\(E[T]\)</span>：一只海獭幼崽平均要多久才能抓到第一只猎物。我们驱车前往距斯坦福校园约一小时车程的 Moss Landing，给几只同年龄的幼崽戴上设备，用来记录它们是否抓到了海胆、扇贝、螃蟹等。受经费和时间所限，研究在第 10 天结束。在这 10 天里，测量设备也可能随机出故障（电池可能在第 12 天彻底耗尽、设备失灵等）。这意味着，对一部分幼崽，我们没能观察到它们抓到猎物的时刻，而只观察到了设备停止工作的时刻，也就是它们被删失（censored）的时刻：<span class="math inline">\(C\)</span>。下图展示了这类数据可能的样子，黑色竖条表示研究结束点。</p>
+<div class="figure">
+<img src="https://grf-labs.github.io/grf/articles/survival_files/figure-html/unnamed-chunk-2-1.png" alt="右删失数据" width="700"><p class="caption">
+右删失数据
+</p>
+</div>
+<p>第 2、3 号幼崽：测量设备故障，中途退出研究，我们只知道在最后一次测量时它们还没抓到任何东西。第 1、4、5 号幼崽则在第 10 天结束前抓到了第一只猎物。</p>
+<p>上述过程描述的就是时间事件（time-to-event）研究中一种典型的数据采集情形，称为右删失（right-censoring）。我们不再观察到个体的事件时间 <span class="math inline">\(T_i\)</span>，而是观察到如下定义的 <span class="math inline">\(Y_i\)</span>：</p>
+<p><span class="math display">\[\begin{equation}
+  Y_i =
+    \begin{cases}
+      T_i &amp; \text{if} \, T_i \leq C_i \\
+      C_i &amp; \text{otherwise}
+    \end{cases}
+\end{equation}\]</span></p>
+<p>以及一个事件指示变量 <span class="math inline">\(D_i\)</span></p>
+<p><span class="math display">\[\begin{equation}
+D_i =
+    \begin{cases}
+      1 &amp; \text{if} \, T_i \leq C_i \\
+      0 &amp; \text{otherwise.}
+    \end{cases}
+\end{equation}\]</span></p>
+<p>在我们的例子里，第 1、4、5 号幼崽都发生了事件（<span class="math inline">\(D=1\)</span>），而第 2、3 号没有（<span class="math inline">\(C=0\)</span>）。由于在生存分析中，事件的发生往往意味着死亡，所以事件时间 <span class="math inline">\(T\)</span> 通常也被称为失效时间（failure times）。</p>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>生存分析（survival analysis）与删失（censoring）。</strong> 生存分析研究的是"从某个起点到某个感兴趣事件发生所经历的时间"。在医学里，这个"事件"通常是死亡、复发、出院后再入院等，所以事件时间 <span class="math inline">\(T\)</span> 也叫失效时间（failure time）。</p>
+<p>所谓<strong>右删失（right-censoring）</strong>，是指我们没能在研究期内完整观察到这个事件。最常见的来源有三种：(1) 研究结束时个体还没发生事件（管理性删失）；(2) 个体中途失访、退出或设备坏了（脱落删失）；(3) 个体死于其他原因，导致我们关心的事件永远观察不到（竞争性风险）。</p>
+<p><strong>关键误区</strong>：删失<strong>不是</strong>"把这个人的数据直接扔掉"。删失样本仍然提供了信息——"截至删失时刻，他还没发生事件"，这是有价值的。如果简单地只用观测到事件的样本去算均值，就会系统性地低估真实生存时间，因为被删失的人往往"活得还挺久"。这正是后面要用加权或特殊估计方程的原因。</p>
+</div>
+
+<p>下面我们用一个模拟的小例子把问题具体化。假设幼崽抓到第一只猎物之前的时间服从速率为 <span class="math inline">\(0.1\)</span> 的指数分布，即 <span class="math inline">\(T
+\sim \textrm{Exp}(0.1)\)</span>。再假设测量设备在整个寿命期内任何时刻失灵的概率相同，即删失时间服从均匀分布 <span class="math inline">\(C \sim U(0, 12)\)</span>。如果我们画出观测到的事件 <span class="math inline">\(D\cdot
+T\)</span> 的分布，以及 <span class="math inline">\(T\)</span> 的分布，会得到下图：</p>
+<div class="figure">
+<img src="https://grf-labs.github.io/grf/articles/survival_files/figure-html/density-1.png" alt="密度图" width="700"><p class="caption">
+密度图
+</p>
+</div>
+<p>从这张图立刻能看出，我们必须修正自己的估计目标：由于 <span class="math inline">\(T\)</span> 的密度一直延伸到 60 多天，而研究在第 10 天就结束，我们实际上根本无法估计 <span class="math inline">\(T\)</span> 的均值。我们能估计的只是一个截断均值（truncated mean），我们称之为限制平均生存时间（restricted mean survival time, RMST），定义为</p>
+<p><span class="math display">\[E[\min(T, h)] = E[T \land h],\]</span>
+其中 <span class="math inline">\(h\)</span> 是截断参数（在 GRF 包中称为 <code>horizon</code>）。如果我们取 <span class="math inline">\(h=10\)</span>，从图中可以看到 <span class="math inline">\(E[T \land h]\)</span> 是良好定义的，因为我们能观测到一直到 <span class="math inline">\(t=10\)</span> 天为止的事件（蓝色曲线）。我们把这个新的截断生存时间记作 <span class="math inline">\(\hat T = T \land
+h\)</span>。这一截断也意味着要更新事件指示变量：所有在时间 <span class="math inline">\(h\)</span> 仍被追踪的样本，都视为在时间 <span class="math inline">\(h\)</span> 发生了一次观测事件，无论它们是否被删失——因为我们确信它们在 <span class="math inline">\(h\)</span> 时刻一定还没发生事件。记作 <span class="math inline">\(\hat D = \max(D, \, 1\{T\geq h\})\)</span>。结果如下图所示：</p>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>为什么要 RMST，而不是直接报"平均生存时间"？</strong> 生存时间往往严重右偏、且有长长的右尾（少数病人活了很久），再加上右删失，我们根本观测不到尾部，于是均值无法识别。</p>
+<p><strong>限制平均生存时间（RMST）</strong>是对策之一：它把时间截断在 <span class="math inline">\(h\)</span>，只比较 0 到 <span class="math inline">\(h\)</span> 这段"窗口"内的平均生存时间，定义为 <span class="math inline">\(E[\min(T, h)]\)</span>。你可以把它理解成"在时间 <span class="math inline">\(h\)</span> 之前，两组平均能多活多少天"。</p>
+<p><strong>RMST 的临床好处</strong>：(1) 不需要假设生存曲线服从某个特定分布（不像 Cox 模型要求比例风险假设）；(2) 含义直观，医生和病人都好懂——"多活了多少天"；(3) 即使生存曲线后来交叉，RMST 仍能给出一个整体比较。<strong>代价</strong>是结果依赖于截断点 <span class="math inline">\(h\)</span> 的选择，所以 <span class="math inline">\(h\)</span> 要基于临床意义设定（比如 5 年、10 年），不能事后随意挑。</p>
+</div>
+
+<div class="figure">
+<img src="https://grf-labs.github.io/grf/articles/survival_files/figure-html/trunc-density-1.png" alt="截断后的密度图" width="700"><p class="caption">
+截断后的密度图
+</p>
+</div>
+<p>从这张图可以明显看出，仅凭观测到的事件无法估计 <span class="math inline">\(E[\hat T]\)</span>，我们必须把删失考虑进来，否则会得到有偏估计。从图中可见，两条密度曲线有重叠，在 <span class="math inline">\(h\)</span> 之前的各个区间都有可观的概率质量；这意味着，只要我们知道删失概率，就能用逆概率加权（inverse probability weighting）给观测到的事件赋予更大的权重，从而还原出 <span class="math inline">\(E[\hat T]\)</span> 的无偏估计。定义删失概率为 <span class="math inline">\(P[C > \hat T \,|\, \hat T]
+= E[\hat D \,|\, \hat T]\)</span>。如果我们用 <span class="math inline">\(1 / E[\hat D \,|\, \hat T]\)</span> 给观测到的事件加权，会得到（利用迭代期望定律）：</p>
+<p><span class="math display">\[\begin{equation*}
+\begin{split}
+&amp; E\left[\frac{\hat D \hat T}{E[\hat D \,|\, \hat T]}\right]  \\
+&amp;= E\left[ E\left[\frac{\hat D \hat T}{E[\hat D \,|\, \hat T]}
+\,\big|\, \hat T \right]\right]  \\
+&amp;= E\left[\frac{\hat T}{E[\hat D \,|\, \hat T]} E[\hat D \,|\, \hat
+T]\right] \\
+&amp;= E[\hat T].
+\end{split}
+\end{equation*}\]</span></p>
+<p>下面这段示例代码用一个玩具例子加以说明：</p>
+<div class="sourceCode" id="cb2"><pre class="r"><span class="no">n</span> <span class="kw">&lt;-</span> <span class="fl">100000</span>
+<span class="no">event.time</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html">rexp</a></span>(<span class="no">n</span>, <span class="kw">rate</span> <span class="kw">=</span> <span class="fl">0.1</span>)
+<span class="no">censor.time</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span>(<span class="no">n</span>, <span class="fl">0</span>, <span class="fl">12</span>)
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="no">event.time</span>, <span class="no">censor.time</span>)
+<span class="no">D</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html">as.integer</a></span>(<span class="no">event.time</span> <span class="kw">&lt;=</span> <span class="no">censor.time</span>)
+
+<span class="co"># 定义新的截断 Y 以及更新后的事件指示变量</span>
+<span class="no">horizon</span> <span class="kw">&lt;-</span> <span class="fl">10</span>
+<span class="no">Dh</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmax</a></span>(<span class="no">D</span>, <span class="no">Y</span> <span class="kw">&gt;=</span> <span class="no">horizon</span>)
+<span class="no">Yh</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="no">Y</span>, <span class="no">horizon</span>)
+
+<span class="no">observed.events</span> <span class="kw">&lt;-</span> (<span class="no">Dh</span> <span class="kw">==</span> <span class="fl">1</span>)
+<span class="no">censoring.prob</span> <span class="kw">&lt;-</span> <span class="fl">1</span> - <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">punif</a></span>(<span class="no">Yh</span>[<span class="no">observed.events</span>], <span class="fl">0</span>, <span class="fl">12</span>) <span class="co"># P(C &gt; T)，即删失概率</span>
+<span class="no">sample.weights</span> <span class="kw">&lt;-</span> <span class="fl">1</span> / <span class="no">censoring.prob</span>
+
+<span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="no">event.time</span>, <span class="no">horizon</span>)) <span class="co"># 真实但未被观测的截断均值</span>
+<span class="co">#&gt; [1] 6.33776</span>
+<span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">Yh</span>[<span class="no">observed.events</span>]) <span class="co"># 有偏估计</span>
+<span class="co">#&gt; [1] 4.076917</span>
+<span class="fu"><a href="https://rdrr.io/r/stats/weighted.mean.html">weighted.mean</a></span>(<span class="no">Yh</span>[<span class="no">observed.events</span>], <span class="no">sample.weights</span>) <span class="co"># IPC 加权后的估计</span>
+<span class="co">#&gt; [1] 6.367093</span></pre></div>
+<p>本节提示，把 <code>causal_forest</code> 用于右删失数据的一种思路是逆概率删失加权（inverse probability of censoring weighting, IPCW）。在进入下一段 CATE 估计之前，有一个纯技术层面的要点值得指出：为了让估计稳定，我们希望 <span class="math inline">\(P[C_i >
+T_i]\)</span> 不要过低，否则样本权重会爆炸式增大。直观地从密度图来看，我们要设定一个阈值，使"仍有可观概率观测到事件"成立；如果尾部非常稀疏，估计任务就会更困难。</p>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>逆概率删失加权（IPCW）的核心思想。</strong> 它和流行病学里的逆概率加权（IPTW）一模一样：被删失的人"本来"应该被观测到，但没观测到，于是我们给那些<strong>成功观测到事件</strong>的人一个权重，把他们"放大"成代表整体人群。</p>
+<p>权重就是 <span class="math inline">\(1 / P(\text{未删失})\)</span>。某个时间点还存活的概率越小（删失越严重），权重越大。<strong>问题也正出在这里</strong>：如果有些人删失概率接近 1，权重会爆炸（极不稳定），估计的标准误也随之飙升。所以实践中常要检查权重分布，并对极端权重做截断（trimming / clipping）。</p>
+<p><strong>另外注意</strong>：IPCW 需要<strong>正确估计删失概率</strong>，一旦估计有偏差，加权后的结果仍然有偏——这是它最大的软肋，也催生了后面 CSF 这种更稳健的方法。</p>
+</div>
+
+</div>
+<div id="cate-estimation-and-right-censored-data" class="section level2">
+<h2 class="hasAnchor" id="sec-cate-估计与右删失数据">
+<a href="#cate-estimation-and-right-censored-data" class="anchor"></a>CATE 估计与右删失数据</h2>
+<p>沿用开头那个虚构的实验设定，现在想象我们把海獭幼崽随机分成两组：处理组（<span class="math inline">\(W=1\)</span>）和对照组（<span class="math inline">\(W=0\)</span>）。处理组接受捕猎训练，我们认为这能帮助它们更有效地抓到猎物；对照组什么都不做。我们还收集了一些个体层面的协变量（covariate）<span class="math inline">\(X\)</span>，比如 <span class="math inline">\(X_1\)</span>=海獭体型等。我们关心的，是在给定协变量条件下结局（RMST）的期望差异，定义如下：</p>
+<p><span class="math display">\[\tau(x) = E[T(1) \land h - T(0) \land h
+\, | X = x],\]</span> 其中 <span class="math inline">\(T(1)\)</span>
+和 <span class="math inline">\(T(0)\)</span> 分别对应两种处理状态下的潜在结局（potential outcomes）。要估计它，除了观测数据中 CATE 估计的标准识别假设（unconfoundedness/ignorability，即无混杂 / 可忽略性，以及 overlap，即重叠性）之外，我们还需要更多条件。</p>
+<p>正如上一节中的例子所表明的，删失机制是完全随机的（电池没电、设备失灵）。这是一个关键假设，我们要求：</p>
+<ol style="list-style-type: decimal">
+<li>
+<em>可忽略删失（Ignorable censoring）</em>：在给定处理与协变量的条件下，删失与生存时间相互独立，即 <span class="math inline">\(T_i \perp C_i \mid X_i, \, W_i\)</span>。</li>
+</ol>
+<p>观察上一节的密度图，可以体会到第二个识别假设在说什么。我们看到，要让限制均值可被识别，就必须在研究期内仍有机会观测到事件，这正是由 horizon 参数 <span class="math inline">\(h\)</span> 所刻画的。第二个假设把这一要求正式化了：</p>
+<ol start="2" style="list-style-type: decimal">
+<li>
+<em>正性（Positivity）</em>：每个个体都有一定概率被观测到事件发生，即存在某个 <span class="math inline">\(\eta_C > 0\)</span>，使得 <span class="math inline">\(P[C_i < h \, | X_i, \,
+W_i] \leq 1 - \eta_C\)</span>。</li>
+</ol>
+<p>继续沿用第一节那个简化的小例子，我们模拟如下设定：在第 10 天之后停止收集样本，采用随机分配处理，并且 <span class="math inline">\(\tau(X)\)</span> 依赖于第一个协变量
+<span class="math inline">\(X_1\)</span>。</p>
+<div class="sourceCode" id="cb3"><pre class="r"><span class="no">n</span> <span class="kw">&lt;-</span> <span class="fl">700</span>
+<span class="no">p</span> <span class="kw">&lt;-</span> <span class="fl">5</span>
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(<span class="no">X</span>) <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"size"</span>, <span class="st">"fur.density"</span>, <span class="st">"x3"</span>, <span class="st">"x4"</span>, <span class="st">"x5"</span>)
+<span class="no">W</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="fl">0.5</span>)
+<span class="no">horizon</span> <span class="kw">&lt;-</span> <span class="fl">10</span>
+<span class="no">event.time</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html">rexp</a></span>(<span class="no">n</span>, <span class="kw">rate</span> <span class="kw">=</span> <span class="fl">0.1</span> + <span class="no">W</span> * <span class="no">X</span>[, <span class="fl">1</span>]), <span class="no">horizon</span>)
+<span class="no">censor.time</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span>(<span class="no">n</span>, <span class="fl">0</span>, <span class="fl">12</span>)
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="no">event.time</span>, <span class="no">censor.time</span>), <span class="fl">1</span>)
+<span class="no">D</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html">as.integer</a></span>(<span class="no">event.time</span> <span class="kw">&lt;=</span> <span class="no">censor.time</span>)</pre></div>
+</div>
+<div id="causal-forest-with-sample-weights" class="section level2">
+<h2 class="hasAnchor" id="sec-带样本权重的因果森林">
+<a href="#causal-forest-with-sample-weights" class="anchor"></a>带样本权重的因果森林</h2>
+<p>本节展示如何利用估计出的样本权重，把 <code>causal_forest</code> 用于 IPCW 估计。GRF 的大多数估计量都带有一个可选的 <code>sample.weights</code> 参数，它会在 GRF 算法的每一步（重标记 / 分裂 / 预测）都被纳入考虑。我们先用一个 <a href="https://grf-labs.github.io/grf/reference/survival_forest.html">survival_forest</a>
+来估计删失过程 <span class="math inline">\(P[C_i >
+t \, | X_i = x, W_i = w]\)</span>，再取出对应的删失概率 <span class="math inline">\(P[C_i > \hat T_i
+\, | X_i = x, W_i = w]\)</span>。在我们的例子里，删失概率"很容易"估计——它们都是均匀的。但在很多实际应用中，删失模式会复杂得多；完全可以想见，海獭幼崽的体型会影响删失概率，因为体型更大的幼崽可能让测量设备绑得更牢，从而比体型小的幼崽更不容易脱落损坏。用 GRF 的 <code>survival_forest</code> 非参数地估计 <span class="math inline">\(P[C_i >
+t \, | X_i = x, W_i = w]\)</span>，恰好让我们可以不去纠结这些具体机制。</p>
+<div class="sourceCode" id="cb4"><pre class="r"><span class="no">sf.censor</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/survival_forest.html">survival_forest</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span>(<span class="no">X</span>, <span class="no">W</span>), <span class="no">Y</span>, <span class="fl">1</span> - <span class="no">D</span>)
+<span class="no">sf.pred</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">sf.censor</span>, <span class="kw">failure.times</span> <span class="kw">=</span> <span class="no">Y</span>, <span class="kw">prediction.times</span> <span class="kw">=</span> <span class="st">"time"</span>)
+
+<span class="no">censoring.prob</span> <span class="kw">&lt;-</span> <span class="no">sf.pred</span>$<span class="no">predictions</span>
+<span class="no">observed.events</span> <span class="kw">&lt;-</span> (<span class="no">D</span> <span class="kw">==</span> <span class="fl">1</span>)
+<span class="no">sample.weights</span> <span class="kw">&lt;-</span> <span class="fl">1</span> / <span class="no">censoring.prob</span>[<span class="no">observed.events</span>]</pre></div>
+<p>注意：做逆概率加权时，通常把权重的直方图画出来、观察其稳定性是个好主意。如果观察模拟数据你会发现，我们还对事件时间做了四舍五入的离散化：这是因为训练生存森林需要在由所有不重复事件时间构成的网格上估计生存曲线，而让网格过度密集，相对于额外的计算开销，在统计精度上几乎带不来好处（可选的 <code>failure.times</code> 参数就内置了这一功能）。</p>
+<p>把所有步骤串起来：我们在全部观测到的事件上训练一个因果森林，并传入相应的样本权重。由于我们知道本研究是随机化、且处理分配概率相等的，所以我们还提供了已知的倾向得分（propensity score）<code>W.hat</code> <span class="math inline">\(=E[W_i \, | X_i = x] = 0.5\)</span>：</p>
+<div class="sourceCode" id="cb5"><pre class="r"><span class="no">cf</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[<span class="no">observed.events</span>, ], <span class="no">Y</span>[<span class="no">observed.events</span>], <span class="no">W</span>[<span class="no">observed.events</span>],
+                    <span class="kw">W.hat</span> <span class="kw">=</span> <span class="fl">0.5</span>, <span class="kw">sample.weights</span> <span class="kw">=</span> <span class="no">sample.weights</span>)
+
+<span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/average_treatment_effect.html">average_treatment_effect</a></span>(<span class="no">cf</span>)
+<span class="co">#&gt;  estimate   std.err </span>
+<span class="co">#&gt; -4.745934  0.491739</span></pre></div>
+<p>ATE 为负，说明捕猎训练让海獭幼崽抓到第一只猎物所需的天数少于对照组，也就是说，处理（treatment）的估计影响是正的。</p>
+</div>
+<div id="causal-survival-forest-csf" class="section level2">
+<h2 class="hasAnchor" id="sec-因果生存森林-csf">
+<a href="#causal-survival-forest-csf" class="anchor"></a>因果生存森林（CSF）</h2>
+<p>前面这种方法的缺点有两个：</p>
+<ol style="list-style-type: lower-alpha">
+<li>它依赖估计出的删失概率，而 IPCW 类估计量通常对这些估计误差并不稳健。</li>
+<li>它只考虑观测到事件的样本。如果被删失的个体很多，就意味着效率损失。</li>
+</ol>
+<p><code>causal_survival_forest</code> 函数中实现的方法，借助生存分析文献中关于删失稳健估计方程（censoring robust estimating equations，Robins et al., 1994；Tsiatis, 2007）的思想，缓解了这些缺点。具体做法是：取（完全数据）因果森林的估计方程 <span class="math inline">\(\psi^{(c)}_{\tau(x)}(T, W, ...)\)</span>（即 "R-learner"），利用生存过程与删失过程的估计 <span class="math inline">\(P[C_i > t \, | X_i = x, W_i = w], \, P[T_i >
+t \, | X_i = x, W_i = w]\)</span>（"..." 表示其他干扰参数），把它改写成一个对删失稳健的估计方程
+<span class="math inline">\(\psi_{\tau(x)}(Y, W, ...)\)</span>。这种"正交"（orthogonal）估计方程的一大好处是：只要生存过程或删失过程二者之一被正确设定，估计就是一致的——当我们想用随机生存森林这类现代机器学习工具来估计它们时，这一点极为有利。更多细节见因果生存森林<a href="https://arxiv.org/abs/2001.09887">论文</a>。</p>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>正交化（orthogonalization，也称去偏 / debiasing）与双稳健（doubly robust）。</strong> 经典 IPCW 只有一条路：删失概率必须估计对，结果才无偏。CSF 把因果森林的估计方程，用生存过程和删失过程的估计"改写"成对抗删失的形式，从而得到一个漂亮的性质：只要<strong>生存过程</strong>和<strong>删失过程</strong>这两个干扰函数（nuisance）之一被正确设定，最终的处理效应估计就是一致的。也就是说，它"两条腿走路"，一条腿瘸了另一条还能撑住——这就是<strong>双稳健</strong>。</p>
+<p>在机器学习视角下这尤其有用：我们可以用随机生存森林这类灵活但未必完美的方法去估计那两个过程，只要其中一个估得够准，CSF 的主估计就站得住脚。<strong>代价</strong>是估计中需要用到分母（删失概率），所以极端小的删失概率仍会触发保守警告。</p>
+</div>
+
+<p>我们通过指定 <code>target = "RMST"</code> 并提供给定的 <code>horizon</code> 为 t=10 天来估计它：</p>
+<div class="sourceCode" id="cb6"><pre class="r"><span class="no">csf</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_survival_forest.html">causal_survival_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>, <span class="no">D</span>, <span class="kw">W.hat</span> <span class="kw">=</span> <span class="fl">0.5</span>, <span class="kw">target</span> <span class="kw">=</span> <span class="st">"RMST"</span>, <span class="kw">horizon</span> <span class="kw">=</span> <span class="fl">10</span>)
+
+<span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/average_treatment_effect.html">average_treatment_effect</a></span>(<span class="no">csf</span>)
+<span class="co">#&gt;   estimate    std.err </span>
+<span class="co">#&gt; -4.3136116  0.2486059</span></pre></div>
+<p>对应的标准误比上一节更小，因为与 causal_forest 不同，CSF 不只是使用了观测到事件的样本。（注意：运行该命令时你可能会看到一个警告，说某些估计出的删失概率小于 0.2，这在本例中没问题——CSF 只是比较保守，因为正如前面所说，我们的估计方法要用到这些概率作分母。）</p>
+<p>我们可以用 <code>best_linear_projection</code> 来估计一个线性的效应修正（effect modification）度量，从中可以看出海獭体型有显著影响——体型越大的幼崽，捕猎训练的效果越强：</p>
+<div class="sourceCode" id="cb7"><pre class="r"><span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/best_linear_projection.html">best_linear_projection</a></span>(<span class="no">csf</span>, <span class="no">X</span>)
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Best linear projection of the conditional average treatment effect.</span>
+<span class="co">#&gt; Confidence intervals are cluster- and heteroskedasticity-robust (HC3):</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    </span>
+<span class="co">#&gt; (Intercept) -0.51799    1.00054 -0.5177  0.60482    </span>
+<span class="co">#&gt; size        -4.31787    0.90276 -4.7830 2.11e-06 ***</span>
+<span class="co">#&gt; fur.density -1.64467    0.85832 -1.9162  0.05576 .  </span>
+<span class="co">#&gt; x3          -0.92173    0.83811 -1.0998  0.27181    </span>
+<span class="co">#&gt; x4          -0.73406    0.88210 -0.8322  0.40560    </span>
+<span class="co">#&gt; x5          -0.16570    0.83810 -0.1977  0.84333    </span>
+<span class="co">#&gt; ---</span>
+<span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></pre></div>
+<p>我们可以按海獭体重绘制 TOC 曲线，来评估异质性（heterogeneity）如何随某个协变量变化。</p>
+<div class="sourceCode" id="cb8"><pre class="r"><span class="no">rate</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.html">rank_average_treatment_effect</a></span>(<span class="no">csf</span>, <span class="no">X</span>[, <span class="st">"size"</span>])
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">rate</span>, <span class="kw">ylab</span> <span class="kw">=</span> <span class="st">"Days until first catch"</span>, <span class="kw">main</span> <span class="kw">=</span> <span class="st">"TOC: ranked by decreasing weight"</span>)</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/survival_files/figure-html/unnamed-chunk-9-1.png" alt="" width="700"></p>
+<div class="sourceCode" id="cb9"><pre class="r"><span class="co"># TOC 曲线下面积的估计</span>
+<span class="no">rate</span>
+<span class="co">#&gt;    estimate   std.err             target</span>
+<span class="co">#&gt;  -0.9667595 0.2476909 priorities | AUTOC</span></pre></div>
+</div>
+<div id="other-estimation-targets-survival-probabilities" class="section level2">
+<h2 class="hasAnchor" id="sec-其他估计目标-生存概率">
+<a href="#other-estimation-targets-survival-probabilities" class="anchor"></a>其他估计目标：生存概率</h2>
+<p>CSF 还可以用来估计生存概率（survival probability）的差异。这个选项通过参数 <code>target = "survival.probability"</code> 提供，针对给定的 <code>horizon</code> <span class="math inline">\(h\)</span> 估计：</p>
+<p><span class="math display">\[\tau(x) = P[T(1) > h \, | X = x] -
+P[T(0) > h \, | X = x].\]</span></p>
+<p>这一扩展可以用上一节描述的估计框架来实现。本篇余下部分给出通用设定的细节。令 <span class="math inline">\(y(\cdot)\)</span> 为一个满足如下条件的确定性函数：</p>
+<ol start="4" style="list-style-type: decimal">
+<li>
+<em>有限时域（Finite horizon）</em>：结局变换 <span class="math inline">\(y(\cdot)\)</span> 存在一个最大时域 <span class="math inline">\(0 < h < \infty\)</span>，使得对所有 <span class="math inline">\(t \geq h\)</span> 都有 <span class="math inline">\(y(t) = y(h)\)</span>。</li>
+</ol>
+<p>于是 CATE 可以定义为 <span class="math inline">\(\tau(x) =
+E[y(T(1)) - y(T(0)) \, | X = x]\)</span>。限制平均生存时间对应的结局变换是 <span class="math inline">\(y(T) = T \land h\)</span>，而生存函数对应的结局变换则是 <span class="math inline">\(y(T) = 1\{T > h\}\)</span>。如前所述，这一设定意味着我们只需要考虑发生在 <span class="math inline">\(h\)</span> 时刻之前的事件。也就是说，任何在 <span class="math inline">\(h\)</span> 之后被删失的样本，都可以当作在 <span class="math inline">\(h\)</span> 时刻被观测到——因为既然已知它们未来还"存活"，那么它们在 <span class="math inline">\(h\)</span> 时刻必然还活着。这就引出了新的"有效"事件指示变量：</p>
+<ol start="5" style="list-style-type: decimal">
+<li>
+<em>有效事件指示变量（Effective event indicator）</em>：<span class="math inline">\(D^h_i = D_i \lor 1\{Y_i \geq h\}\)</span>。</li>
+</ol>
+<p>这个通用设定还能让我们直观地理解：什么时候 CSF 的估计方法会比 IPCW 更高效？答案就是当数据中有大量样本在 <span class="math inline">\(h\)</span> 之前被删失时。IPCW 方法会直接丢弃这些样本，而 CSF 会利用它们来提高估计效率。</p>
+</div>
+<div id="further-resources" class="section level2">
+<h2 class="hasAnchor" id="sec-延伸阅读">
+<a href="#further-resources" class="anchor"></a>延伸阅读</h2>
+<ul>
+<li><p><a href="https://arxiv.org/abs/2312.02482">这篇简短示例文章</a>由 Sverdrup 与 Wager（2024）撰写，演示了如何应用 <code>causal_survival_forest</code>，利用一项随机对照试验（RCT）的数据来分析失业持续时间的异质性。</p></li>
+<li><p><a href="https://arxiv.org/abs/2207.07758">这本手册章节</a>由 Xu 等人（2023）撰写，给出了如何使用 <code>grf</code> 构建逆概率删失加权（IPCW）估计量以及其他基于森林的生存估计量的例子。</p></li>
+</ul>
+</div>
+<div id="references" class="section level2">
+<h2 class="hasAnchor" id="sec-参考文献">
+<a href="#references" class="anchor"></a>参考文献</h2>
+<p>Cui, Yifan, Michael R. Kosorok, Erik Sverdrup, Stefan Wager, and
+Ruoqing Zhu. Estimating Heterogeneous Treatment Effects with
+Right-Censored Data via Causal Survival Forests. <em>Journal of the
+Royal Statistical Society: Series B</em>, 85(2), 2023. (<a href="https://arxiv.org/abs/2001.09887">arxiv</a>)</p>
+<p>Robins, James M., Andrea Rotnitzky, and Lue Ping Zhao. Estimation of
+Regression Coefficients When Some Regressors are not Always Observed.
+<em>Journal of the American Statistical Association</em> 89(427),
+1994.</p>
+<p>Sverdrup, Erik, and Stefan Wager. Treatment Heterogeneity with
+Right-Censored Outcomes Using grf. <em>ASA Lifetime Data Science
+Newsletter</em>, January 2024. (<a href="https://arxiv.org/abs/2312.02482">arxiv</a>)</p>
+<p>Tsiatis, Anastasios A. Semiparametric Theory and Missing Data.
+<em>Springer Series in Statistics. Springer New York</em>, 2007.</p>
+<p>Xu, Yizhe, Nikolaos Ignatiadis, Erik Sverdrup, Scott Fleming, Stefan
+Wager, and Nigam Shah. Treatment Heterogeneity with Survival Outcomes.
+Chapter in: <em>Handbook of Matching and Weighting Adjustments for
+Causal Inference.</em> Chapman &amp; Hall/CRC Press, 2023. (<a href="https://arxiv.org/abs/2207.07758">arxiv</a>)</p>
+</div>
+  </div>
+
+  <div class="foot">
+    <p>本页为 <a href="https://grf-labs.github.io/grf/articles/survival.html" target="_blank" rel="noopener">grf 官方文档</a> 的中文译本，原文版权归 grf 作者所有，依据项目许可（MIT）翻译并注明出处，仅供学习交流。代码与公式保持原样，译文新增的「背景与解释」框为译者补充。</p>
+  </div>
+</div>
+<script src="search.js"></script>
+</body>
+</html>
