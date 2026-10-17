@@ -1,0 +1,98 @@
+
+    
+
+    
+    
+<div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">grf</span>)</pre></div>
+<div id="conditional-means-and-average-treatment-estimates" class="section level2">
+<h2 class="hasAnchor">
+<a href="#conditional-means-and-average-treatment-estimates" class="anchor"></a>Conditional means and average treatment estimates</h2>
+<p>grf computes average treatments effects based on a double robust
+correction (giving rise to an augmented inverse-propensity weighted
+average treatment effect). For a causal forest with binary treatment the
+exact expression is (equation (8) of Athey and Wager, 2019):</p>
+<p><span class="math inline">\(\hat \Gamma_i = \hat \tau^{(-i)}(X_i) +
+\frac{W_i - \hat e^{(-i)}(X_i)}{\hat e^{(-i)}(X_i)[1 - \hat
+e^{(-i)}(X_i)]} [Y_i - \hat \mu^{(-i)}(X_i, W_i)]\)</span></p>
+<p>where:</p>
+<ol style="list-style-type: decimal">
+<li><p><span class="math inline">\(\hat \tau^{(-i)}(X_i)\)</span> is the
+treatment effect estimate (returned by grf’s <code>predict</code>
+method). Using the potential outcomes notation this is by definition
+<span class="math inline">\(E[Y_i(1) - Y_i(0) | X_i] = \mu(X_i, 0) -
+\mu(X_i, 1)\)</span>.</p></li>
+<li><p><span class="math inline">\(W_i\)</span> is the binary treatment
+indicator for subject <span class="math inline">\(i\)</span>.</p></li>
+<li><p><span class="math inline">\(\hat e^{(-i)}(X_i)\)</span> is the
+propensity score for subject <span class="math inline">\(i\)</span>
+(this is by default estimated by a regression forest on the treatment
+assignment).</p></li>
+<li><p><span class="math inline">\(Y_i\)</span> is the realized outcome
+for subject <span class="math inline">\(i\)</span>.</p></li>
+<li><p><span class="math inline">\(\hat \mu^{(-i)}(X_i, W_i) = \hat
+m^{(-i)}(X_i) + [W_i - \hat e^{(-i)}(X_i)] \hat
+\tau^{(-i)}(X_i)\)</span> is an estimate of the realized conditional
+mean for subject <span class="math inline">\(i\)</span>, where <span class="math inline">\(m(X_i) = E[Y | X_i]\)</span> (this is by default
+estimated using a regression forest, marginalizing over
+treatment).</p></li>
+</ol>
+<p>The superscript <span class="math inline">\(-i\)</span> indicates
+cross-fitting, i.e. that the estimate is computed by leaving observation
+<span class="math inline">\(i\)</span> out. This holds by construction
+for out-of-bag forest estimates.</p>
+<p>To see how the last expression arises, note that we have:</p>
+<ol start="6" style="list-style-type: decimal">
+<li>
+<p><span class="math inline">\(m(X_i)\)</span></p>
+<p><span class="math inline">\(= E[Y | X_i]\)</span></p>
+<p><span class="math inline">\(= E[Y_i(0) | X_i] + E[W_i [Y_i(1) -
+Y_i(0)] | X_i]\)</span></p>
+<p><span class="math inline">\(= \mu(X_i, 0) + e(X_i)
+\tau(X_i)\)</span></p>
+</li>
+</ol>
+<p>where there last line is due to unconfoundedness (conditioning on the
+set of covariates <span class="math inline">\(X_i\)</span>, the
+potential outcomes are independent of the treatment).</p>
+<p>We then obtain the following expressions for the counterfactual
+response surfaces:</p>
+<ol start="7" style="list-style-type: decimal">
+<li><p><span class="math inline">\(\mu(X_i, 0) = m(X_i) - e(X_i)
+\tau(X_i)\)</span></p></li>
+<li><p><span class="math inline">\(\mu(X_i, 1) = \tau(X_i) + \mu(X_i, 0)
+= m(X_i) + [1 - e(X_i)] \tau(X_i)\)</span></p></li>
+</ol>
+<p>These objects are all computed by the built-in ATE functions. The
+following code snippet illustrates how to manually obtain estimates of
+the conditional means <span class="math inline">\(E[Y | X_i,
+W_i]\)</span>:</p>
+<div class="sourceCode" id="cb2"><pre class="r"><span class="no">n</span> <span class="kw">&lt;-</span> <span class="fl">250</span>
+<span class="no">p</span> <span class="kw">&lt;-</span> <span class="fl">5</span>
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+<span class="no">W</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="fl">0.5</span>)
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmax</a></span>(<span class="no">X</span>[, <span class="fl">1</span>], <span class="fl">0</span>) * <span class="no">W</span> + <span class="no">X</span>[, <span class="fl">2</span>] + <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="no">X</span>[, <span class="fl">3</span>], <span class="fl">0</span>) + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+<span class="co"># These are estimates of m(X) = E[Y | X]</span>
+<span class="no">forest.Y</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/regression_forest.html">regression_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>)
+<span class="no">Y.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest.Y</span>)$<span class="no">predictions</span>
+
+<span class="co"># These are estimates of the propensity score E[W | X]</span>
+<span class="no">forest.W</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/regression_forest.html">regression_forest</a></span>(<span class="no">X</span>, <span class="no">W</span>)
+<span class="no">W.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest.W</span>)$<span class="no">predictions</span>
+
+<span class="no">c.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>, <span class="no">Y.hat</span>, <span class="no">W.hat</span>)
+<span class="no">tau.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">c.forest</span>)$<span class="no">predictions</span>
+
+<span class="co"># E[Y | X, W = 0]</span>
+<span class="no">mu.hat.0</span> <span class="kw">&lt;-</span> <span class="no">Y.hat</span> - <span class="no">W.hat</span> * <span class="no">tau.hat</span>
+<span class="co"># E[Y | X, W = 1]</span>
+<span class="no">mu.hat.1</span> <span class="kw">&lt;-</span> <span class="no">Y.hat</span> + (<span class="fl">1</span> - <span class="no">W.hat</span>) * <span class="no">tau.hat</span></pre></div>
+</div>
+<div id="references" class="section level2">
+<h2 class="hasAnchor">
+<a href="#references" class="anchor"></a>References</h2>
+<p>Athey, Susan and Stefan Wager. Estimating Treatment Effects with
+Causal Forests: An Application. <em>Observational Studies</em>, 5, 2019.
+(<a href="https://arxiv.org/abs/1902.07409">arxiv</a>)</p>
+</div>
+  
