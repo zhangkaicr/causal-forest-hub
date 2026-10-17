@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme-default="light">
+<head>
+<script>
+(function(){
+  var KEY="share-theme", d=document.documentElement;
+  try{var saved=localStorage.getItem(KEY);}catch(e){var saved=null;}
+  d.setAttribute("data-theme", saved || d.getAttribute("data-theme-default") || "light");
+  document.addEventListener("DOMContentLoaded",function(){
+    var b=document.getElementById("theme-toggle"); if(!b) return;
+    function sync(){
+      var dark=d.getAttribute("data-theme")==="dark";
+      b.setAttribute("aria-pressed", dark?"true":"false");
+      b.setAttribute("title", dark?"切换到亮色主题 (Alt+T)":"切换到暗色主题 (Alt+T)");
+    }
+    b.addEventListener("click",function(){
+      var nxt=d.getAttribute("data-theme")==="dark"?"light":"dark";
+      d.setAttribute("data-theme",nxt);
+      try{localStorage.setItem(KEY,nxt);}catch(e){}
+      sync();
+    });
+    document.addEventListener("keydown",function(e){
+      if(e.altKey&&(e.key==="t"||e.key==="T")) b.click();
+    });
+    sync();
+  });
+})();
+</script>
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},
+options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>策略学习：用最优决策树做处置分配 · grf 中文教程</title>
+<style>
+:root{
+  --bg:#f7f7f5; --card:#ffffff; --text:#2c2c2a; --muted:#6b6a65;
+  --line:#e3e2dd; --accent:#534ab7; --accent-soft:#eeedfe; --tag:#f1efe8;
+  --code-bg:#f4f3ef; --code-line:#e7e5df; --code-text:#2c2c2a;
+  --note-bg:#eef6ff; --note-line:#bcd6f5; --note-text:#1f3a5f;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  line-height:1.8; margin:0;
+}
+.wrap{max-width:840px;margin:0 auto;padding:32px 22px 80px}
+.topbar{margin-bottom:26px}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;
+  font-size:14px;font-weight:600}
+.back:hover{text-decoration:underline}
+h1{font-size:30px;font-weight:700;letter-spacing:-.3px;margin:6px 0 4px;line-height:1.3}
+.sub{color:var(--muted);font-size:14px;margin-bottom:8px}
+.sub a{color:var(--accent)}
+.lead{font-size:16px;color:var(--text);margin:14px 0 22px;border-left:3px solid var(--accent);
+  padding:4px 0 4px 16px;background:var(--accent-soft);border-radius:0 8px 8px 0}
+.content h2{font-size:22px;font-weight:700;margin:38px 0 12px;padding-bottom:6px;
+  border-bottom:1px solid var(--line)}
+.content h3{font-size:18px;font-weight:700;margin:26px 0 10px}
+.content h4{font-size:16px;font-weight:700;margin:20px 0 8px}
+.content p{margin:12px 0}
+.content ul,.content ol{margin:12px 0;padding-left:26px}
+.content li{margin:6px 0}
+.content a{color:var(--accent);text-decoration:none}
+.content a:hover{text-decoration:underline}
+.content img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;
+  margin:14px 0;background:#fff;display:block}
+.content table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+.content th,.content td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+.content th{background:var(--accent-soft);font-weight:600}
+.content tr:nth-child(even) td{background:var(--card)}
+.content blockquote{margin:16px 0;padding:12px 16px;border-left:3px solid var(--line);
+  color:var(--muted);background:var(--card);border-radius:0 8px 8px 0}
+.content code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13.5px;background:var(--code-bg);padding:2px 5px;border-radius:4px;color:var(--code-text)}
+pre{background:var(--code-bg);border:1px solid var(--code-line);border-radius:10px;
+  padding:16px 18px;overflow-x:auto;margin:16px 0;line-height:1.6}
+pre code{background:none;padding:0;font-size:13.5px;color:var(--code-text)}
+.content .sourceCode{margin:16px 0}
+/* downlit token coloring (light) */
+.content .co{color:#6a737d}
+.content .st{color:#032f62}
+.content .fu{color:#4078f2}
+.content .cf{color:#d73a49}
+.content .kw{color:#a626a4}
+.content .fl,.content .cn{color:#b9520f}
+.content .op{color:#444}
+/* 背景与解释 callout */
+.note{margin:18px 0;padding:14px 18px;border:1px solid var(--note-line);
+  background:var(--note-bg);border-radius:10px;color:var(--note-text)}
+.note .nt{display:inline-block;font-weight:700;font-size:13px;letter-spacing:.04em;
+  margin-bottom:6px;color:var(--accent)}
+.note p{margin:6px 0}
+.note code{background:rgba(255,255,255,.6)}
+.foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--muted)}
+.foot a{color:var(--accent)}
+
+:root[data-theme="dark"]{
+  --bg:#0f1116; --card:#181b22; --text:#e4e6ea; --muted:#98a0ac;
+  --line:#2a2f3a; --accent:#7aa2f7; --accent-soft:#16203a; --tag:#1e222b;
+  --code-bg:#0b0d12; --code-line:#1d2129; --code-text:#d7dae0;
+  --note-bg:#15233b; --note-line:#274168; --note-text:#bcd6f5;
+}
+:root[data-theme="dark"] .content th{background:var(--accent-soft)}
+:root[data-theme="dark"] .content tr:nth-child(even) td{background:#14171e}
+:root[data-theme="dark"] .content img{background:#0b0d12}
+:root[data-theme="dark"] .content .co{color:#7f8b9a}
+:root[data-theme="dark"] .content .st{color:#9ecbff}
+:root[data-theme="dark"] .content .fu{color:#82aaff}
+:root[data-theme="dark"] .content .cf{color:#f07178}
+:root[data-theme="dark"] .content .kw{color:#c792ea}
+:root[data-theme="dark"] .content .fl,.content .cn{color:#f78c6c}
+
+.tt{
+  position:fixed; top:16px; right:16px; z-index:9999; width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center; border-radius:50%;
+  cursor:pointer; color:var(--text); background:var(--card);
+  border:1px solid var(--line);
+  box-shadow:0 2px 10px rgba(0,0,0,.24); transition:transform .15s, border-color .15s, background .15s;
+}
+.tt:hover{transform:translateY(-1px); border-color:var(--accent)}
+.tt:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tt svg{display:none}
+[data-theme="dark"] .ico-sun{display:block}
+[data-theme="dark"] .ico-moon{display:none}
+[data-theme="light"] .ico-sun{display:none}
+[data-theme="light"] .ico-moon{display:block}
+@media(max-width:640px){.tt{top:10px; right:10px; width:36px; height:36px}}
+@media print{.tt{display:none}}
+</style>
+<style>
+/* ---- 全局搜索 ---- */
+.sbox{position:relative;display:inline-flex;align-items:center;margin-left:10px}
+.sbox input{background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);color:inherit;
+ border-radius:6px;padding:4px 9px 4px 25px;font-size:13px;width:170px;font-family:inherit;outline:none}
+.sbox input:focus{border-color:#4ea1ff;width:220px}
+.sbox .si{position:absolute;left:8px;font-size:12px;opacity:.6;pointer-events:none}
+.spanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:440px;max-width:88vw;
+ max-height:64vh;overflow-y:auto;z-index:900;background:var(--panel,#262c34);
+ border:1px solid var(--border,#3a4350);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.spanel.open{display:block}
+.spanel .sh{padding:7px 10px;font-size:12px;opacity:.7;border-bottom:1px solid var(--border,#3a4350);margin-bottom:4px}
+.spanel .sempty{font-size:12px;opacity:.65;padding:16px 10px;text-align:center}
+.sres{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:inherit}
+.sres:hover,.sres.sel{background:var(--panel2,#2e3540)}
+.sres .c{font-size:11px;opacity:.65;margin-bottom:1px}
+.sres .s{font-size:12px;color:#4ea1ff;margin-bottom:2px}
+.sres .t{font-size:13px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sres mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+.srch-main{margin:22px 0}
+.srch-main input{width:100%;background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);
+ color:inherit;border-radius:8px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none}
+.srch-main input:focus{border-color:#4ea1ff}
+.srch-meta{font-size:13px;opacity:.7;margin:12px 0 6px}
+.srch-list{list-style:none;margin:0;padding:0}
+.srch-list .sres{border:1px solid var(--border,#3a4350);margin:7px 0;padding:9px 11px}
+.srch-list .sres:hover{border-color:#4ea1ff}
+@media (max-width:640px){.sbox input{width:110px}.sbox input:focus{width:150px}.spanel{width:86vw}}
+</style><!--search.css-marker-->
+<style>
+/* ===== 因果森林知识库 · 统一导航 ===== */
+.cfh-nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:10px;
+ padding:8px 16px;background:var(--bg,#181b22);border-bottom:1px solid var(--line,#2a2f3a);
+ font-size:13.5px;flex-wrap:wrap}
+.cfh-nav .cfh-home{font-weight:600;color:var(--text,#e4e6ea);text-decoration:none;font-size:14px;
+ display:flex;align-items:center;gap:6px}
+.cfh-nav .cfh-home:hover{color:var(--accent,#7aa2f7)}
+.cfh-nav .cfh-crumb{color:var(--muted,#98a0ac);font-size:12.5px}
+.cfh-nav .cfh-crumb a{color:var(--accent,#7aa2f7);text-decoration:none}
+.cfh-nav .cfh-sp{flex:1}
+.cfh-nav select{background:var(--card,#181b22);color:var(--text,#e4e6ea);
+ border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:4px 8px;font-size:12.5px;
+ font-family:inherit;outline:none;cursor:pointer;max-width:230px}
+.cfh-nav select:hover{border-color:var(--accent,#7aa2f7)}
+.cfh-nav a.cfh-sbtn{color:var(--text,#e4e6ea);text-decoration:none;border:1px solid var(--line,#2a2f3a);
+ border-radius:6px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.cfh-nav a.cfh-sbtn:hover{border-color:var(--accent,#7aa2f7);color:var(--accent,#7aa2f7)}
+@media (max-width:700px){.cfh-nav .cfh-crumb{display:none}.cfh-nav select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="cfh-nav">
+<a class="cfh-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="cfh-crumb">/ <a href="index.html">grf 广义随机森林</a> / policy_learning</span>
+<span class="cfh-sp"></span>
+<select onchange="if(this.value)location.href=this.value" aria-label="切换库">
+<option value="grf-cn/index.html" selected>grf 广义随机森林</option>
+<option value="policytree-cn/index.html">policytree 策略树</option>
+<option value="surefq/surefq.html">SURE / QRF 充分表示</option>
+<option value="tidyhte-cn/index.html">tidyhte 优雅的 HTE</option>
+<option value="metalearner-cn/index.html">Meta-Learner 元学习器</option>
+<option value="model4you-cn/index.html">model4you 个体化治疗</option>
+<option value="evalITR-cn/index.html">evalITR 规则评估</option>
+<option value="rj-dlc-cn/index.html">DeepLearningCausal</option>
+<option value="survlearners-cn/index.html">survlearners 生存 HTE</option>
+<option value="bocf-cn/index.html">BOCF 基线观测结转</option>
+<option value="hte-course/index.html">HTE 公开课讲义</option>
+<option value="causal-tools-cn/index.html">因果推断三件工具</option>
+<option value="imputeTS-cn/index.html">imputeTS 缺失填补</option>
+</select>
+<a class="cfh-sbtn" href="search.html">&#128269; 搜索本页</a>
+</div>
+<button id="theme-toggle" class="tt" type="button" aria-label="切换明暗主题" title="切换明暗主题 (Alt+T)">
+  <svg class="ico-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7"/></svg>
+  <svg class="ico-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.2 8.2 0 1 0 10.5 10.5z"/></svg>
+</button>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">&larr; grf 教程总览</a><span class="sbox"><span class="si">&#128269;</span>
+<input type="search" id="s-q" placeholder="搜索本站…（按 /）" autocomplete="off" aria-label="搜索本站">
+<span class="spanel" id="s-panel"></span></span>
+  </div>
+  <h1>策略学习：用最优决策树做处置分配</h1>
+  <p class="sub">原文：<a href="https://grf-labs.github.io/grf/articles/policy_learning.html" target="_blank" rel="noopener">Policy learning via optimal decision trees</a>（英文）&nbsp;·&nbsp;grf 官方文档中文译本</p>
+
+  <div class="content">
+
+<div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">grf</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">policytree</span>)</pre></div>
+<p>借助 GRF，我们可以非参数地估计一个条件平均处理效应（CATE）函数 <span class="math inline">\(\hat \tau(\cdot)\)</span>，然后把它当作处置分配策略（policy）来用——比如，凡是预测值 <span class="math inline">\(\hat \tau(X_i)\)</span> 为正的个体，就给他治疗。我们用符号 <span class="math inline">\(\pi\)</span> 来表示这个策略：它是一个函数，输入是描述个体特征（协变量）的 <span class="math inline">\(X_i\)</span>，输出是一个处置决策，其中 <span class="math inline">\(0\)</span> 表示不治疗、<span class="math inline">\(1\)</span> 表示治疗，即</p>
+<p><span class="math display">\[
+\pi(\cdot) \mapsto \{0, 1\}
+\]</span></p>
+<p>如果直接用估计出来的 CATE 来分配治疗，我们可以把策略简单地写成 <span class="math inline">\(\pi(X_i) = 1(\hat \tau(X_i) &gt; 0)\)</span>。关于 Qini 曲线的文档（vignette）里给出了一些例子，介绍如何在留出测试集（held-out test set）上构造指标来评估这个策略，以及如何纳入预算约束。</p>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>什么是"策略学习"（Policy Learning）？</strong>估计 CATE 只是回答了"对谁有效、效应多大"的问题，而策略学习更进一步：它要直接学出一个<em>分配规则</em> <span class="math inline">\(\pi\)</span>，把每个个体的特征 <span class="math inline">\(X_i\)</span> 映射成"治"或"不治"，目标是让整体福利（期望结局）最大化。最简单的"插件式"（plug-in）规则就是"预测效应为正就治"，即 <span class="math inline">\(\pi(X_i)=1(\hat\tau(X_i)&gt;0)\)</span>。但它有两个隐患：一是 CATE 估计本身有噪声，正负号可能判错；二是它只追求局部"谁该治"，未必是整个人群层面的全局最优分配。策略学习把"估计效应"和"做最优决策"拆开成两步——先用森林得到可靠的评分，再用树去学一个可解释、可落地的规则。这种"先估计、后决策"的框架在医学、政策评估中特别重要，因为最终要落到"给这个人开不开药"的具体动作上。</p>
+</div>
+
+<p>但在某些场景下，用这种方式分配治疗并不合适。举个例子：一项福利项目向人们提供职业培训技能。如果政策制定者希望项目资格有透明、可解释的标准，那么依据一个复杂的"黑箱"CATE 函数来筛选谁能参加，就很不理想。同样，如果申请人得知自己被拒之门外，仅仅因为某个黑箱算法预测他"获益不够多"，也会引发公平性质疑。在诸如此类的场景下，我们更想要可解释的策略（interpretable policy）。也就是说，我们希望得到一条简单的规则：看看个体的特征 <span class="math inline">\(X_i\)</span>，就能给出治疗与否的决策。比如："Alice 被分配到治疗组，因为她不到 25 岁，且住在资源匮乏的社区"。像浅层决策树里内嵌的规则，就是这类可解释策略的一个例子。</p>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>个体化治疗规则（ITR）在临床中的意义。</strong>"个体化治疗规则"（Individualized Treatment Rule，ITR）指的是：不再对所有病人一刀切地用同一种方案，而是根据病人的基线特征，为每个人推荐最有利的治疗。它成立的<em>前提</em>是存在处理效应异质性（HTE）——也就是说，同一种药对不同亚组的效果确实不同。临床上这类需求很常见：肿瘤靶向治疗要看基因突变位点，降压药要看年龄和合并症，抗凝治疗要看出血风险评分。ITR 的价值在于把"平均有效"细化到"对这群人有效"。但要注意两点：一是只有效应真的异质时，个体化才值得做，否则反而增加复杂度、引入噪声；二是对临床医生而言，一条"若 A 且 B，则用方案 X"的浅规则，远比一个黑箱模型更容易被信任和采纳——这正是下文用浅层决策树、而非深度森林去做最终分配的原因。</p>
+</div>
+
+<div id="tree-based-treatment-assignment-rules" class="section level2">
+<h2 class="hasAnchor" id="sec-基于树的治疗分配规则">
+<a href="#tree-based-treatment-assignment-rules" class="anchor"></a>基于树的治疗分配规则</h2>
+<p>要从实验数据或观测数据中学习出一个策略 <span class="math inline">\(\pi\)</span>，我们需要一个高效的评分规则（scoring rule），以及一个搜索树的算法。GRF 所采用的方法是"双稳健"（doubly robust）评分，配合一棵以经验福利（empirical welfare）最大化为目标的决策树，这套做法由 <a href="https://github.com/grf-labs/policytree">policytree</a> 包实现。要学到一棵"好"的浅层决策树，关键是在每一层都选对分支方式。常见的决策树学习方法（比如 CART）基于贪心准则，未必能学到全局最优的分支决策；而 policytree 包采用了计算量更大、但能找到全局最优决策树的建树方法。<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a></p>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>双稳健评分 + 为什么追求"全局最优"决策树？</strong>"双稳健"（doubly robust）评分的好处是：它把结局回归和倾向得分两部分结合在一起，只要<em>其中之一</em>建模正确，得到的评分就一致（consistent），比只依赖单一模型更稳健——这对观测数据尤为重要。把这层评分交给 GRF 去算，树只负责"怎么分群最划算"，目标函数就是经验福利（即各组预期结局的加权平均）。</p>
+<p>那为什么不直接用大家熟悉的 CART？CART 在每一层只做"当前这一步看起来最好"的贪心分裂，容易陷入局部最优——上层一个当时不显眼、但为下层腾出空间的分裂点可能被错过。policytree 的做法是：在限定树深（如 depth = 2）的前提下，<em>精确搜索</em>所有可能的分裂组合，从而保证在"该深度下"达到全局最优。代价是计算量随深度指数增长，所以实际中通常只用很浅的树（深度 2–3），这也正符合"可解释"的初衷。</p>
+</div>
+
+<p>下面这个简短示例演示了如何用因果森林得到的双稳健评分，来学习一棵深度为 2 的树。其中的 <code>policy_tree</code> 和 <code>double_robust_scores</code> 两个函数都属于 <code>policytree</code> 包。</p>
+<div class="sourceCode" id="cb2"><pre class="r"><span class="co"># 拟合一个因果森林（causal forest）。</span>
+<span class="no">n</span> <span class="kw">&lt;-</span> <span class="fl">15000</span>
+<span class="no">p</span> <span class="kw">&lt;-</span> <span class="fl">5</span>
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>), <span class="fl">2</span>)
+<span class="no">W</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="fl">1</span> / (<span class="fl">1</span> + <span class="fu"><a href="https://rdrr.io/r/base/Log.html">exp</a></span>(<span class="no">X</span>[, <span class="fl">3</span>])))
+<span class="no">tau</span> <span class="kw">&lt;-</span> <span class="fl">1</span> / (<span class="fl">1</span> + <span class="fu"><a href="https://rdrr.io/r/base/Log.html">exp</a></span>((<span class="no">X</span>[, <span class="fl">1</span>] + <span class="no">X</span>[, <span class="fl">2</span>]) / <span class="fl">2</span>)) - <span class="fl">0.5</span>
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="no">X</span>[, <span class="fl">3</span>] + <span class="no">W</span> * <span class="no">tau</span> + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+<span class="no">c.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+
+<span class="co"># 计算双稳健评分。</span>
+<span class="co"># （在观测性研究中，通常建议先画出估计的倾向得分</span>
+<span class="co">#   （`hist(c.forest$W.hat)`），以确认是否满足足够的重叠条件）</span>
+<span class="no">dr.scores</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/policytree/man/double_robust_scores.html">double_robust_scores</a></span>(<span class="no">c.forest</span>)
+<span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(<span class="no">dr.scores</span>)
+<span class="co">#&gt;         control    treated</span>
+<span class="co">#&gt; [1,] -0.1539377  0.5839477</span>
+<span class="co">#&gt; [2,]  0.1551353  2.3079034</span>
+<span class="co">#&gt; [3,] -0.5674259 -0.5864615</span>
+<span class="co">#&gt; [4,]  0.6370039 -1.2796316</span>
+<span class="co">#&gt; [5,]  2.0428953  0.5937339</span>
+<span class="co">#&gt; [6,] -3.6164526 -0.2545393</span>
+
+<span class="co"># 在双稳健评分上拟合一棵深度为 2 的树。</span>
+<span class="no">tree</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/policytree/man/policy_tree.html">policy_tree</a></span>(<span class="no">X</span>, <span class="no">dr.scores</span>, <span class="kw">depth</span> <span class="kw">=</span> <span class="fl">2</span>)
+
+<span class="co"># 打印并绘制这棵树 —— 动作 1 对应对照组，2 对应治疗组。</span>
+<span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span>(<span class="no">tree</span>)
+<span class="co">#&gt; policy_tree object </span>
+<span class="co">#&gt; Tree depth:  2 </span>
+<span class="co">#&gt; Actions:  1: control 2: treated </span>
+<span class="co">#&gt; Variable splits: </span>
+<span class="co">#&gt; (1) split_variable: X1  split_value: -0.73 </span>
+<span class="co">#&gt;   (2) split_variable: X2  split_value: 1.42 </span>
+<span class="co">#&gt;     (4) * action: 2 </span>
+<span class="co">#&gt;     (5) * action: 1 </span>
+<span class="co">#&gt;   (3) split_variable: X2  split_value: -0.36 </span>
+<span class="co">#&gt;     (6) * action: 2 </span>
+<span class="co">#&gt;     (7) * action: 1</span>
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">tree</span>)</pre></div>
+<div class="grViz html-widget html-fill-item" id="htmlwidget-f2ae413a99db091538b4" style="width:700px;height:432.632880098888px;"></div>
+<script type="application/json" data-for="htmlwidget-f2ae413a99db091538b4">{"x":{"diagram":"digraph nodes { \n node [shape=box] ;\n0 [label=\" X1 <= -0.73 \"] ;\n0 -> 1 [labeldistance=2.5, labelangle=45, headlabel=\"True\"];\n0 -> 2 [labeldistance=2.5, labelangle=-45, headlabel=\"False\"]\n1 [label=\" X2 <= 1.42 \"] ;\n1 -> 3  ;\n1 -> 4  ;\n3  [shape=box,style=filled,color=\".7 .3 1.0\" , label=\" leaf node\n action = 2 \"];\n4  [shape=box,style=filled,color=\".7 .3 1.0\" , label=\" leaf node\n action = 1 \"];\n2 [label=\" X2 <= -0.36 \"] ;\n2 -> 5  ;\n2 -> 6  ;\n5  [shape=box,style=filled,color=\".7 .3 1.0\" , label=\" leaf node\n action = 2 \"];\n6  [shape=box,style=filled,color=\".7 .3 1.0\" , label=\" leaf node\n action = 1 \"];\n}","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>policytree 包与 grf 的关系。</strong>policytree 与 grf 同出一门（都由 grf-labs 维护），但职责不同：grf 负责"估计"——它用广义随机森林给出每个个体的（双稳健）评分或 CATE；policytree 则负责"决策"——它接收一个评分矩阵（每行一个个体、每列一种处置臂的得分），去学一棵浅层、可解释、且在该深度下全局最优的策略树。二者是松耦合的：policytree 并不依赖 grf 内部实现，你完全可以用其它方法（例如其它因果机器学习模型）产出的评分喂给它。代码里 <code>double_robust_scores(c.forest)</code> 就是把因果森林的输出"翻译"成 policytree 能吃的格式——返回的两列 <code>control</code> / <code>treated</code> 分别对应"不治疗"和"治疗"两种臂的预期收益评分，树要做的，就是给每个叶子节点挑出分数更高的那一个臂作为动作。</p>
+</div>
+
+<p>下面这张图里的 45 度斜线，把效应为负的个体（线以上）和效应为正的个体（线以下）分隔开来。</p>
+<div class="sourceCode" id="cb3"><pre class="r"><span class="co"># 预测每个样本的处置分配 {1, 2}。</span>
+<span class="no">predicted</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">tree</span>, <span class="no">X</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">X</span>[, <span class="fl">1</span>], <span class="no">X</span>[, <span class="fl">2</span>], <span class="kw">col</span> <span class="kw">=</span> <span class="no">predicted</span>)
+<span class="fu"><a href="https://rdrr.io/r/graphics/legend.html">legend</a></span>(<span class="st">"topright"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"control"</span>, <span class="st">"treat"</span>), <span class="kw">col</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">1</span>, <span class="fl">2</span>), <span class="kw">pch</span> <span class="kw">=</span> <span class="fl">19</span>)
+<span class="fu"><a href="https://rdrr.io/r/graphics/abline.html">abline</a></span>(<span class="fl">0</span>, -<span class="fl">1</span>, <span class="kw">lty</span> <span class="kw">=</span> <span class="fl">2</span>)</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/policy_learning_files/figure-html/unnamed-chunk-3-1.png" alt="" width="700"></p>
+<p>此外，<code>predict</code> 还可以返回每个样本落入的叶节点（leaf node），我们可以据此为每一组计算一些统计量，比如平均处理效应（average treatment effect）。注意：为了避免过拟合，这类统计量应当在"留出测试集"上计算，且该测试集要与学习策略时用的数据分开；这样一来，它就成了对拟合策略做"训练集/测试集"评估的一种实用手段。</p>
+<div class="sourceCode" id="cb4"><pre class="r"><span class="no">node.id</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">tree</span>, <span class="no">X</span>, <span class="kw">type</span> <span class="kw">=</span> <span class="st">"node.id"</span>)
+
+<span class="co"># 每个叶节点下所有处置臂的取值（含标准误）。</span>
+<span class="no">values</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html">aggregate</a></span>(<span class="no">dr.scores</span>, <span class="kw">by</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="kw">leaf.node</span> <span class="kw">=</span> <span class="no">node.id</span>),
+                    <span class="kw">FUN</span> <span class="kw">=</span> <span class="kw">function</span>(<span class="no">x</span>) <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="kw">mean</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">x</span>), <span class="kw">se</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/sd.html">sd</a></span>(<span class="no">x</span>) / <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span>(<span class="no">x</span>))))
+<span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span>(<span class="no">values</span>, <span class="kw">digits</span> <span class="kw">=</span> <span class="fl">2</span>)
+<span class="co">#&gt;   leaf.node control.mean control.se treated.mean treated.se</span>
+<span class="co">#&gt; 1         4       -0.103      0.034        0.177      0.034</span>
+<span class="co">#&gt; 2         5        0.184      0.111        0.043      0.100</span>
+<span class="co">#&gt; 3         6       -0.022      0.028        0.071      0.029</span>
+<span class="co">#&gt; 4         7        0.020      0.022       -0.158      0.022</span></pre></div>
+<p>更多统计细节，请参阅 <a href="https://web.stanford.edu/~swager/causal_inf_book.pdf">Causal Inference: A Statistical Learning Approach</a>（《因果推断：一种统计学习视角》）一书中关于"策略学习（Policy Learning）"的章节。</p>
+</div>
+<div class="footnotes footnotes-end-of-document">
+<hr>
+<ol>
+<li id="fn1"><p>关于该树搜索算法的详细描述，见 <a href="https://joss.theoj.org/papers/10.21105/joss.02232.pdf">this paper</a>.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+</ol>
+</div>
+
+  </div>
+
+  <div class="foot">
+    <p>本页为 <a href="https://grf-labs.github.io/grf/articles/policy_learning.html" target="_blank" rel="noopener">grf 官方文档</a> 的中文译本，原文版权归 grf 作者所有，依据项目许可（MIT）翻译并注明出处，仅供学习交流。代码与公式保持原样，译文新增的「背景与解释」框为译者补充。</p>
+  </div>
+</div>
+<script src="search.js"></script>
+</body>
+</html>
