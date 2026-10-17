@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme-default="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>policytree 中文教程：从因果森林学到最优策略树</title>
+<meta name="description" content="policytree 官方 vignette 的中文译本：用 grf 估计异质效应，再用精确树搜索学习最优治疗/干预策略，暗黑主题版。">
+<script>
+(function(){
+  var KEY="share-theme", d=document.documentElement;
+  try{var saved=localStorage.getItem(KEY);}catch(e){var saved=null;}
+  d.setAttribute("data-theme", saved || d.getAttribute("data-theme-default") || "light");
+  document.addEventListener("DOMContentLoaded",function(){
+    var b=document.getElementById("theme-toggle"); if(!b) return;
+    function sync(){
+      var dark=d.getAttribute("data-theme")==="dark";
+      b.setAttribute("aria-pressed", dark?"true":"false");
+      b.setAttribute("title", dark?"切换到亮色主题 (Alt+T)":"切换到暗色主题 (Alt+T)");
+    }
+    b.addEventListener("click",function(){
+      var nxt=d.getAttribute("data-theme")==="dark"?"light":"dark";
+      d.setAttribute("data-theme",nxt);
+      try{localStorage.setItem(KEY,nxt);}catch(e){}
+      sync();
+    });
+    document.addEventListener("keydown",function(e){
+      if(e.altKey&&(e.key==="t"||e.key==="T")) b.click();
+    });
+    sync();
+  });
+})();
+</script>
+<style>
+:root{
+  --bg:#0f1116; --surface:#181b22; --surface-2:#1e222b; --card:#1a1e26;
+  --text:#e4e6ea; --muted:#98a0ac; --faint:#6f7783;
+  --line:#2a2f3a; --line-soft:#232833;
+  --accent:#5ad1a0; --accent-dim:#2e6c55; --accent-soft:#14281f;
+  --blue:#7aa2f7; --blue-soft:#16203a;
+  --amber:#e0af68; --amber-soft:#2b2317;
+  --code-bg:#0b0d12; --code-line:#1d2129;
+}
+:root[data-theme="light"]{
+  --bg:#f7f7f5; --surface:#ffffff; --surface-2:#f1efe8; --card:#ffffff;
+  --text:#2c2c2a; --muted:#6b6a65; --faint:#8a8f96;
+  --line:#e3e2dd; --line-soft:#eeece6;
+  --accent:#0f6e56; --accent-dim:#8fd3bd; --accent-soft:#e1f5ee;
+  --blue:#185fa5; --blue-soft:#e6f1fb;
+  --amber:#854f0b; --amber-soft:#faeeda;
+  --code-bg:#f4f4f1; --code-line:#e3e2dd;
+}
+:root[data-theme="light"] code{color:#243447}
+:root[data-theme="light"] pre code{color:#33312e}
+:root[data-theme="light"] figure img{background:transparent; padding:0}
+:root[data-theme="light"] .notice{border-color:#e3d3a8}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);line-height:1.85;font-size:16px;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  padding:0 20px 90px}
+.wrap{max-width:860px;margin:0 auto}
+
+header{padding:60px 0 30px;border-bottom:1px solid var(--line);margin-bottom:30px}
+h1{font-size:30px;font-weight:600;letter-spacing:-.3px;line-height:1.4}
+.sub{color:var(--muted);font-size:15.5px;margin-top:12px}
+.metabox{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:18px 22px;margin-top:24px;font-size:14.5px;color:var(--muted)}
+.metabox dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px}
+.metabox dt{color:var(--text);font-weight:500}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(90,209,160,.3);word-break:break-word}
+a:hover{border-bottom-color:var(--accent)}
+.tagrow{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}
+.tag{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;
+  padding:3px 10px;font-size:12.5px;color:var(--muted)}
+.tag.k{background:var(--accent-soft);border-color:var(--accent-dim);color:var(--accent)}
+
+.notice{background:var(--amber-soft);border:1px solid #4a3c1d;border-radius:10px;
+  padding:14px 18px;margin:22px 0;font-size:14.5px;line-height:1.75}
+.notice b{color:var(--amber)}
+
+h2{font-size:23px;font-weight:600;margin:52px 0 16px;padding-top:10px;
+  border-top:1px solid var(--line-soft);scroll-margin-top:16px}
+h2:first-of-type{border-top:none}
+h3{font-size:18px;font-weight:600;margin:34px 0 12px;scroll-margin-top:16px}
+p{margin:0 0 16px}
+.lead{font-size:16.5px;color:#d5d8dd}
+
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px;
+  background:var(--surface-2);padding:2px 6px;border-radius:4px;color:#c8d3e0}
+pre{background:var(--code-bg);border:1px solid var(--code-line);border-radius:10px;
+  padding:16px 18px;overflow-x:auto;margin:18px 0;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre code{background:none;padding:0;font-size:13.5px;line-height:1.7;color:#d7dde5;white-space:pre}
+
+figure{margin:26px 0}
+figure img{max-width:100%;height:auto;border-radius:10px;border:1px solid var(--line);
+  background:#ffffff;padding:6px;display:block;margin:0 auto}
+figcaption{font-size:13.5px;color:var(--muted);margin-top:10px;text-align:center;line-height:1.7}
+
+table{width:100%;border-collapse:collapse;margin:22px 0;font-size:14.5px;background:var(--surface)}
+th,td{border:1px solid var(--line);padding:10px 13px;text-align:left;vertical-align:top}
+th{background:var(--surface-2);font-weight:600;color:#dfe3e8}
+tbody tr:nth-child(even){background:rgba(255,255,255,.02)}
+
+.box{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;padding:14px 20px;margin:20px 0;font-size:15px}
+.box .t{font-weight:600;color:var(--accent);display:block;margin-bottom:6px;font-size:14px;letter-spacing:.02em}
+.box.blue{border-left-color:var(--blue)}
+.box.blue .t{color:var(--blue)}
+
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 26px;margin:28px 0}
+.toc strong{color:#dfe3e8}
+.toc ol{margin:12px 0 0 22px}
+.toc li{margin:5px 0;font-size:15px}
+
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 20px;margin:20px 0}
+summary{cursor:pointer;font-weight:500;font-size:15px;color:#dfe3e8}
+details ul{margin:14px 0 6px 22px;font-size:14.5px;color:var(--muted)}
+details li{margin:7px 0;line-height:1.7}
+
+footer{margin-top:60px;padding-top:24px;border-top:1px solid var(--line);
+  font-size:13.5px;color:var(--faint);line-height:1.8}
+@media(max-width:640px){body{font-size:15.5px}h1{font-size:24.5px}.metabox dl{grid-template-columns:1fr}}
+.tt{
+  position:fixed; top:16px; right:16px; z-index:9999; width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center; border-radius:50%;
+  cursor:pointer; color:var(--text); background:var(--surface); border:1px solid var(--line);
+  box-shadow:0 2px 10px rgba(0,0,0,.24); transition:transform .15s, border-color .15s, background .15s;
+}
+.tt:hover{transform:translateY(-1px); border-color:var(--accent)}
+.tt:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+[data-theme="dark"] .ico-sun{display:block}
+[data-theme="dark"] .ico-moon{display:none}
+[data-theme="light"] .ico-sun{display:none}
+[data-theme="light"] .ico-moon{display:block}
+@media(max-width:640px){.tt{top:10px; right:10px; width:36px; height:36px}}
+@media print{.tt{display:none}}
+</style>
+<style>
+/* ---- 全局搜索 ---- */
+.sbox{position:relative;display:inline-flex;align-items:center;margin-left:10px}
+.sbox input{background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);color:inherit;
+ border-radius:6px;padding:4px 9px 4px 25px;font-size:13px;width:170px;font-family:inherit;outline:none}
+.sbox input:focus{border-color:#4ea1ff;width:220px}
+.sbox .si{position:absolute;left:8px;font-size:12px;opacity:.6;pointer-events:none}
+.spanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:440px;max-width:88vw;
+ max-height:64vh;overflow-y:auto;z-index:900;background:var(--panel,#262c34);
+ border:1px solid var(--border,#3a4350);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.spanel.open{display:block}
+.spanel .sh{padding:7px 10px;font-size:12px;opacity:.7;border-bottom:1px solid var(--border,#3a4350);margin-bottom:4px}
+.spanel .sempty{font-size:12px;opacity:.65;padding:16px 10px;text-align:center}
+.sres{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:inherit}
+.sres:hover,.sres.sel{background:var(--panel2,#2e3540)}
+.sres .c{font-size:11px;opacity:.65;margin-bottom:1px}
+.sres .s{font-size:12px;color:#4ea1ff;margin-bottom:2px}
+.sres .t{font-size:13px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sres mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+.srch-main{margin:22px 0}
+.srch-main input{width:100%;background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);
+ color:inherit;border-radius:8px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none}
+.srch-main input:focus{border-color:#4ea1ff}
+.srch-meta{font-size:13px;opacity:.7;margin:12px 0 6px}
+.srch-list{list-style:none;margin:0;padding:0}
+.srch-list .sres{border:1px solid var(--border,#3a4350);margin:7px 0;padding:9px 11px}
+.srch-list .sres:hover{border-color:#4ea1ff}
+@media (max-width:640px){.sbox input{width:110px}.sbox input:focus{width:150px}.spanel{width:86vw}}
+</style><!--search.css-marker-->
+<style>
+/* ===== 因果森林知识库 · 统一导航 ===== */
+.cfh-nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:10px;
+ padding:8px 16px;background:var(--bg,#181b22);border-bottom:1px solid var(--line,#2a2f3a);
+ font-size:13.5px;flex-wrap:wrap}
+.cfh-nav .cfh-home{font-weight:600;color:var(--text,#e4e6ea);text-decoration:none;font-size:14px;
+ display:flex;align-items:center;gap:6px}
+.cfh-nav .cfh-home:hover{color:var(--accent,#7aa2f7)}
+.cfh-nav .cfh-crumb{color:var(--muted,#98a0ac);font-size:12.5px}
+.cfh-nav .cfh-crumb a{color:var(--accent,#7aa2f7);text-decoration:none}
+.cfh-nav .cfh-sp{flex:1}
+.cfh-nav select{background:var(--card,#181b22);color:var(--text,#e4e6ea);
+ border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:4px 8px;font-size:12.5px;
+ font-family:inherit;outline:none;cursor:pointer;max-width:230px}
+.cfh-nav select:hover{border-color:var(--accent,#7aa2f7)}
+.cfh-nav a.cfh-sbtn{color:var(--text,#e4e6ea);text-decoration:none;border:1px solid var(--line,#2a2f3a);
+ border-radius:6px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.cfh-nav a.cfh-sbtn:hover{border-color:var(--accent,#7aa2f7);color:var(--accent,#7aa2f7)}
+@media (max-width:700px){.cfh-nav .cfh-crumb{display:none}.cfh-nav select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="cfh-nav">
+<a class="cfh-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="cfh-crumb">/ <a href="index.html">policytree 策略树</a> </span>
+<span class="cfh-sp"></span>
+<select onchange="if(this.value)location.href=this.value" aria-label="切换库">
+<option value="grf-cn/index.html">grf 广义随机森林</option>
+<option value="policytree-cn/index.html" selected>policytree 策略树</option>
+<option value="surefq/surefq.html">SURE / QRF 充分表示</option>
+<option value="tidyhte-cn/index.html">tidyhte 优雅的 HTE</option>
+<option value="metalearner-cn/index.html">Meta-Learner 元学习器</option>
+<option value="model4you-cn/index.html">model4you 个体化治疗</option>
+<option value="evalITR-cn/index.html">evalITR 规则评估</option>
+<option value="rj-dlc-cn/index.html">DeepLearningCausal</option>
+<option value="survlearners-cn/index.html">survlearners 生存 HTE</option>
+<option value="bocf-cn/index.html">BOCF 基线观测结转</option>
+<option value="hte-course/index.html">HTE 公开课讲义</option>
+<option value="causal-tools-cn/index.html">因果推断三件工具</option>
+<option value="imputeTS-cn/index.html">imputeTS 缺失填补</option>
+</select>
+<a class="cfh-sbtn" href="search.html">&#128269; 搜索本页</a>
+</div>
+<button id="theme-toggle" class="tt" type="button" aria-label="切换明暗主题" title="切换明暗主题 (Alt+T)">
+  <svg class="ico-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7"/></svg>
+  <svg class="ico-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.2 8.2 0 1 0 10.5 10.5z"/></svg>
+</button>
+
+<div class="wrap">
+
+<header>
+  <h1>policytree 中文教程<br>从因果森林学到最优策略树</h1>
+  <p class="sub">用 grf 估计个体化处置效应，再用精确树搜索找到「谁该给什么处置」的最优规则</p>
+  <div class="metabox">
+    <dl>
+      <dt>原文</dt><dd>policytree introduction（官方 vignette，包版本 1.2.5）</dd>
+      <dt>出处</dt><dd><a href="https://grf-labs.github.io/policytree/articles/policytree.html">grf-labs.github.io/policytree/articles/policytree.html</a></dd>
+      <dt>方法文献</dt><dd>Zhou, Athey &amp; Wager (2023)；Athey &amp; Wager (2021)</dd>
+      <dt>包作者</dt><dd>Erik Sverdrup、Ayush Kanodia、Zhengyuan Zhou、Susan Athey、Stefan Wager</dd>
+      <dt>依赖</dt><dd>R 包 <code>policytree</code> + <code>grf</code>（广义随机森林）</dd>
+    </dl>
+  </div>
+  <div class="notice">
+    <b>说明：</b>本页为上述官方教程的中文译本，内容与示例取自原文；所有 R 代码、函数名、输出保持原样，可直接复制运行。翻译时补充了背景解释与方法直觉（以引文框形式标出），便于中文读者理解每一步在做什么。示例中的随机数未设种子，你运行出来的具体数值会与页面输出略有差异，但结论形态一致。原 vignette 版权归包作者所有，本译文仅供学习交流。
+  </div>
+  <div class="tagrow">
+    <span class="tag k">policytree</span>
+    <span class="tag">grf</span>
+    <span class="tag">策略学习</span>
+    <span class="tag">最优策略树</span>
+    <span class="tag">双重稳健得分</span>
+    <span class="tag">工具变量</span>
+  </div>
+</header>
+
+<h2 id="intro">这篇文档讲什么</h2>
+<p class="lead">本文简要介绍 policytree 包，示例取自 Zhou、Athey 与 Wager（2023）以及 Athey 与 Wager（2021）。最后一节讨论 <code>policy_tree</code> 的运行时间。</p>
+<p>policytree 解决的是因果推断链条上的最后一环：前面你已经在 est（估计）阶段用 grf 得到了每个人的处置效应，接下来 policytree 负责把它变成一个<b>可执行、可解释的决策规则</b>——一棵树。树的每个叶子节点给出一个「行动」（action），落到该叶子的人就执行这个行动，使得全体期望收益最大。</p>
+<div class="box">
+  <span class="t">核心思路：先算「每个人每种行动的得分」，再找最优分配</span>
+  因果森林给出的是处置效应 τ(x)，但策略学习需要一个矩阵 Γ：Γ[i, a] 表示「第 i 个人若采取行动 a 会得到的收益」的估计。policytree 的整个流程因此是两段的：<br>
+  ① <code>grf</code> 拟合森林（因果森林 / 多臂森林 / 工具变量森林）；<br>
+  ② <code>double_robust_scores(forest)</code> 把森林转成 Γ 矩阵；<br>
+  ③ <code>policy_tree(X, Γ, depth)</code> 在 Γ 上做<b>精确树搜索</b>，得到全局最优的浅树。
+</div>
+<p>加载所需的两个包：</p>
+<pre><code>library(policytree)
+library(grf)</code></pre>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#ex1">示例 1：二元处置 —— 效应估计与策略学习</a></li>
+    <li><a href="#ex2">示例 2：多行动处置效应估计</a>
+      <div style="margin-left:20px;color:var(--muted);font-size:14.5px"><a href="#ex2-learn">策略学习</a> · <a href="#ex2-pred">留出样本上的预测</a></div>
+    </li>
+    <li><a href="#ex3">示例 3：高效策略学习 —— 二元处置与工具变量</a></li>
+    <li><a href="#runtime">树搜索的运行时间怎么估</a></li>
+    <li><a href="#hybrid">用混合搜索拟合更深的树</a></li>
+    <li><a href="#cheatsheet">附录：函数速查与术语对照</a></li>
+  </ol><span class="sbox"><span class="si">&#128269;</span>
+<input type="search" id="s-q" placeholder="搜索本站…（按 /）" autocomplete="off" aria-label="搜索本站">
+<span class="spanel" id="s-panel"></span></span></nav>
+
+<h2 id="ex1">示例 1：二元处置 —— 效应估计与策略学习</h2>
+<p>先模拟一份数据：<code>n = 10000</code> 人、<code>p = 10</code> 个协变量，处置概率 <code>ee</code> 依赖 X<sub>3</sub>（这制造了需要校正的混淆），真实处置效应 <code>tt</code> 依赖 X<sub>1</sub> 与 X<sub>2</sub>（这是我们希望学到的异质性）。结果变量 Y = X<sub>3</sub> + W·τ(X) + 噪声。</p>
+<pre><code>n &lt;- 10000
+p &lt;- 10
+
+X &lt;- matrix(rnorm(n * p), n, p)
+ee &lt;- 1 / (1 + exp(X[, 3]))
+tt &lt;- 1 / (1 + exp((X[, 1] + X[, 2]) / 2)) - 0.5
+W &lt;- rbinom(n, 1, ee)
+Y &lt;- X[, 3] + W * tt + rnorm(n)
+
+cf &lt;- causal_forest(X, Y, W)
+
+plot(tt, predict(cf)$predictions)</code></pre>
+<p>最后一行把<b>真实的处置效应 tt</b> 画在横轴、<b>森林预测的处置效应</b> 画在纵轴。如果森林学得好，散点应大致沿对角线分布。</p>
+<figure>
+  <img src="assets/ptfig1.png" alt="真实 CATE 与因果森林预测值的散点图">
+  <figcaption>图 1：横轴为真实 τ(X)，纵轴为 <code>predict(cf)$predictions</code>。点越贴近对角线，说明个体化效应估计越准</figcaption>
+</figure>
+
+<h3 id="sec-从森林到策略树">从森林到策略树</h3>
+<p>接下来是 policytree 的关键两步。第一步把森林转成双重稳健得分矩阵 <code>dr</code>（每一行是一个人，两列分别对应「不处置」与「处置」的收益估计）；第二步在这个矩阵上搜索最优的深度 2 树。</p>
+<pre><code>dr &lt;- double_robust_scores(cf)
+tree &lt;- policy_tree(X, dr, 2)
+tree
+#&gt; policy_tree object 
+#&gt; Tree depth:  2 
+#&gt; Actions:  1: control 2: treated 
+#&gt; Variable splits: 
+#&gt; (1) split_variable: X2  split_value: -0.288329 
+#&gt;   (2) split_variable: X1  split_value: 1.40486 
+#&gt;     (4) * action: 2 
+#&gt;     (5) * action: 1 
+#&gt;   (3) split_variable: X1  split_value: -0.729217 
+#&gt;     (6) * action: 2 
+#&gt;     (7) * action: 1
+pp &lt;- predict(tree, X)
+boxplot(tt ~ pp)</code></pre>
+<div class="box">
+  <span class="t">怎么读这棵树</span>
+  根节点在 <b>X2 ≤ −0.288</b> 处切一刀；左右子树再各自按 X1 切（阈值 1.405 与 −0.729）。编号 (4)(5)(6)(7) 是四个叶子，<code>* action</code> 表示该叶子分配的动作：这里 action 2 = treated（处置），action 1 = control（对照）。<br>
+  注意真实 τ 是 <code>1/(1+exp((X1+X2)/2)) − 0.5</code>，当 X1 + X2 大时为正、小时为负。树用两步切分近似了这个「X1+X2 是否过阈值」的边界——这正是策略树该做的事。
+</div>
+<p><code>pp &lt;- predict(tree, X)</code> 给出每个人被分配到的动作，下面按真实 τ 分组画箱线图：如果两个组的 τ 分布被清楚地分开，说明策略学到了真正的异质性。</p>
+<figure>
+  <img src="assets/ptfig2.png" alt="按策略分配分组的真实处置效应箱线图">
+  <figcaption>图 2：<code>boxplot(tt ~ pp)</code> —— 被分配到 treated 的一组（右）真实 τ 明显更高，分配到 control 的一组（左）τ 更低，说明规则把人分对了</figcaption>
+</figure>
+<p>再画一棵树的可视化版本，以及在 X1–X2 平面上查看策略给出的区域划分：</p>
+<pre><code>plot(tree)</code></pre>
+<pre><code>plot(X[, 1], X[, 2], col = pp)
+abline(0, -1, lwd = 4, col = 4)</code></pre>
+<div class="box blue">
+  <span class="t">这行 plot 和那条 abline 在说什么</span>
+  <code>plot(tree)</code> 会弹出一个交互式树形图（htmlwidget），在 R 里运行能看到节点级的图形，本页无法渲染它的交互效果，建议自己跑一遍。<br>
+  第二个图把样本画在 (X1, X2) 平面上，颜色 <code>col = pp</code> 表示策略给这个人分配的动作。由于真实规则近似是 X1 + X2 超过某个常数，即 X2 ≈ −X1 + c，所以再叠一条截距 0、斜率 −1 的参考线 <code>abline(0, -1)</code>——它正好是理论上的决策边界走向，用来核验树学到的分界线方向是否正确。
+</div>
+<figure>
+  <img src="assets/ptfig3.png" alt="X1-X2 平面上按策略着色并叠加参考直线">
+  <figcaption>图 3：点的颜色是策略分配的动作，蓝线为 X2 = −X1 参考线。颜色分区与这条直线走向吻合，说明树学到了正确的分界方向</figcaption>
+</figure>
+
+<h2 id="ex2">示例 2：多行动处置效应估计</h2>
+<p>下面的例子取自 Zhou、Athey 与 Wager 文中 6.4.1 节的三行动数据生成过程。这次不是「治不治」，而是三个可选行动里选哪个。</p>
+<pre><code>n &lt;- 10000
+p &lt;- 10
+data &lt;- gen_data_mapl(n, p)
+head(data.frame(data)[1:6])
+#&gt;   action          Y        X.1       X.2       X.3        X.4
+#&gt; 1      1  2.6284326 0.67222112 0.1911761 0.8306201 0.04823820
+#&gt; 2      2 -0.4104820 0.06268746 0.5293111 0.9005144 0.17141539
+#&gt; 3      0  2.5760171 0.96091759 0.2426804 0.8510604 0.81590389
+#&gt; 4      1  6.4251811 0.28812068 -0.5097512 0.2848444 0.26683712
+#&gt; 5      1 -0.7418237 0.24016147 0.9975204 0.5635440 0.29509120
+#&gt; 6      2 -0.1215063 0.12274854 0.8569016 0.4839027 0.09840055
+
+X &lt;- data$X
+Y &lt;- data$Y
+W &lt;- as.factor(data$action)
+
+multi.forest &lt;- multi_arm_causal_forest(X, Y, W)
+
+# tau.hats:
+head(predict(multi.forest)$predictions[,,])
+#&gt;           1 - 0      2 - 0
+#&gt; [1,] -0.9412435 -2.0769712
+#&gt; [2,]  0.1277605 -0.4066057
+#&gt; [3,]  1.5617834  2.6202100
+#&gt; [4,]  1.4144960  1.8842886
+#&gt; [5,] -0.9125272 -1.9914204
+#&gt; [6,] -0.8652425 -1.9773135
+
+# Each region with optimal action
+region.pp &lt;- data$region + 1
+plot(X[, 5], X[, 7], col = region.pp)
+leg &lt;- sort(unique(region.pp))
+legend("topleft", legend = leg - 1, col = leg, pch = 10)</code></pre>
+<div class="box">
+  <span class="t">多臂情形下的效应是怎么表示的</span>
+  这里处置是三分类因子（0/1/2），用 <code>multi_arm_causal_forest</code> 拟合。<code>predict()</code> 给出的是<b>相对于基准臂</b>的效应：列 <code>1 - 0</code> 是行动 1 相对行动 0 的效应，<code>2 - 0</code> 是行动 2 相对行动 0。第 1 行为负，说明对这个人来说，转向行动 1 或 2 都不如留在行动 0。<br>
+  数据在生成时把特征空间划成了若干区域（<code>data$region</code>），每个区域有一个最优行动；最后三行把这个「真实的最优区域」画出来，作为后面学习结果的对照基准。这里画的是第 5 与第 7 个特征，因为这个 DGP 的最优行动主要由这两维决定。
+</div>
+<figure>
+  <img src="assets/ptfig4.png" alt="多处置示例中按真实最优区域着色的散点图">
+  <figcaption>图 4：真实的最优行动分区（不同颜色代表不同 region 对应的最优行动）。这就是策略学习要还原的目标</figcaption>
+</figure>
+
+<h3 id="ex2-learn">策略学习</h3>
+<p>用交叉拟合的增广逆概率加权学习（CAIPWL），配最优深度 2 的树：</p>
+<pre><code>Gamma.matrix &lt;- double_robust_scores(multi.forest)
+head(Gamma.matrix)
+#&gt;              0         1          2
+#&gt; [1,] 2.9332872  3.061184  0.8563160
+#&gt; [2,] 1.9659081  2.093669 -6.6971155
+#&gt; [3,] 8.4867605  1.576607  2.6350340
+#&gt; [4,] 0.1158075 11.451911  2.0000960
+#&gt; [5,] 2.9328387 -2.818131  0.9414183
+#&gt; [6,] 2.8653836  2.000141 -3.4826409
+
+train &lt;- sample(1:n, 9000)
+opt.tree &lt;- policy_tree(X[train, ], Gamma.matrix[train, ], depth = 2)
+opt.tree
+#&gt; policy_tree object 
+#&gt; Tree depth:  2 
+#&gt; Actions:  1: 0 2: 1 3: 2 
+#&gt; Variable splits: 
+#&gt; (1) split_variable: X5  split_value: 0.601712 
+#&gt;   (2) split_variable: X7  split_value: 0.346662 
+#&gt;     (4) * action: 3 
+#&gt;     (5) * action: 1 
+#&gt;   (3) split_variable: X7  split_value: 0.65207 
+#&gt;     (6) * action: 2 
+#&gt;     (7) * action: 3
+
+plot(opt.tree)</code></pre>
+<div class="box">
+  <span class="t">Γ 矩阵在这里的含义</span>
+  <code>double_robust_scores(multi.forest)</code> 输出一个 n × 3 矩阵：第 i 行表示该个体在三个行动下的收益估计。例如第 4 个人在行动 1 下的得分高达 11.45，说明把行动 1 分配给他收益最大。<br>
+  然后用 9000 人做训练、留 1000 人做留出集；<code>policy_tree</code> 在这些得分上搜索使总收益最大的深度 2 树。树根切 X5、两侧再各自切 X7——正好对应数据生成时起决定作用的第 5、第 7 个特征，也就是说规则学对了地方。
+</div>
+
+<h3 id="ex2-pred">留出样本上的预测</h3>
+<p>把学到的策略用在没参与训练的 1000 人上：</p>
+<pre><code>X.test &lt;- X[-train, ]
+pp &lt;- predict(opt.tree, X.test)
+head(pp)
+#&gt; [1] 3 3 1 1 2 2
+
+plot(X.test[, 5], X.test[, 7], col = pp)
+leg &lt;- sort(unique(pp))
+legend("topleft", legend = leg - 1, col = leg, pch = 10)</code></pre>
+<div class="box blue">
+  <span class="t">注意 1/2/3 与 0/1/2 的换算</span>
+  <code>predict()</code> 返回的是动作的序号（1、2、3），而动作的标签是 0、1、2，所以画图时图例用 <code>leg - 1</code> 还原成真实行动编号。把这张图与前面的图 4（真实最优区域）叠在一起看，两者形状应当高度吻合。
+</div>
+<figure>
+  <img src="assets/ptfig5.png" alt="留出样本上预测的最优行动着色散点图">
+  <figcaption>图 5：留出样本上学到的策略给出的行动分区，与图 4 的真实分区对照</figcaption>
+</figure>
+
+<h2 id="ex3">示例 3：高效策略学习 —— 二元处置与工具变量</h2>
+<p>下面的例子取自 Wager 与 Athey（2021）第 5.2 节。与前两例的关键差别：这里处置本身与未观测混淆相关，需要用<b>工具变量 Z</b> 来识别效应。</p>
+<pre><code>n &lt;- 500
+data &lt;- gen_data_epl(n, type = "continuous")
+head(data.frame(data))[1:6]
+#&gt;   W Z         tau          Y         X.1         X.2
+#&gt; 1 0 1 -0.50000000  3.4662060 -0.13701966 -1.59064506
+#&gt; 2 1 1 -0.07788149  0.5532977 -0.84836207  0.84423702
+#&gt; 3 0 0  0.17925500  1.4832753  1.02471100  0.33379899
+#&gt; 4 0 1 -0.50000000  1.1881457 -0.04921944 -0.85043640
+#&gt; 5 1 1  0.09894633  3.1677820  0.32794872  0.86994393
+#&gt; 6 0 1 -0.45727715 -0.6397086 -0.79551953  0.08544569
+
+iv.forest &lt;- instrumental_forest(X = data$X, Y = data$Y, W = data$W, Z = data$Z)
+
+gamma &lt;- double_robust_scores(iv.forest)
+head(gamma)
+#&gt;         control    treated
+#&gt; [1,] -2.0284396  2.0284396
+#&gt; [2,] -0.9653677  0.9653677
+#&gt; [3,]  0.4410783 -0.4410783
+#&gt; [4,] -0.8767864  0.8767864
+#&gt; [5,] -3.1760816  3.1760816
+#&gt; [6,]  4.0984997 -4.0984997</code></pre>
+<div class="box">
+  <span class="t">为什么这一列的数字一正一负、绝对值相等</span>
+  工具变量森林得到的 <code>gamma</code> 两列互为相反数，是因为在 IV 设定下，双重稳健得分被构造为「τ̂(X) 乘以 ±½」的形式：一个人的τ̂ 越大，分配 treated 的收益相对越高。符号本身就编码了「该治还是不该治」的方向。这也意味着对这个矩阵跑 policy_tree，等价于直接对 τ̂(X) 的符号做最优分组。
+</div>
+<p>接着求解放式 (2) 所定义的深度 2 最优树：</p>
+<pre><code>train &lt;- sample(1:400)
+tree &lt;- policy_tree(data$X[train, ], gamma[train, ])
+tree
+#&gt; policy_tree object 
+#&gt; Tree depth:  2 
+#&gt; Actions:  1: control 2: treated 
+#&gt; Variable splits: 
+#&gt; (1) split_variable: X4  split_value: 0.209562 
+#&gt;   (2) split_variable: X1  split_value: 0.503502 
+#&gt;     (4) * action: 1 
+#&gt;     (5) * action: 2 
+#&gt;   (3) split_variable: X1  split_value: -0.389985 
+#&gt;     (6) * action: 2 
+#&gt;     (7) * action: 1</code></pre>
+<p>在留出数据上评估这个策略：</p>
+<pre><code>piX &lt;- predict(tree, data$X[-train, ]) - 1
+head(piX)
+#&gt; [1] 1 1 1 1 1 0
+
+reward.policy &lt;- mean((2 * piX - 1) * data$tau[-train])
+reward.policy
+#&gt; [1] 0.1624301</code></pre>
+<div class="box blue">
+  <span class="t">留出集上的政策收益怎么算</span>
+  <code>predict()</code> 返回 1/2，减 1 后变成 0/1 的策略指示 π(X)；<code>2 * piX - 1</code> 把它映射到 −1/+1，正好可与真实 τ 相乘：策略给对了人，τ 与被选中同号，乘积为正；给错了则为负。对所有留出样本取平均，得到的 0.162 就是这条政策的平均收益。作为对照，若完全随机分配，这一期望值约为 0。
+</div>
+
+<h2 id="runtime">树搜索的运行时间怎么估</h2>
+<p>精确树搜索的目标是：在<b>中等规模</b>的数据上找到浅层（通常深度 2 或 3）的<b>全局最优</b>树形策略。其摊还运行时间为 <code>O(p^k · n^k · (log n + d) + p·n·log n)</code>，其中 p 是特征数、n 是观测数、d 是处置（行动）数、k ≥ 1 是树的深度。由于这个表达式里有指数项，精确树搜索无法扩展到任意规模的数据上。</p>
+<p>举例来说，深度为 2 的树，运行时间随观测数<b>平方</b>增长：样本量翻倍，耗时会变成四倍。这里的 n 指的是<b>互不相同</b>的观测个数——因此当特征取值离散时可以获得很大加速（如果全部是二值特征，运行时间相对 n 近似线性）。所以，把取值过于稠密的连续特征向下取整或重新编码到较低的基数是有好处的；可选参数 <code>split.step</code> 就是在模拟这种效果，而取整／重新编码则允许更细粒度的控制。</p>
+<p>下表给出若干示例问题的运行时间，作为参考基准：</p>
+<table>
+<thead><tr><th>depth</th><th>n（连续特征）</th><th>features</th><th>actions</th><th>split.step</th><th>time</th></tr></thead>
+<tbody>
+<tr><td>2</td><td>1000</td><td>30</td><td>20</td><td>1</td><td>1.5 min</td></tr>
+<tr><td>2</td><td>1000</td><td>30</td><td>20</td><td>10</td><td>7 sec</td></tr>
+<tr><td>2</td><td>10 000</td><td>30</td><td>20</td><td>1</td><td>3 hrs</td></tr>
+<tr><td>2</td><td>10 000</td><td>30</td><td>20</td><td>10</td><td>14 min</td></tr>
+<tr><td>2</td><td>10 000</td><td>30</td><td>20</td><td>1，但用 round(X, 2)</td><td>8 min</td></tr>
+<tr><td>2</td><td>100 000</td><td>30</td><td>20</td><td>10</td><td>50 hrs</td></tr>
+<tr><td>2</td><td>100 000</td><td>30</td><td>20</td><td>1，但用 round(X, 2)</td><td>6.3 hrs</td></tr>
+<tr><td>2</td><td>100 000</td><td>60</td><td>20</td><td>1，但用 round(X, 2)</td><td>25 hrs</td></tr>
+<tr><td>2</td><td>100 000</td><td>30</td><td>3</td><td>10</td><td>7.4 hrs</td></tr>
+</tbody>
+</table>
+<div class="box">
+  <span class="t">读表要点</span>
+  同样 n = 10 000、30 个特征、20 个行动：把 <code>split.step</code> 从 1 提到 10，耗时从 3 小时降到 14 分钟；把连续特征 <code>round(X, 2)</code> 降基数，能进一步降到 8 分钟——这两个操作都不改变问题本身，只是降低特征的取值基数。反之，样本量放大到 100 000，耗时立刻升到数十小时量级。所以要在大样本上做精确搜索，先想清楚三件事：离散化、特征筛选、以及是否真的需要深度 3。
+</div>
+
+<h2 id="hybrid">用混合搜索拟合更深的树</h2>
+<p>前一节说明：在非常大的 N 上生长出深度 ≥ 3 的<b>全局最优</b>树是不可行的。但请注意，如果对连续协变量做适当离散化、并做特征筛选，生长深度 2 的精确树是可行的。</p>
+<p>于是我们可以用一种「混合」（hybrid）方法，在保留深度 2 摊还运行时间的同时长出更深的树：形成切分时，向前<b>多看一层深度 2 的子树</b>。这个启发式结合了「完全贪心」与「完全最优」两种做法的优点——因为看得更远，变量之间潜在的交互作用被纳入了考量，同时又保持了可行的伸缩性。该功能由 <code>hybrid_policy_tree</code> 提供。</p>
+<p>用上面的数据集拟合一棵精确的深度 3 树几乎要花 10 分钟，相比之下混合方法的耗时如下：</p>
+<pre><code>system.time(htree &lt;- hybrid_policy_tree(data$X[train, ], gamma[train, ], depth = 3, search.depth = 2))
+#&gt;    user  system elapsed 
+#&gt;   0.165   0.000   0.166
+htree
+#&gt; policy_tree object 
+#&gt; Tree depth:  3 
+#&gt; Actions:  1: control 2: treated 
+#&gt; Variable splits: 
+#&gt; (1) split_variable: X4  split_value: 0.209562 
+#&gt;   (2) split_variable: X7  split_value: -0.692727 
+#&gt;     (4) split_variable: X3  split_value: 0.816282 
+#&gt;       (8) * action: 1 
+#&gt;       (9) * action: 2 
+#&gt;     (5) split_variable: X1  split_value: 0.247063 
+#&gt;       (10) * action: 1 
+#&gt;       (11) * action: 2 
+#&gt;   (3) split_variable: X3  split_value: -0.0218932 
+#&gt;     (6) split_variable: X3  split_value: -0.708715 
+#&gt;       (12) * action: 2 
+#&gt;       (13) * action: 1 
+#&gt;     (7) split_variable: X1  split_value: -0.418971 
+#&gt;       (14) * action: 2 
+#&gt;       (15) * action: 1</code></pre>
+<div class="box blue">
+  <span class="t">search.depth 的含义</span>
+  <code>depth = 3</code> 是最终树的深度，<code>search.depth = 2</code> 表示每次考虑一个切分时，会向前评估深度 2 的最优子树，用它的收益来决定这一刀切在哪。这样每层只付「深度 2 精确搜索」的代价，却得到了更深的树：上例中整棵树 0.166 秒就出来了，而同样数据跑精确深度 3 树几乎需要 10 分钟。代价是不再保证全局最优。
+</div>
+
+<h2 id="cheatsheet">附录：函数速查与术语对照</h2>
+<table>
+<thead><tr><th>函数</th><th>作用</th></tr></thead>
+<tbody>
+<tr><td><code>double_robust_scores(forest)</code></td><td>把 grf 森林（因果 / 多臂 / 工具变量）转成 Γ 得分矩阵，行是个体、列是行动</td></tr>
+<tr><td><code>policy_tree(X, Gamma, depth)</code></td><td>在 Γ 上做<b>精确</b>树搜索，返回全局最优的固定深度策略树</td></tr>
+<tr><td><code>hybrid_policy_tree(X, Gamma, depth, search.depth)</code></td><td>混合搜索：以 <code>search.depth</code> 层向前看批的方式生长更深的树，速度更快但不保证全局最优</td></tr>
+<tr><td><code>predict(tree, Xnew)</code></td><td>对新样本给出所属叶子的行动<b>序号</b>（1 起算，需按需减 1 还原标签）</td></tr>
+<tr><td><code>plot(tree)</code></td><td>交互式树形图（htmlwidget），在 RStudio Viewer 中查看</td></tr>
+<tr><td><code>gen_data_epl(n, type)</code></td><td>生成高效策略学习示例数据；<code>type = "continuous"</code> 时含工具变量 Z</td></tr>
+<tr><td><code>gen_data_mapl(n, p)</code></td><td>生成多行动策略学习示例数据，含 <code>action</code>、<code>Y</code>、<code>X</code>、<code>region</code></td></tr>
+</tbody>
+</table>
+<details>
+  <summary>术语对照（英 → 中）</summary>
+  <ul>
+    <li><b>policy learning</b>　策略学习：从数据中学习「对谁采取什么行动」的规则</li>
+    <li><b>policy / action</b>　策略 / 行动（如 control vs treated，或多个处置臂）</li>
+    <li><b>policy tree</b>　策略树：叶子给出行动的一棵树形规则</li>
+    <li><b>doubly robust scores（Γ 矩阵）</b>　双重稳健得分矩阵：每个个体在每个行动下的收益估计</li>
+    <li><b>CAIPWL</b>　交叉拟合的增广逆概率加权学习（cross-fitted augmented inverse propensity weighted learning）</li>
+    <li><b>exact tree search</b>　精确树搜索：穷举所有候选树，保证全局最优</li>
+    <li><b>hybrid / greedy search</b>　混合 / 贪心搜索：牺牲最优性换取速度</li>
+    <li><b>multi-arm causal forest</b>　多臂因果森林：处置变量为多分类时的 grf 模型</li>
+    <li><b>instrumental forest</b>　工具变量森林：存在未观测混淆时借工具变量识别效应</li>
+    <li><b>split.step</b>　切分步长：跳过部分候选切点，相当于粗粒度离散化，用于加速</li>
+    <li><b>held-out / test set</b>　留出集 / 测试集：未参与训练、用于评估政策收益的样本</li>
+  </ul>
+</details>
+
+<footer>
+  <p>原文：policytree introduction（policytree 1.2.5 官方 vignette），作者 Erik Sverdrup、Ayush Kanodia、Zhengyuan Zhou、Susan Athey、Stefan Wager；站点由 pkgdown 1.5.1 构建。原 vignette 版权归包作者所有。</p>
+  <p>本译文由 <a href="https://github.com/zhangkaicr/share">zhangkaicr/share</a> 整理发布，仅供学习交流；解释性说明为译者补充，与原包作者无关。</p>
+  <p>页面为暗色主题；示例图片沿用原文输出的浅色底 ggplot 图。</p>
+</footer>
+
+</div>
+<script src="search.js"></script>
+</body>
+</html>
