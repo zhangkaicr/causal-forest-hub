@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme-default="light">
+<head>
+<script>
+(function(){
+  var KEY="share-theme", d=document.documentElement;
+  try{var saved=localStorage.getItem(KEY);}catch(e){var saved=null;}
+  d.setAttribute("data-theme", saved || d.getAttribute("data-theme-default") || "light");
+  document.addEventListener("DOMContentLoaded",function(){
+    var b=document.getElementById("theme-toggle"); if(!b) return;
+    function sync(){
+      var dark=d.getAttribute("data-theme")==="dark";
+      b.setAttribute("aria-pressed", dark?"true":"false");
+      b.setAttribute("title", dark?"切换到亮色主题 (Alt+T)":"切换到暗色主题 (Alt+T)");
+    }
+    b.addEventListener("click",function(){
+      var nxt=d.getAttribute("data-theme")==="dark"?"light":"dark";
+      d.setAttribute("data-theme",nxt);
+      try{localStorage.setItem(KEY,nxt);}catch(e){}
+      sync();
+    });
+    document.addEventListener("keydown",function(e){
+      if(e.altKey&&(e.key==="t"||e.key==="T")) b.click();
+    });
+    sync();
+  });
+})();
+</script>
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},
+options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>局部线性森林导论 · grf 中文教程</title>
+<style>
+:root{
+  --bg:#f7f7f5; --card:#ffffff; --text:#2c2c2a; --muted:#6b6a65;
+  --line:#e3e2dd; --accent:#534ab7; --accent-soft:#eeedfe; --tag:#f1efe8;
+  --code-bg:#f4f3ef; --code-line:#e7e5df; --code-text:#2c2c2a;
+  --note-bg:#eef6ff; --note-line:#bcd6f5; --note-text:#1f3a5f;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  line-height:1.8; margin:0;
+}
+.wrap{max-width:840px;margin:0 auto;padding:32px 22px 80px}
+.topbar{margin-bottom:26px}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;
+  font-size:14px;font-weight:600}
+.back:hover{text-decoration:underline}
+h1{font-size:30px;font-weight:700;letter-spacing:-.3px;margin:6px 0 4px;line-height:1.3}
+.sub{color:var(--muted);font-size:14px;margin-bottom:8px}
+.sub a{color:var(--accent)}
+.lead{font-size:16px;color:var(--text);margin:14px 0 22px;border-left:3px solid var(--accent);
+  padding:4px 0 4px 16px;background:var(--accent-soft);border-radius:0 8px 8px 0}
+.content h2{font-size:22px;font-weight:700;margin:38px 0 12px;padding-bottom:6px;
+  border-bottom:1px solid var(--line)}
+.content h3{font-size:18px;font-weight:700;margin:26px 0 10px}
+.content h4{font-size:16px;font-weight:700;margin:20px 0 8px}
+.content p{margin:12px 0}
+.content ul,.content ol{margin:12px 0;padding-left:26px}
+.content li{margin:6px 0}
+.content a{color:var(--accent);text-decoration:none}
+.content a:hover{text-decoration:underline}
+.content img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;
+  margin:14px 0;background:#fff;display:block}
+.content table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+.content th,.content td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+.content th{background:var(--accent-soft);font-weight:600}
+.content tr:nth-child(even) td{background:var(--card)}
+.content blockquote{margin:16px 0;padding:12px 16px;border-left:3px solid var(--line);
+  color:var(--muted);background:var(--card);border-radius:0 8px 8px 0}
+.content code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13.5px;background:var(--code-bg);padding:2px 5px;border-radius:4px;color:var(--code-text)}
+pre{background:var(--code-bg);border:1px solid var(--code-line);border-radius:10px;
+  padding:16px 18px;overflow-x:auto;margin:16px 0;line-height:1.6}
+pre code{background:none;padding:0;font-size:13.5px;color:var(--code-text)}
+.content .sourceCode{margin:16px 0}
+/* downlit token coloring (light) */
+.content .co{color:#6a737d}
+.content .st{color:#032f62}
+.content .fu{color:#4078f2}
+.content .cf{color:#d73a49}
+.content .kw{color:#a626a4}
+.content .fl,.content .cn{color:#b9520f}
+.content .op{color:#444}
+/* 背景与解释 callout */
+.note{margin:18px 0;padding:14px 18px;border:1px solid var(--note-line);
+  background:var(--note-bg);border-radius:10px;color:var(--note-text)}
+.note .nt{display:inline-block;font-weight:700;font-size:13px;letter-spacing:.04em;
+  margin-bottom:6px;color:var(--accent)}
+.note p{margin:6px 0}
+.note code{background:rgba(255,255,255,.6)}
+.foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--muted)}
+.foot a{color:var(--accent)}
+
+:root[data-theme="dark"]{
+  --bg:#0f1116; --card:#181b22; --text:#e4e6ea; --muted:#98a0ac;
+  --line:#2a2f3a; --accent:#7aa2f7; --accent-soft:#16203a; --tag:#1e222b;
+  --code-bg:#0b0d12; --code-line:#1d2129; --code-text:#d7dae0;
+  --note-bg:#15233b; --note-line:#274168; --note-text:#bcd6f5;
+}
+:root[data-theme="dark"] .content th{background:var(--accent-soft)}
+:root[data-theme="dark"] .content tr:nth-child(even) td{background:#14171e}
+:root[data-theme="dark"] .content img{background:#0b0d12}
+:root[data-theme="dark"] .content .co{color:#7f8b9a}
+:root[data-theme="dark"] .content .st{color:#9ecbff}
+:root[data-theme="dark"] .content .fu{color:#82aaff}
+:root[data-theme="dark"] .content .cf{color:#f07178}
+:root[data-theme="dark"] .content .kw{color:#c792ea}
+:root[data-theme="dark"] .content .fl,.content .cn{color:#f78c6c}
+
+.tt{
+  position:fixed; top:16px; right:16px; z-index:9999; width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center; border-radius:50%;
+  cursor:pointer; color:var(--text); background:var(--card);
+  border:1px solid var(--line);
+  box-shadow:0 2px 10px rgba(0,0,0,.24); transition:transform .15s, border-color .15s, background .15s;
+}
+.tt:hover{transform:translateY(-1px); border-color:var(--accent)}
+.tt:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tt svg{display:none}
+[data-theme="dark"] .ico-sun{display:block}
+[data-theme="dark"] .ico-moon{display:none}
+[data-theme="light"] .ico-sun{display:none}
+[data-theme="light"] .ico-moon{display:block}
+@media(max-width:640px){.tt{top:10px; right:10px; width:36px; height:36px}}
+@media print{.tt{display:none}}
+</style>
+<style>
+/* ---- 全局搜索 ---- */
+.sbox{position:relative;display:inline-flex;align-items:center;margin-left:10px}
+.sbox input{background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);color:inherit;
+ border-radius:6px;padding:4px 9px 4px 25px;font-size:13px;width:170px;font-family:inherit;outline:none}
+.sbox input:focus{border-color:#4ea1ff;width:220px}
+.sbox .si{position:absolute;left:8px;font-size:12px;opacity:.6;pointer-events:none}
+.spanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:440px;max-width:88vw;
+ max-height:64vh;overflow-y:auto;z-index:900;background:var(--panel,#262c34);
+ border:1px solid var(--border,#3a4350);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.spanel.open{display:block}
+.spanel .sh{padding:7px 10px;font-size:12px;opacity:.7;border-bottom:1px solid var(--border,#3a4350);margin-bottom:4px}
+.spanel .sempty{font-size:12px;opacity:.65;padding:16px 10px;text-align:center}
+.sres{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:inherit}
+.sres:hover,.sres.sel{background:var(--panel2,#2e3540)}
+.sres .c{font-size:11px;opacity:.65;margin-bottom:1px}
+.sres .s{font-size:12px;color:#4ea1ff;margin-bottom:2px}
+.sres .t{font-size:13px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sres mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+.srch-main{margin:22px 0}
+.srch-main input{width:100%;background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);
+ color:inherit;border-radius:8px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none}
+.srch-main input:focus{border-color:#4ea1ff}
+.srch-meta{font-size:13px;opacity:.7;margin:12px 0 6px}
+.srch-list{list-style:none;margin:0;padding:0}
+.srch-list .sres{border:1px solid var(--border,#3a4350);margin:7px 0;padding:9px 11px}
+.srch-list .sres:hover{border-color:#4ea1ff}
+@media (max-width:640px){.sbox input{width:110px}.sbox input:focus{width:150px}.spanel{width:86vw}}
+</style><!--search.css-marker-->
+<style>
+/* ===== 因果森林知识库 · 统一导航 ===== */
+.cfh-nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:10px;
+ padding:8px 16px;background:var(--bg,#181b22);border-bottom:1px solid var(--line,#2a2f3a);
+ font-size:13.5px;flex-wrap:wrap}
+.cfh-nav .cfh-home{font-weight:600;color:var(--text,#e4e6ea);text-decoration:none;font-size:14px;
+ display:flex;align-items:center;gap:6px}
+.cfh-nav .cfh-home:hover{color:var(--accent,#7aa2f7)}
+.cfh-nav .cfh-crumb{color:var(--muted,#98a0ac);font-size:12.5px}
+.cfh-nav .cfh-crumb a{color:var(--accent,#7aa2f7);text-decoration:none}
+.cfh-nav .cfh-sp{flex:1}
+.cfh-nav select{background:var(--card,#181b22);color:var(--text,#e4e6ea);
+ border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:4px 8px;font-size:12.5px;
+ font-family:inherit;outline:none;cursor:pointer;max-width:230px}
+.cfh-nav select:hover{border-color:var(--accent,#7aa2f7)}
+.cfh-nav a.cfh-sbtn{color:var(--text,#e4e6ea);text-decoration:none;border:1px solid var(--line,#2a2f3a);
+ border-radius:6px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.cfh-nav a.cfh-sbtn:hover{border-color:var(--accent,#7aa2f7);color:var(--accent,#7aa2f7)}
+@media (max-width:700px){.cfh-nav .cfh-crumb{display:none}.cfh-nav select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="cfh-nav">
+<a class="cfh-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="cfh-crumb">/ <a href="index.html">grf 广义随机森林</a> / llf</span>
+<span class="cfh-sp"></span>
+<select onchange="if(this.value)location.href=this.value" aria-label="切换库">
+<option value="grf-cn/index.html" selected>grf 广义随机森林</option>
+<option value="policytree-cn/index.html">policytree 策略树</option>
+<option value="surefq/surefq.html">SURE / QRF 充分表示</option>
+<option value="tidyhte-cn/index.html">tidyhte 优雅的 HTE</option>
+<option value="metalearner-cn/index.html">Meta-Learner 元学习器</option>
+<option value="model4you-cn/index.html">model4you 个体化治疗</option>
+<option value="evalITR-cn/index.html">evalITR 规则评估</option>
+<option value="rj-dlc-cn/index.html">DeepLearningCausal</option>
+<option value="survlearners-cn/index.html">survlearners 生存 HTE</option>
+<option value="bocf-cn/index.html">BOCF 基线观测结转</option>
+<option value="hte-course/index.html">HTE 公开课讲义</option>
+<option value="causal-tools-cn/index.html">因果推断三件工具</option>
+<option value="imputeTS-cn/index.html">imputeTS 缺失填补</option>
+</select>
+<a class="cfh-sbtn" href="search.html">&#128269; 搜索本页</a>
+</div>
+<button id="theme-toggle" class="tt" type="button" aria-label="切换明暗主题" title="切换明暗主题 (Alt+T)">
+  <svg class="ico-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7"/></svg>
+  <svg class="ico-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.2 8.2 0 1 0 10.5 10.5z"/></svg>
+</button>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">&larr; grf 教程总览</a><span class="sbox"><span class="si">&#128269;</span>
+<input type="search" id="s-q" placeholder="搜索本站…（按 /）" autocomplete="off" aria-label="搜索本站">
+<span class="spanel" id="s-panel"></span></span>
+  </div>
+  <h1>局部线性森林导论</h1>
+  <p class="sub">原文：<a href="https://grf-labs.github.io/grf/articles/llf.html" target="_blank" rel="noopener">Introduction to local linear forests</a>（英文）&nbsp;·&nbsp;grf 官方文档中文译本</p>
+
+  <div class="content">
+
+<div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">grf</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">glmnet</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">ggplot2</span>)</pre></div>
+<p>本文旨在演示如何使用局部线性森林（local linear forests, LLF）。我们先从标准用法讲起，逐步梳理参数选择与方法细节，最后再讨论如何在更大数据集上使用局部线性校正。</p>
+<div id="local-linear-forests-the-basics" class="section level2">
+<h2 class="hasAnchor" id="sec-局部线性森林-基本原理">
+<a href="#local-linear-forests-the-basics" class="anchor"></a>局部线性森林：基本原理</h2>
+<p>随机森林是一种广受欢迎且强大的非参数回归方法，但当数据中存在强烈而平滑的效应时，它的表现会变差。局部线性回归很适合在低维空间中拟合相对平滑的函数，却会因维数灾难而迅速退化：它依赖欧氏距离，而欧氏距离即便在 4 维或 5 维时也很快失去"局部性"。本算法融合了两种方法的优点（随机森林的数据自适应能力，以及局部线性回归的平滑拟合），从而给出更优的预测与置信区间。关于局部线性森林（LLF）的完整理论，可参见我们在 ArXiv 上的论文。</p>
+<p>考虑一棵由 <span class="math inline">\(B\)</span> 棵树组成的随机森林，要对测试点 <span class="math inline">\(x_0\)</span> 做预测。在第 <span class="math inline">\(b\)</span> 棵树中，测试点会落入某个叶节点 <span class="math inline">\(L_b(x_0)\)</span>。回归森林的做法是：先在 <span class="math inline">\(L_b(x_0)\)</span> 中对所有响应取平均，再跨所有树把这些预测 <span class="math inline">\(\hat{\mu}_b(x_0)\)</span> 平均起来。为了换个角度理解随机森林，我们可以交换求和顺序，由此把随机森林视为一种高维空间中的核（kernel）或加权方法。</p>
+<p><span class="math display">\[\begin{align*}
+\hat{\mu}(x_0)
+&amp;= \frac1B \sum_{b=1}^B \sum_{i=1}^n Y_i \frac{1\{x_i\in
+L_b(x_0)\}}{|L_b(x_0)|}\\
+&amp;= \sum_{i=1}^n Y_i \frac1B \sum_{b=1}^B \frac{1\{x_i\in
+L_b(x_0)\}}{|L_b(x_0)|} \\
+&amp;= \sum_{i=1}^n \alpha_i(x_0) Y_i,
+\end{align*}\]</span> 其中森林权重 <span class="math inline">\(\alpha_i(x_0)\)</span> 表示：在所有树中，某个观测与协变量向量的目标取值落入同一叶节点的比例。<span class="math display">\[\begin{equation}
+\alpha_i(x_0) = \frac1B \sum_{b=1}^B \frac{1\{x_i\in
+L_b(x_0)\}}{|L_b(x_0)|}
+\end{equation}\]</span></p>
+<p>局部线性森林在此基础上更进一步：它不再用这些权重在 <span class="math inline">\(x_0\)</span> 处拟合一个局部平均，而是用它们来拟合一个带岭惩罚（ridge penalty）的局部线性回归，以作正则化。这等价于求解下面的最小化问题，其中 <span class="math inline">\(\mu(x)\)</span> 是局部平均值，<span class="math inline">\(\theta(x)\)</span> 是局部直线的斜率。<span class="math display">\[\begin{equation}
+\begin{pmatrix} \hat{\mu}(x_0) \\ \hat{\theta}(x_0) \end{pmatrix} =
+\text{argmin}_{\mu,\theta} \left\{\sum_{i=1}^n \alpha_i(x_0) \left(Y_i -
+\mu(x_0) - (x_i - x_0)\theta(x_0) \right)^2 + \lambda
+||\theta(x_0)||_2^2\right\}
+\end{equation}\]</span></p>
+<p>这让我们可以做到两点：（i）在高维空间里借助有意义的核来使用局部线性回归；（ii）即便存在平滑而强烈的信号，也能用随机森林做出好的预测。</p>
+</div>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>什么是局部线性森林？</strong> 普通回归森林（regression forest）在每个叶节点里"一刀切"地用常数（样本均值）去近似真实函数；而局部线性森林在得到森林权重后，再做一次局部线性回归，相当于在每个点附近用一条直线（或超平面）去逼近真实关系。森林负责选出"哪些样本与我相似"（即权重），线性回归负责在相似样本内部把趋势拟合得又准又平滑。</p>
+<p><strong>它和回归森林、因果森林有何不同？</strong> 回归森林只估计条件均值 <span class="math inline">\(\mu(x)\)</span>；因果森林（causal forest）估计的是条件平均处理效应 CATE <span class="math inline">\(\tau(x)\)</span>，本质仍是用森林权重做加权平均。局部线性森林则是把"加权平均"这一步升级为"加权局部线性回归"，因而能刻画协变量与结局之间的线性或平滑趋势。三者共用同一套森林权重框架，区别只在最后一步如何聚合叶节点里的信息。</p>
+<p><strong>偏差–方差权衡</strong>：常数拟合偏差大（平滑信号被阶梯化）、方差小；局部线性回归通过引入斜率项降低了偏差，岭惩罚又控制了方差。代价是需要更多样本来稳定回归系数，这也是它在小样本或强噪声下未必占优的原因。对医学研究者而言，可以把这理解为：当你相信某个连续协变量（如年龄、剂量）对结局的影响大致是线性的，LLF 比普通森林更"会用"这部分信息。</p>
+</div>
+
+<div id="toy-example" class="section level2">
+<h2 class="hasAnchor" id="sec-小试牛刀">
+<a href="#toy-example" class="anchor"></a>小试牛刀</h2>
+<p>我们先看一个简单的例子，说明局部线性森林在什么情况下能胜过普通随机森林。</p>
+<div class="sourceCode" id="cb2"><pre class="r"><span class="no">p</span> <span class="kw">&lt;-</span> <span class="fl">20</span>
+<span class="no">n</span> <span class="kw">&lt;-</span> <span class="fl">1000</span>
+<span class="no">sigma</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span>(<span class="fl">20</span>)
+
+<span class="no">mu</span> <span class="kw">&lt;-</span> <span class="kw">function</span>(<span class="no">x</span>){ <span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span>(<span class="fl">1</span> + <span class="fu"><a href="https://rdrr.io/r/base/Log.html">exp</a></span>(<span class="fl">6</span> * <span class="no">x</span>)) }
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span>(<span class="no">n</span> * <span class="no">p</span>, -<span class="fl">1</span>, <span class="fl">1</span>), <span class="kw">nrow</span> <span class="kw">=</span> <span class="no">n</span>)
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="fu">mu</span>(<span class="no">X</span>[,<span class="fl">1</span>]) + <span class="no">sigma</span> * <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+<span class="no">X.test</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span>(<span class="no">n</span> * <span class="no">p</span>, -<span class="fl">1</span>, <span class="fl">1</span>), <span class="kw">nrow</span> <span class="kw">=</span> <span class="no">n</span>)
+<span class="no">ticks</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span>(-<span class="fl">1</span>, <span class="fl">1</span>, <span class="kw">length</span> <span class="kw">=</span> <span class="no">n</span>)
+<span class="no">X.test</span>[,<span class="fl">1</span>] <span class="kw">&lt;-</span> <span class="no">ticks</span>
+<span class="no">truth</span> <span class="kw">&lt;-</span> <span class="fu">mu</span>(<span class="no">ticks</span>)
+
+<span class="no">forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/regression_forest.html">regression_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>)
+<span class="no">preds.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest</span>, <span class="no">X.test</span>)$<span class="no">predictions</span>
+
+<span class="no">df</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span>(<span class="no">ticks</span>, <span class="no">truth</span>, <span class="no">preds.forest</span>))
+<span class="no">g1</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="no">df</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="no">ticks</span>)) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html">geom_point</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="no">preds.forest</span>, <span class="kw">color</span> <span class="kw">=</span> <span class="st">"Regression Forest"</span>), <span class="kw">show.legend</span> <span class="kw">=</span> <span class="no">F</span>, <span class="kw">size</span> <span class="kw">=</span> <span class="fl">0.6</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html">geom_line</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="no">truth</span>)) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">xlab</a></span>(<span class="st">"x"</span>) + <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ylab</a></span>(<span class="st">"y"</span>) + <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_bw</a></span>()
+<span class="no">g1</span></pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/llf_files/figure-html/unnamed-chunk-2-1.png" alt="" width="700"></p>
+<div class="sourceCode" id="cb3"><pre class="r"><span class="no">ll.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/ll_regression_forest.html">ll_regression_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="kw">enable.ll.split</span> <span class="kw">=</span> <span class="fl">TRUE</span>)
+<span class="no">preds.llf</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">ll.forest</span>, <span class="no">X.test</span>,
+                     <span class="kw">linear.correction.variables</span> <span class="kw">=</span> <span class="fl">1</span>)$<span class="no">predictions</span>
+
+<span class="no">df.llf</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span>(<span class="no">ticks</span>, <span class="no">truth</span>, <span class="no">preds.llf</span>))
+<span class="no">g2</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="no">df.llf</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="no">ticks</span>)) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html">geom_point</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="no">preds.llf</span>, <span class="kw">color</span> <span class="kw">=</span> <span class="st">"Local Linear Forest"</span>), <span class="kw">show.legend</span> <span class="kw">=</span> <span class="no">F</span>, <span class="kw">size</span> <span class="kw">=</span> <span class="fl">0.6</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html">geom_line</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="no">truth</span>)) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">xlab</a></span>(<span class="st">"x"</span>) + <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ylab</a></span>(<span class="st">"y"</span>) + <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_bw</a></span>()
+<span class="no">g2</span></pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/llf_files/figure-html/unnamed-chunk-3-1.png" alt="" width="700"></p>
+</div>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>什么时候局部线性森林更有用？</strong> 当真实关系中存在"平滑且较强"的主趋势时，普通回归森林会把曲线切成许多小台阶（阶跃近似），在台阶内部用常数填充，因而有系统性偏差；而局部线性回归能贴合这条曲线。本例中结局基本只由第一个变量 <span class="math inline">\(x_1\)</span> 通过平滑函数 <span class="math inline">\(\log(1+\exp(6x_1))\)</span> 决定，所以 LLF 的预测点几乎落在真实曲线上，普通森林则明显抖动、偏离。</p>
+<p><strong>什么时候未必有用？</strong> 如果真实函数是高度不规则、阶跃式的（例如分段常数、交互效应主导），或者有效变量很多且彼此纠缠，那么"局部线性"这个假设本身就不成立，森林自身的非参数拟合反而更稳。此外，样本量太小、噪声太大时，局部回归估计斜率会不稳定——这点对临床小样本研究尤其要警惕。</p>
+</div>
+
+<div id="parameters-for-llf-prediction" class="section level2">
+<h2 class="hasAnchor" id="sec-局部线性森林预测的参数">
+<a href="#parameters-for-llf-prediction" class="anchor"></a>局部线性森林预测的参数</h2>
+<p>还有几个改动需要说明。我们先列出局部线性森林特有的训练参数（用户也可以参考 regression_forest 的全部调参项，它们在这里同样适用）。</p>
+<table class="table">
+<caption>LLF 参数一览。</caption>
+<colgroup>
+<col width="32%">
+<col width="23%">
+<col width="18%">
+<col width="25%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">参数</th>
+<th align="left">可选值</th>
+<th align="left">默认值</th>
+<th align="left">说明</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">训练参数</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">enable.ll.split</td>
+<td align="left">TRUE/FALSE</td>
+<td align="left">FALSE</td>
+<td align="left">可选设置：让森林基于岭回归残差来切分节点，而不是标准的 CART 切分。</td>
+</tr>
+<tr class="odd">
+<td align="left">ll.split.weight.penalty</td>
+<td align="left">TRUE/FALSE</td>
+<td align="left">FALSE</td>
+<td align="left">若使用局部线性切分，可指定是否按协方差对方岭惩罚做标准化（TRUE），还是对所有协变量施加相同惩罚（FALSE）。</td>
+</tr>
+<tr class="even">
+<td align="left">ll.split.lambda</td>
+<td align="left">非负实数</td>
+<td align="left">0.1</td>
+<td align="left">用于切分的岭惩罚系数。</td>
+</tr>
+<tr class="odd">
+<td align="left">ll.split.variables</td>
+<td align="left">协变量下标向量</td>
+<td align="left">1:p</td>
+<td align="left">切分回归中使用的变量。</td>
+</tr>
+<tr class="even">
+<td align="left">ll.split.cutoff</td>
+<td align="left">0 到 n 之间的整数</td>
+<td align="left">n 的平方根</td>
+<td align="left">若大于 0，当叶节点达到该大小后，建树时森林会用全数据集的回归系数来做岭回归；若等于 0，则每片叶子都单独做一次回归。</td>
+</tr>
+<tr class="odd">
+<td align="left">预测参数</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">ll.lambda</td>
+<td align="left">非负实数</td>
+<td align="left">默认自动调参</td>
+<td align="left">用于预测的岭惩罚系数。</td>
+</tr>
+<tr class="odd">
+<td align="left">ll.weight.penalty</td>
+<td align="left">TRUE/FALSE</td>
+<td align="left">FALSE</td>
+<td align="left">按协方差对方岭惩罚做标准化（TRUE），或对所有协变量施加相同惩罚（FALSE）。</td>
+</tr>
+<tr class="even">
+<td align="left">linear.correction.variables</td>
+<td align="left">协变量下标向量</td>
+<td align="left">1:p</td>
+<td align="left">用于局部线性预测时所用变量的下标子集。</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>几个关键参数怎么理解？</strong></p>
+<p><strong>linear.correction.variables（线性校正变量）</strong>：这是 LLF 里最常用也最该关心的参数。它决定最后一步局部线性回归"用哪些协变量来修正"。取全部变量（1:p）最省事，但当变量很多、真正有线性趋势的只是少数时，把无关变量塞进回归只会引入噪声。本文学后面会演示用 lasso 先挑变量再喂给 LLF。</p>
+<p><strong>enable.ll.split（启用局部线性切分）</strong>：默认 FALSE，即建树仍用普通 CART。设为 TRUE 后，树在切分时考虑的是"岭回归残差"而非原始均值，能更聚焦于非线性/交互部分。注意它仍是实验性功能，且在大样本上很慢。</p>
+<p><strong>ll.lambda / ll.split.lambda（岭惩罚）</strong>：相当于岭回归里的正则化强度，数值越大越"压平"斜率、越保守。预测阶段的 ll.lambda 默认会自动调；而在大数据上自动调参极慢，需要手动给定（如 0.1）。</p>
+</div>
+
+<div id="training-the-algorithm" class="section level2">
+<h2 class="hasAnchor" id="sec-训练算法">
+<a href="#training-the-algorithm" class="anchor"></a>训练算法</h2>
+<div class="sourceCode" id="cb4"><pre class="r"><span class="no">n</span> <span class="kw">&lt;-</span> <span class="fl">600</span>
+<span class="no">p</span> <span class="kw">&lt;-</span> <span class="fl">20</span>
+<span class="no">sigma</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span>(<span class="fl">20</span>)
+
+<span class="no">mu</span> <span class="kw">&lt;-</span> <span class="kw">function</span>( <span class="no">x</span> ) {
+  <span class="fl">10</span> * <span class="fu"><a href="https://rdrr.io/r/base/Trig.html">sin</a></span>(<span class="no">pi</span> * <span class="no">x</span>[<span class="fl">1</span>] * <span class="no">x</span>[<span class="fl">2</span>]) + <span class="fl">20</span> * ((<span class="no">x</span>[<span class="fl">3</span>] - <span class="fl">0.5</span>) ** <span class="fl">2</span>) + <span class="fl">10</span> * <span class="no">x</span>[<span class="fl">4</span>] + <span class="fl">5</span> * <span class="no">x</span>[<span class="fl">5</span>]
+}
+
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span>(<span class="no">n</span> * <span class="no">p</span>, <span class="fl">0</span>, <span class="fl">1</span>), <span class="kw">nrow</span> <span class="kw">=</span> <span class="no">n</span>)
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html">apply</a></span>(<span class="no">X</span>, <span class="kw">FUN</span> <span class="kw">=</span> <span class="no">mu</span>, <span class="kw">MARGIN</span> <span class="kw">=</span> <span class="fl">1</span>) + <span class="no">sigma</span> * <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+<span class="no">X.test</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span>(<span class="no">n</span> * <span class="no">p</span>, <span class="fl">0</span>, <span class="fl">1</span>), <span class="kw">nrow</span> <span class="kw">=</span> <span class="no">n</span>)
+<span class="no">truth</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html">apply</a></span>(<span class="no">X.test</span>, <span class="kw">FUN</span> <span class="kw">=</span> <span class="no">mu</span>, <span class="kw">MARGIN</span> <span class="kw">=</span> <span class="fl">1</span>)
+
+<span class="co"># 回归森林预测</span>
+<span class="no">rforest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/regression_forest.html">regression_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="kw">honesty</span> <span class="kw">=</span> <span class="fl">TRUE</span>)
+<span class="no">results</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">rforest</span>, <span class="no">X.test</span>)
+<span class="no">preds</span> <span class="kw">&lt;-</span> <span class="no">results</span>$<span class="no">predictions</span>
+<span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>((<span class="no">preds</span> - <span class="no">truth</span>)**<span class="fl">2</span>)
+<span class="co">#&gt; [1] 8.651616</span></pre></div>
+<p>我们可以通过两种方式得到局部线性森林预测：一是在普通回归森林上指定 linear.correction.variables（线性校正变量），二是直接使用 ll_regression_forest 对象。该参数指定了最后一步局部回归所用的变量，可以简单地取全部变量，也可以只取一个子集。</p>
+<div class="sourceCode" id="cb5"><pre class="r"><span class="co"># 用 regression_forest 得到局部线性森林预测</span>
+<span class="no">results.llf</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">rforest</span>, <span class="no">X.test</span>, <span class="kw">linear.correction.variables</span> <span class="kw">=</span> <span class="fl">1</span>:<span class="no">p</span>)
+<span class="no">preds.llf</span> <span class="kw">&lt;-</span> <span class="no">results.llf</span>$<span class="no">predictions</span>
+<span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>((<span class="no">preds.llf</span> - <span class="no">truth</span>)**<span class="fl">2</span>)
+<span class="co">#&gt; [1] 5.792562</span>
+
+<span class="co"># 用 ll_regression_forest 得到局部线性森林预测</span>
+<span class="no">forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/ll_regression_forest.html">ll_regression_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="kw">honesty</span> <span class="kw">=</span> <span class="fl">TRUE</span>)
+<span class="no">results.llf</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest</span>, <span class="no">X.test</span>)
+<span class="no">preds.llf</span> <span class="kw">&lt;-</span> <span class="no">results.llf</span>$<span class="no">predictions</span>
+<span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>((<span class="no">preds.llf</span> - <span class="no">truth</span>)**<span class="fl">2</span>)
+<span class="co">#&gt; [1] 5.78837</span></pre></div>
+<div id="weight-penalties" class="section level3">
+<h3 class="hasAnchor" id="sec-权重惩罚">
+<a href="#weight-penalties" class="anchor"></a>权重惩罚</h3>
+<p>在做局部线性森林预测时，我们可以采用标准岭回归（ll.weight.penalty 设为 FALSE），也可以按协方差矩阵做缩放（ll.weight.penalty 设为 TRUE）：<span class="math inline">\(\hat{\beta}_\text{TRUE} = (X'AX (1 +
+\lambda))^{-1} X'AY\)</span>。该参数默认值为 FALSE。</p>
+<div class="sourceCode" id="cb6"><pre class="r"><span class="no">results.llf.unweighted</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest</span>, <span class="no">X.test</span>,
+                               <span class="kw">ll.weight.penalty</span> <span class="kw">=</span> <span class="fl">FALSE</span>)
+<span class="no">preds.llf.unweighted</span> <span class="kw">&lt;-</span> <span class="no">results.llf.unweighted</span>$<span class="no">predictions</span>
+<span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>((<span class="no">preds.llf.unweighted</span> - <span class="no">truth</span>)**<span class="fl">2</span>)
+<span class="co">#&gt; [1] 5.78837</span>
+
+<span class="no">results.llf.weighted</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest</span>, <span class="no">X.test</span>,
+                               <span class="kw">ll.weight.penalty</span> <span class="kw">=</span> <span class="fl">TRUE</span>)
+<span class="no">preds.llf.weighted</span> <span class="kw">&lt;-</span> <span class="no">results.llf.weighted</span>$<span class="no">predictions</span>
+<span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>((<span class="no">preds.llf.weighted</span> - <span class="no">truth</span>)**<span class="fl">2</span>)
+<span class="co">#&gt; [1] 5.736676</span></pre></div>
+</div>
+<div id="residual-splits" class="section level3">
+<h3 class="hasAnchor" id="sec-残差切分">
+<a href="#residual-splits" class="anchor"></a>残差切分</h3>
+<p>我们还要考虑局部线性森林中"建树"的作用。标准的 CART 切分会最小化"用叶节点整体均值做预测"带来的误差；而我们也可以改用残差切分（residual splits），即最小化岭回归残差上对应的预测误差。可以想见，当某些协变量带有强烈的线性信号时，这种做法会很有帮助——我们不必浪费森林的切分去建模这些线性部分，因为最后一步回归仍能把它们找出来。本质上，这让我们在知道"后面还有一次局部回归要做"的前提下，把森林的切分用得最有效率。该特性目前仍属于实验性功能。</p>
+<div class="sourceCode" id="cb7"><pre class="r"><span class="no">forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/ll_regression_forest.html">ll_regression_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>)
+<span class="no">preds.cart.splits</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest</span>, <span class="no">X.test</span>)
+
+<span class="no">ll.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/ll_regression_forest.html">ll_regression_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="kw">enable.ll.split</span> <span class="kw">=</span> <span class="fl">TRUE</span>,
+                                  <span class="kw">ll.split.weight.penalty</span> <span class="kw">=</span> <span class="fl">TRUE</span>)
+<span class="no">preds.ll.splits</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">ll.forest</span>, <span class="no">X.test</span>)
+
+<span class="no">mse.cart.splits</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>((<span class="no">preds.cart.splits</span>$<span class="no">predictions</span> - <span class="no">truth</span>)^<span class="fl">2</span>)
+<span class="no">mse.ll.splits</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>((<span class="no">preds.ll.splits</span>$<span class="no">predictions</span> - <span class="no">truth</span>)^<span class="fl">2</span>)
+
+<span class="no">mse.cart.splits</span>
+<span class="co">#&gt; [1] 5.771045</span>
+<span class="no">mse.ll.splits</span>
+<span class="co">#&gt; [1] 4.703251</span></pre></div>
+<p>为了弄清它为何有效，我们可以观察两片森林的"切分频率"图。每张图里，色块表示在树的某一层（y 轴）上，各特征（x 轴）被用作切分的次数占比。</p>
+<div class="sourceCode" id="cb8"><pre class="r"><span class="no">p</span> <span class="kw">&lt;-</span> <span class="fl">5</span>
+<span class="no">XX</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span>(<span class="no">n</span> * <span class="no">p</span>, <span class="fl">0</span> ,<span class="fl">1</span>), <span class="kw">nrow</span> <span class="kw">=</span> <span class="no">n</span>)
+<span class="no">YY</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html">apply</a></span>(<span class="no">XX</span>, <span class="kw">MARGIN</span> <span class="kw">=</span> <span class="fl">1</span>, <span class="kw">FUN</span> <span class="kw">=</span> <span class="no">mu</span>) + <span class="no">sigma</span> * <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+<span class="no">forest2</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/regression_forest.html">regression_forest</a></span>(<span class="no">XX</span>, <span class="no">YY</span>)
+
+<span class="no">max.depth</span> <span class="kw">&lt;-</span> <span class="fl">4</span>
+<span class="no">freqs</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/split_frequencies.html">split_frequencies</a></span>(<span class="no">forest2</span>, <span class="kw">max.depth</span> <span class="kw">=</span> <span class="no">max.depth</span>)
+<span class="no">d</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span>(<span class="no">freqs</span>)
+<span class="no">dm</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span>(<span class="kw">variable</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span>(<span class="no">d</span>), <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(<span class="no">d</span>))),
+                 <span class="kw">value</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html">as.vector</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span>(<span class="no">d</span>)),
+                 <span class="kw">depth</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="fl">1</span>:<span class="no">max.depth</span>, <span class="no">p</span>))
+
+<span class="co"># 按该层数值之和做归一化</span>
+<span class="kw">for</span>(<span class="no">i</span> <span class="kw">in</span> <span class="fl">1</span>:<span class="no">max.depth</span>){
+  <span class="no">tot.depth</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span>(<span class="no">dm</span>[<span class="no">dm</span>$<span class="no">depth</span> <span class="kw">==</span> <span class="no">i</span>,]$<span class="no">value</span>)
+  <span class="no">dm</span>[<span class="no">dm</span>$<span class="no">depth</span> <span class="kw">==</span> <span class="no">i</span>,]$<span class="no">value</span> <span class="kw">&lt;-</span> <span class="no">dm</span>[<span class="no">dm</span>$<span class="no">depth</span> <span class="kw">==</span> <span class="no">i</span>,]$<span class="no">value</span> / <span class="no">tot.depth</span>
+}
+
+<span class="no">g</span><span class="kw">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="no">dm</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">x</span> <span class="kw">=</span> <span class="no">variable</span>, <span class="kw">y</span> <span class="kw">=</span> -<span class="no">depth</span>, <span class="kw">fill</span> <span class="kw">=</span> <span class="no">value</span>)) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_tile.html">geom_tile</a></span>() +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">xlab</a></span>(<span class="st">"Variable"</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ylab</a></span>(<span class="st">"Depth"</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_gradient.html">scale_fill_gradient</a></span>(<span class="kw">low</span> <span class="kw">=</span> <span class="st">"white"</span>, <span class="kw">high</span> <span class="kw">=</span> <span class="st">"blue"</span>,<span class="kw">limits</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">0</span>,<span class="fl">1</span>), <span class="st">"Frequency \n"</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ggtitle</a></span>(<span class="st">""</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html">theme</a></span>(<span class="kw">text</span> <span class="kw">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span>(<span class="kw">size</span> <span class="kw">=</span> <span class="fl">15</span>))
+<span class="no">g</span></pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/llf_files/figure-html/unnamed-chunk-8-1.png" alt="" width="700"></p>
+<div class="sourceCode" id="cb9"><pre class="r"><span class="no">ll.forest2</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/ll_regression_forest.html">ll_regression_forest</a></span>(<span class="no">XX</span>, <span class="no">YY</span>, <span class="kw">enable.ll.split</span> <span class="kw">=</span> <span class="fl">TRUE</span>,
+                              <span class="kw">ll.split.weight.penalty</span> <span class="kw">=</span> <span class="fl">TRUE</span>)
+
+<span class="no">freqs</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/split_frequencies.html">split_frequencies</a></span>(<span class="no">ll.forest2</span>, <span class="kw">max.depth</span> <span class="kw">=</span> <span class="no">max.depth</span>)
+<span class="no">d</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span>(<span class="no">freqs</span>)
+<span class="no">dm</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span>(<span class="kw">variable</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span>(<span class="no">d</span>), <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(<span class="no">d</span>))),
+                 <span class="kw">value</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html">as.vector</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span>(<span class="no">d</span>)),
+                 <span class="kw">depth</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="fl">1</span>:<span class="no">max.depth</span>, <span class="no">p</span>))
+
+<span class="kw">for</span>(<span class="no">i</span> <span class="kw">in</span> <span class="fl">1</span>:<span class="no">max.depth</span>){
+  <span class="no">tot.depth</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span>(<span class="no">dm</span>[<span class="no">dm</span>$<span class="no">depth</span> <span class="kw">==</span> <span class="no">i</span>,]$<span class="no">value</span>)
+  <span class="no">dm</span>[<span class="no">dm</span>$<span class="no">depth</span> <span class="kw">==</span> <span class="no">i</span>,]$<span class="no">value</span> <span class="kw">&lt;-</span> <span class="no">dm</span>[<span class="no">dm</span>$<span class="no">depth</span> <span class="kw">==</span> <span class="no">i</span>,]$<span class="no">value</span> / <span class="no">tot.depth</span>
+}
+
+<span class="no">g2</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="no">dm</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">x</span><span class="kw">=</span><span class="no">variable</span>, <span class="kw">y</span><span class="kw">=</span>-<span class="no">depth</span>, <span class="kw">fill</span> <span class="kw">=</span> <span class="no">value</span>)) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_tile.html">geom_tile</a></span>() +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">xlab</a></span>(<span class="st">"Variable"</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ylab</a></span>(<span class="st">"Depth"</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_gradient.html">scale_fill_gradient</a></span>(<span class="kw">low</span> <span class="kw">=</span> <span class="st">"white"</span>, <span class="kw">high</span> <span class="kw">=</span> <span class="st">"blue"</span>, <span class="kw">limits</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">0</span>,<span class="fl">1</span>), <span class="st">"Frequency \n"</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ggtitle</a></span>(<span class="st">"Split Frequencies: LLF"</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html">theme</a></span>(<span class="kw">text</span> <span class="kw">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_text</a></span>(<span class="kw">size</span> <span class="kw">=</span> <span class="fl">15</span>))
+<span class="no">g2</span></pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/llf_files/figure-html/unnamed-chunk-9-1.png" alt="" width="700"></p>
+</div>
+</div>
+<div id="llf-prediction" class="section level2">
+<h2 class="hasAnchor" id="sec-局部线性森林预测">
+<a href="#llf-prediction" class="anchor"></a>局部线性森林预测</h2>
+<div id="ridge-parameter-selection" class="section level3">
+<h3 class="hasAnchor" id="sec-岭参数选择">
+<a href="#ridge-parameter-selection" class="anchor"></a>岭参数选择</h3>
+<p>用户可以选择自行指定岭回归参数 ll.lambda。如果用户不设置该值，森林会通过自动调参来选定它。一般来说，我们建议让森林自动调这个参数，或者由你自己跑一轮交叉验证。唯一的例外是数据集非常大的情形。</p>
+<div class="sourceCode" id="cb10"><pre class="r"><span class="no">results.llf.lambda</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest</span>, <span class="no">X.test</span>,
+                             <span class="kw">ll.lambda</span> <span class="kw">=</span> <span class="fl">0.1</span>)
+<span class="no">preds.llf.lambda</span> <span class="kw">&lt;-</span> <span class="no">results.llf.lambda</span>$<span class="no">predictions</span>
+<span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>((<span class="no">preds.llf.lambda</span> - <span class="no">truth</span>)**<span class="fl">2</span>)
+<span class="co">#&gt; [1] 5.771045</span>
+
+<span class="no">results.llf.lambda</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest</span>, <span class="no">X.test</span>) <span class="co"># 自动调参</span>
+<span class="no">preds.llf.lambda</span> <span class="kw">&lt;-</span> <span class="no">results.llf.lambda</span>$<span class="no">predictions</span>
+<span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>((<span class="no">preds.llf.lambda</span> - <span class="no">truth</span>)**<span class="fl">2</span>)
+<span class="co">#&gt; [1] 5.771045</span></pre></div>
+</div>
+<div id="linear-correction-variable-selection" class="section level3">
+<h3 class="hasAnchor" id="sec-线性校正变量的选择">
+<a href="#linear-correction-variable-selection" class="anchor"></a>线性校正变量的选择</h3>
+<p>当协变量很多时，把局部回归限制为只包含少数感兴趣的变量是合理的。我们推荐使用 lasso 方法。</p>
+<div class="sourceCode" id="cb11"><pre class="r"><span class="co"># 训练森林</span>
+<span class="no">forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/ll_regression_forest.html">ll_regression_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>)
+
+<span class="co"># 选择协变量</span>
+<span class="no">lasso.mod</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/glmnet/man/cv.glmnet.html">cv.glmnet</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="kw">alpha</span> <span class="kw">=</span> <span class="fl">1</span>)
+<span class="no">lasso.coef</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">lasso.mod</span>, <span class="kw">type</span> <span class="kw">=</span> <span class="st">"nonzero"</span>)
+<span class="no">selected</span> <span class="kw">&lt;-</span> <span class="no">lasso.coef</span>[,<span class="fl">1</span>]
+<span class="no">selected</span>
+<span class="co">#&gt; [1] 1 2 4 5</span>
+
+<span class="co"># 用全部协变量预测</span>
+<span class="no">llf.all.preds</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest</span>, <span class="no">X.test</span>)
+<span class="no">results.all</span> <span class="kw">&lt;-</span> <span class="no">llf.all.preds</span>$<span class="no">predictions</span>
+<span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>((<span class="no">results.all</span> - <span class="no">truth</span>)**<span class="fl">2</span>)
+<span class="co">#&gt; [1] 5.800366</span>
+
+<span class="co"># 仅用筛选出的协变量预测</span>
+<span class="no">llf.lasso.preds</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest</span>, <span class="no">X.test</span>,
+                           <span class="kw">linear.correction.variables</span> <span class="kw">=</span> <span class="no">selected</span>)
+<span class="no">results.llf.lasso</span> <span class="kw">&lt;-</span> <span class="no">llf.lasso.preds</span>$<span class="no">predictions</span>
+<span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>((<span class="no">results.llf.lasso</span> - <span class="no">truth</span>)**<span class="fl">2</span>)
+<span class="co">#&gt; [1] 4.81568</span></pre></div>
+</div>
+</div>
+<div id="pointwise-confidence-intervals" class="section level2">
+<h2 class="hasAnchor" id="sec-逐点置信区间">
+<a href="#pointwise-confidence-intervals" class="anchor"></a>逐点置信区间</h2>
+<p>最后，我们来看方差估计与置信区间，其原理与 grf 的方差估计类似。为了便于可视化，我们沿用本文第一个数据生成过程。</p>
+<div class="sourceCode" id="cb12"><pre class="r"><span class="no">mu</span> <span class="kw">&lt;-</span> <span class="kw">function</span>(<span class="no">x</span>){ <span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span>(<span class="fl">1</span> + <span class="fu"><a href="https://rdrr.io/r/base/Log.html">exp</a></span>(<span class="fl">6</span> * <span class="no">x</span>)) }
+<span class="no">p</span> <span class="kw">&lt;-</span> <span class="fl">20</span>
+
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span>(<span class="no">n</span> * <span class="no">p</span>, -<span class="fl">1</span>, <span class="fl">1</span>), <span class="kw">nrow</span> <span class="kw">=</span> <span class="no">n</span>)
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="fu">mu</span>(<span class="no">X</span>[,<span class="fl">1</span>]) + <span class="no">sigma</span> * <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+<span class="no">X.test</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span>(<span class="no">n</span> * <span class="no">p</span>, -<span class="fl">1</span>, <span class="fl">1</span>), <span class="kw">nrow</span> <span class="kw">=</span> <span class="no">n</span>)
+<span class="no">ticks</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span>(-<span class="fl">1</span>, <span class="fl">1</span>, <span class="kw">length</span> <span class="kw">=</span> <span class="no">n</span>)
+<span class="no">X.test</span>[,<span class="fl">1</span>] <span class="kw">&lt;-</span> <span class="no">ticks</span>
+<span class="no">truth</span> <span class="kw">&lt;-</span> <span class="fu">mu</span>(<span class="no">ticks</span>)
+
+<span class="co"># 选择协变量</span>
+<span class="no">lasso.mod</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/glmnet/man/cv.glmnet.html">cv.glmnet</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="kw">alpha</span> <span class="kw">=</span> <span class="fl">1</span>)
+<span class="no">lasso.coef</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">lasso.mod</span>, <span class="kw">type</span> <span class="kw">=</span> <span class="st">"nonzero"</span>)
+<span class="no">selected</span> <span class="kw">&lt;-</span> <span class="no">lasso.coef</span>[,<span class="fl">1</span>]
+<span class="no">selected</span>
+<span class="co">#&gt; [1] 1</span>
+
+<span class="no">ll.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/ll_regression_forest.html">ll_regression_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="kw">enable.ll.split</span> <span class="kw">=</span> <span class="fl">TRUE</span>)
+<span class="no">results.llf.var</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">ll.forest</span>, <span class="no">X.test</span>,
+                           <span class="kw">linear.correction.variables</span> <span class="kw">=</span> <span class="no">selected</span>,
+                           <span class="kw">estimate.variance</span> <span class="kw">=</span> <span class="fl">TRUE</span>)
+<span class="no">preds.llf.var</span> <span class="kw">&lt;-</span> <span class="no">results.llf.var</span>$<span class="no">predictions</span>
+<span class="no">variance.estimates</span> <span class="kw">&lt;-</span> <span class="no">results.llf.var</span>$<span class="no">variance.estimates</span>
+
+<span class="co"># 计算 95% 区间的下界与上界</span>
+<span class="no">lower.llf</span> <span class="kw">&lt;-</span> <span class="no">preds.llf.var</span> - <span class="fl">1.96</span>*<span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span>(<span class="no">variance.estimates</span>)
+<span class="no">upper.llf</span> <span class="kw">&lt;-</span> <span class="no">preds.llf.var</span> + <span class="fl">1.96</span>*<span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span>(<span class="no">variance.estimates</span>)
+
+<span class="no">df</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span>(<span class="no">ticks</span>, <span class="no">truth</span>, <span class="no">preds.llf.var</span>, <span class="no">lower.llf</span>, <span class="no">upper.llf</span>))
+<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="no">df</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="no">ticks</span>)) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html">geom_point</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="no">preds.llf.var</span>, <span class="kw">color</span> <span class="kw">=</span> <span class="st">"Local Linear Forest"</span>), <span class="kw">show.legend</span> <span class="kw">=</span> <span class="no">F</span>, <span class="kw">size</span> <span class="kw">=</span> <span class="fl">0.6</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html">geom_line</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="no">truth</span>)) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html">geom_line</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="no">lower.llf</span>), <span class="kw">color</span> <span class="kw">=</span> <span class="st">"gray"</span>, <span class="kw">lty</span> <span class="kw">=</span> <span class="fl">2</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html">geom_line</a></span>(<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">y</span> <span class="kw">=</span> <span class="no">upper.llf</span>), <span class="kw">color</span> <span class="kw">=</span> <span class="st">"gray"</span>, <span class="kw">lty</span> <span class="kw">=</span> <span class="fl">2</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">xlab</a></span>(<span class="st">"x"</span>) + <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ylab</a></span>(<span class="st">"y"</span>) + <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_bw</a></span>()</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/llf_files/figure-html/unnamed-chunk-12-1.png" alt="" width="700"></p>
+</div>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>逐点置信区间有什么用，又要注意什么？</strong> 设 <code>estimate.variance = TRUE</code> 后，predict 会额外返回每个测试点的方差估计，于是可以像上图那样画出 95% 逐点置信带（预测值 ± 1.96×标准差）。这对医学研究很实用：你不仅能报出"某亚组的预测风险"，还能给出"这个预测有多不确定"。</p>
+<p><strong>偏差–方差的视角</strong>：普通森林的置信带往往过宽（方差大）或形状僵硬；LLF 因为用局部线性降低了偏差，置信带更贴真实曲线、宽度也更合理。但要注意，这类方差估计依赖"局部线性回归"这一设定——如果真实关系并不平滑，"逐点"置信区间的覆盖概率可能失真，解读时勿把带子当成了总体不确定性的全部。</p>
+<p><strong>与其他 grf 方法的关联</strong>：因果森林、生存森林的方差估计走的也是同一套"基于森林权重的梯度/方差分解"路线，所以这里学到的置信区间画法，可以平移到处理效应（CATE）的不确定性刻画上。</p>
+</div>
+
+<div id="a-note-on-larger-datasets" class="section level2">
+<h2 class="hasAnchor" id="sec-关于更大数据集的说明">
+<a href="#a-note-on-larger-datasets" class="anchor"></a>关于更大数据集的说明</h2>
+<p>尽管局部线性森林通常优于普通随机森林，但当维数非常高时，训练和预测都会很耗时。原因在于：假设有 n_train 个训练点和 n_test 个测试点，我们相当于要跑 n_test 次回归，每次都用全部 n_train 个数据点。不过，有时我们仍想用随机森林并对线性趋势做校正。在这种情形下（数据量约在 10 万条及以上，当然具体还要看实际场景），选取少量线性校正变量就格外重要。目前的岭参数调参也会耗时到难以接受，因此我们建议：要么统一把该值设为 0.01，要么在数据的子集上调参，要么限制候选取值的范围，要么用小批量的浅树做交叉验证。</p>
+<table class="table">
+<caption>LLF 参数及其在大数据集下的表现。</caption>
+<colgroup>
+<col width="31%">
+<col width="22%">
+<col width="17%">
+<col width="27%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">参数</th>
+<th align="left">可选值</th>
+<th align="left">默认值</th>
+<th>随 n、p 增大时的表现</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">训练参数</td>
+<td align="left"></td>
+<td align="left"></td>
+<td></td>
+</tr>
+<tr class="even">
+<td align="left">enable.ll.split</td>
+<td align="left">TRUE/FALSE</td>
+<td align="left">FALSE</td>
+<td>当 n 和 p 都很大时，每个叶节点里的岭回归会非常耗时。因此我们建议要么不使用该功能，要么谨慎设置下面讨论的调参项。另请注意它仍是实验性功能。</td>
+</tr>
+<tr class="odd">
+<td align="left">ll.split.weight.penalty</td>
+<td align="left">TRUE/FALSE</td>
+<td align="left">FALSE</td>
+<td>不受影响</td>
+</tr>
+<tr class="even">
+<td align="left">ll.split.lambda</td>
+<td align="left">非负实数</td>
+<td align="left">0.1</td>
+<td>不受影响</td>
+</tr>
+<tr class="odd">
+<td align="left">ll.split.variables</td>
+<td align="left">协变量下标向量</td>
+<td align="left">1:p</td>
+<td>当 p 很大（超过 50）时，我们建议要么把 ll.split.variables 限制为一个子集，要么改用 CART 切分，要么设置一个足够大的切分截断值（见下）。</td>
+</tr>
+<tr class="even">
+<td align="left">ll.split.cutoff</td>
+<td align="left">0 到 n 之间的整数</td>
+<td align="left">n 的平方根</td>
+<td>调大该参数有助于加快局部线性切分，推荐在大数据上训练森林且想用局部线性切分时使用。</td>
+</tr>
+<tr class="odd">
+<td align="left">预测参数</td>
+<td align="left"></td>
+<td align="left"></td>
+<td></td>
+</tr>
+<tr class="even">
+<td align="left">ll.lambda</td>
+<td align="left">非负实数</td>
+<td align="left">默认自动调参</td>
+<td>默认调参在大数据上会耗时很久，我们建议要么自己写一轮更短的交叉验证，要么不自动调参、直接把 ll.lambda 设成约 0.1 的默认值。</td>
+</tr>
+<tr class="odd">
+<td align="left">ll.weight.penalty</td>
+<td align="left">TRUE/FALSE</td>
+<td align="left">FALSE</td>
+<td>不受影响</td>
+</tr>
+<tr class="even">
+<td align="left">linear.correction.variables</td>
+<td align="left">协变量下标向量</td>
+<td align="left">1:p</td>
+<td>随着 n、p 增大，限制线性校正变量是保证预测高效的关键一步。我们强烈建议在此情形下用 lasso、逐步回归、先验知识等方法，挑出数量相当少的一组线性校正变量用于局部线性森林预测。</td>
+</tr>
+</tbody>
+</table>
+<p>下面这段代码目前设为不运行；预计耗时约 5–6 分钟。用全部 p 个变量做局部线性森林预测会非常慢，这种规模数据上的自动调参同样很慢。不过，我们仍然可以使用线性校正，只是需要更精心地设置参数。用户可以增加树的数量，让两种方法都获得更好的表现。</p>
+<div class="sourceCode" id="cb13"><pre class="r"><span class="co"># 生成数据</span>
+<span class="no">n</span> <span class="kw">&lt;-</span> <span class="fl">5e5</span>
+<span class="no">p</span> <span class="kw">&lt;-</span> <span class="fl">20</span>
+
+<span class="no">sigma</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span>(<span class="fl">20</span>)
+
+<span class="no">f</span> <span class="kw">&lt;-</span> <span class="kw">function</span>(<span class="no">x</span>){
+  <span class="fl">10</span> * <span class="fu"><a href="https://rdrr.io/r/base/Trig.html">sin</a></span>(<span class="no">pi</span> * <span class="no">x</span>[<span class="fl">1</span>] * <span class="no">x</span>[<span class="fl">2</span>]) + <span class="fl">10</span> * (<span class="no">x</span>[<span class="fl">3</span>] - <span class="fl">0.5</span>)**<span class="fl">2</span> + <span class="fl">10</span> * <span class="no">x</span>[<span class="fl">4</span>] + <span class="fl">5</span> * <span class="no">x</span>[<span class="fl">5</span>]
+}
+
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span>(<span class="no">n</span> * <span class="no">p</span>, <span class="fl">0</span>, <span class="fl">1</span>), <span class="kw">nrow</span> <span class="kw">=</span> <span class="no">n</span>, <span class="kw">ncol</span> <span class="kw">=</span> <span class="no">p</span>)
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html">apply</a></span>(<span class="no">X</span>, <span class="kw">MARGIN</span> <span class="kw">=</span> <span class="fl">1</span>, <span class="kw">FUN</span> <span class="kw">=</span> <span class="no">f</span>) + <span class="no">sigma</span> * <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+<span class="no">X.test</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span>(<span class="no">n</span> * <span class="no">p</span>, <span class="fl">0</span>, <span class="fl">1</span>), <span class="kw">nrow</span> <span class="kw">=</span> <span class="no">n</span>, <span class="kw">ncol</span> <span class="kw">=</span> <span class="no">p</span>)
+<span class="no">truth.test</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html">apply</a></span>(<span class="no">X.test</span>, <span class="kw">MARGIN</span> <span class="kw">=</span> <span class="fl">1</span>, <span class="kw">FUN</span> <span class="kw">=</span> <span class="no">f</span>)
+
+<span class="no">ptm</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/proc.time.html">proc.time</a></span>()
+<span class="no">forest</span> <span class="kw">&lt;-</span><span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/regression_forest.html">regression_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="kw">tune.parameters</span> <span class="kw">=</span> <span class="st">"none"</span>, <span class="kw">num.trees</span> <span class="kw">=</span> <span class="fl">50</span>)
+<span class="no">time.train</span> <span class="kw">&lt;-</span> (<span class="fu"><a href="https://rdrr.io/r/base/proc.time.html">proc.time</a></span>() - <span class="no">ptm</span>)<span class="kw">[[</span><span class="fl">3</span>]]
+
+<span class="no">ptm</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/proc.time.html">proc.time</a></span>()
+<span class="no">preds.grf</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest</span>, <span class="no">X.test</span>)$<span class="no">predictions</span>
+<span class="no">mse.grf</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>((<span class="no">preds.grf</span> - <span class="no">truth.test</span>)**<span class="fl">2</span>)
+<span class="no">time.grf</span> <span class="kw">&lt;-</span> (<span class="fu"><a href="https://rdrr.io/r/base/proc.time.html">proc.time</a></span>() - <span class="no">ptm</span>)<span class="kw">[[</span><span class="fl">3</span>]]
+
+<span class="no">ptm</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/proc.time.html">proc.time</a></span>()
+<span class="no">ll.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/ll_regression_forest.html">ll_regression_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="kw">tune.parameters</span> <span class="kw">=</span> <span class="st">"none"</span>, <span class="kw">enable.ll.split</span> <span class="kw">=</span> <span class="fl">TRUE</span> ,<span class="kw">num.trees</span> <span class="kw">=</span> <span class="fl">50</span>)
+<span class="no">time.train.ll</span> <span class="kw">&lt;-</span> (<span class="fu"><a href="https://rdrr.io/r/base/proc.time.html">proc.time</a></span>() - <span class="no">ptm</span>)<span class="kw">[[</span><span class="fl">3</span>]]
+
+<span class="no">ptm</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/proc.time.html">proc.time</a></span>()
+<span class="no">lasso.mod</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/glmnet/man/cv.glmnet.html">cv.glmnet</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="kw">alpha</span> <span class="kw">=</span> <span class="fl">1</span>)
+<span class="no">lasso.coef</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">lasso.mod</span>, <span class="kw">type</span> <span class="kw">=</span> <span class="st">"nonzero"</span>)
+<span class="no">selected</span> <span class="kw">&lt;-</span> <span class="no">lasso.coef</span>[,<span class="fl">1</span>]
+<span class="no">selected</span>
+<span class="no">time.lasso</span> <span class="kw">&lt;-</span> (<span class="fu"><a href="https://rdrr.io/r/base/proc.time.html">proc.time</a></span>() - <span class="no">ptm</span>)<span class="kw">[[</span><span class="fl">3</span>]]
+
+<span class="no">ptm</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/proc.time.html">proc.time</a></span>()
+<span class="no">preds.llf</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">ll.forest</span>, <span class="no">X.test</span>,
+                    <span class="kw">linear.correction.variables</span> <span class="kw">=</span> <span class="no">selected</span>,
+                    <span class="kw">ll.lambda</span> <span class="kw">=</span> <span class="fl">0.1</span>)$<span class="no">predictions</span>
+<span class="no">mse.llf</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>((<span class="no">preds.llf</span> - <span class="no">truth.test</span>)**<span class="fl">2</span>)
+<span class="no">time.llf</span> <span class="kw">&lt;-</span> (<span class="fu"><a href="https://rdrr.io/r/base/proc.time.html">proc.time</a></span>() - <span class="no">ptm</span>)<span class="kw">[[</span><span class="fl">3</span>]]
+
+<span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span>(<span class="st">"GRF training took"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span>(<span class="no">time.train</span>, <span class="fl">2</span>), <span class="st">"seconds. \n"</span>,
+          <span class="st">"GRF predictions took"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span>(<span class="no">time.train.ll</span>, <span class="fl">2</span>), <span class="st">"seconds. \n"</span>,
+          <span class="st">"LLF training took"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span>(<span class="no">time.grf</span>, <span class="fl">2</span>), <span class="st">"seconds. \n"</span>,
+          <span class="st">"Lasso selection took"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span>(<span class="no">time.lasso</span>, <span class="fl">2</span>), <span class="st">"seconds. \n"</span>,
+          <span class="st">"LLF prediction took"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span>(<span class="no">time.llf</span>, <span class="fl">2</span>), <span class="st">"seconds. \n"</span>,
+          <span class="st">"LLF and lasso all in all took"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span>(<span class="no">time.lasso</span> + <span class="no">time.llf</span>, <span class="fl">2</span>), <span class="st">"seconds. \n"</span>))
+
+<span class="co"># GRF 训练耗时 342.14 秒</span>
+<span class="co"># LLF 训练耗时 215.64 秒</span>
+<span class="co"># GRF 预测耗时 20.25 秒</span>
+<span class="co"># Lasso 选择耗时 15.10 秒</span>
+<span class="co"># LLF 预测耗时 45.40 秒</span>
+<span class="co"># LLF 与 lasso 总共耗时 60.50 秒</span>
+
+<span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span>(<span class="st">"GRF predictions had MSE"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span>(<span class="no">mse.grf</span>, <span class="fl">2</span>), <span class="st">"\n"</span>,
+          <span class="st">"LLF predictions had MSE"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span>(<span class="no">mse.llf</span>, <span class="fl">2</span>)))
+<span class="co"># GRF 预测 MSE 为 0.81</span>
+<span class="co"># LLF 预测 MSE 为 0.69</span></pre></div>
+</div>
+
+  </div>
+
+  <div class="foot">
+    <p>本页为 <a href="https://grf-labs.github.io/grf/articles/llf.html" target="_blank" rel="noopener">grf 官方文档</a> 的中文译本，原文版权归 grf 作者所有，依据项目许可（MIT）翻译并注明出处，仅供学习交流。代码与公式保持原样，译文新增的「背景与解释」框为译者补充。</p>
+  </div>
+</div>
+<script src="search.js"></script>
+</body>
+</html>
