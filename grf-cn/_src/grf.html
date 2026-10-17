@@ -1,0 +1,98 @@
+
+    
+
+    
+    
+<div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">grf</span>)</pre></div>
+<p>The following script demonstrates how to use GRF for heterogeneous
+treatment effect estimation. For examples of how to use other types of
+forests, please consult the R <a href="https://grf-labs.github.io/grf/reference/index.html">documentation</a>
+on the relevant methods.</p>
+<p>Generate data and train a causal forest</p>
+<div class="sourceCode" id="cb2"><pre class="r"><span class="no">n</span> <span class="kw">&lt;-</span> <span class="fl">2000</span>
+<span class="no">p</span> <span class="kw">&lt;-</span> <span class="fl">10</span>
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+<span class="no">X.test</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fl">0</span>, <span class="fl">101</span>, <span class="no">p</span>)
+<span class="no">X.test</span>[, <span class="fl">1</span>] <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span>(-<span class="fl">2</span>, <span class="fl">2</span>, <span class="kw">length.out</span> <span class="kw">=</span> <span class="fl">101</span>)
+
+<span class="no">W</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="fl">0.4</span> + <span class="fl">0.2</span> * (<span class="no">X</span>[, <span class="fl">1</span>] <span class="kw">&gt;</span> <span class="fl">0</span>))
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmax</a></span>(<span class="no">X</span>[, <span class="fl">1</span>], <span class="fl">0</span>) * <span class="no">W</span> + <span class="no">X</span>[, <span class="fl">2</span>] + <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="no">X</span>[, <span class="fl">3</span>], <span class="fl">0</span>) + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+<span class="no">tau.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+<span class="no">tau.forest</span>
+<span class="co">#&gt; GRF forest object of type causal_forest </span>
+<span class="co">#&gt; Number of trees: 2000 </span>
+<span class="co">#&gt; Number of training samples: 2000 </span>
+<span class="co">#&gt; Variable importance: </span>
+<span class="co">#&gt;     1     2     3     4     5     6     7     8     9    10 </span>
+<span class="co">#&gt; 0.688 0.032 0.044 0.043 0.033 0.029 0.031 0.028 0.030 0.042</span></pre></div>
+<p>Estimate treatment effects for the training data using out-of-bag
+prediction.</p>
+<div class="sourceCode" id="cb3"><pre class="r"><span class="no">tau.hat.oob</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">tau.forest</span>)
+<span class="fu"><a href="https://rdrr.io/r/graphics/hist.html">hist</a></span>(<span class="no">tau.hat.oob</span>$<span class="no">predictions</span>)</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/grf_files/figure-html/unnamed-chunk-3-1.png" alt="" width="700"></p>
+<p>Estimate treatment effects for the test sample.</p>
+<div class="sourceCode" id="cb4"><pre class="r"><span class="no">tau.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">tau.forest</span>, <span class="no">X.test</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">X.test</span>[, <span class="fl">1</span>], <span class="no">tau.hat</span>$<span class="no">predictions</span>, <span class="kw">ylim</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/range.html">range</a></span>(<span class="no">tau.hat</span>$<span class="no">predictions</span>, <span class="fl">0</span>, <span class="fl">2</span>), <span class="kw">xlab</span> <span class="kw">=</span> <span class="st">"x"</span>, <span class="kw">ylab</span> <span class="kw">=</span> <span class="st">"tau"</span>, <span class="kw">type</span> <span class="kw">=</span> <span class="st">"l"</span>)
+<span class="fu"><a href="https://rdrr.io/r/graphics/lines.html">lines</a></span>(<span class="no">X.test</span>[, <span class="fl">1</span>], <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmax</a></span>(<span class="fl">0</span>, <span class="no">X.test</span>[, <span class="fl">1</span>]), <span class="kw">col</span> <span class="kw">=</span> <span class="fl">2</span>, <span class="kw">lty</span> <span class="kw">=</span> <span class="fl">2</span>)</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/grf_files/figure-html/unnamed-chunk-4-1.png" alt="" width="700"></p>
+<p>Estimate the conditional average treatment effect on the full sample
+(CATE).</p>
+<div class="sourceCode" id="cb5"><pre class="r"><span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/average_treatment_effect.html">average_treatment_effect</a></span>(<span class="no">tau.forest</span>, <span class="kw">target.sample</span> <span class="kw">=</span> <span class="st">"all"</span>)
+<span class="co">#&gt;   estimate    std.err </span>
+<span class="co">#&gt; 0.36644474 0.05003444</span></pre></div>
+<p>Estimate the conditional average treatment effect on the treated
+sample (CATT).</p>
+<div class="sourceCode" id="cb6"><pre class="r"><span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/average_treatment_effect.html">average_treatment_effect</a></span>(<span class="no">tau.forest</span>, <span class="kw">target.sample</span> <span class="kw">=</span> <span class="st">"treated"</span>)
+<span class="co">#&gt;   estimate    std.err </span>
+<span class="co">#&gt; 0.46023739 0.05156137</span></pre></div>
+<p>Add confidence intervals for heterogeneous treatment effects; growing
+more trees is now recommended.</p>
+<div class="sourceCode" id="cb7"><pre class="r"><span class="no">tau.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>, <span class="kw">num.trees</span> <span class="kw">=</span> <span class="fl">4000</span>)
+<span class="no">tau.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">tau.forest</span>, <span class="no">X.test</span>, <span class="kw">estimate.variance</span> <span class="kw">=</span> <span class="fl">TRUE</span>)
+<span class="no">sigma.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span>(<span class="no">tau.hat</span>$<span class="no">variance.estimates</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">X.test</span>[, <span class="fl">1</span>], <span class="no">tau.hat</span>$<span class="no">predictions</span>, <span class="kw">ylim</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/range.html">range</a></span>(<span class="no">tau.hat</span>$<span class="no">predictions</span> + <span class="fl">1.96</span> * <span class="no">sigma.hat</span>, <span class="no">tau.hat</span>$<span class="no">predictions</span> - <span class="fl">1.96</span> * <span class="no">sigma.hat</span>, <span class="fl">0</span>, <span class="fl">2</span>), <span class="kw">xlab</span> <span class="kw">=</span> <span class="st">"x"</span>, <span class="kw">ylab</span> <span class="kw">=</span> <span class="st">"tau"</span>, <span class="kw">type</span> <span class="kw">=</span> <span class="st">"l"</span>)
+<span class="fu"><a href="https://rdrr.io/r/graphics/lines.html">lines</a></span>(<span class="no">X.test</span>[, <span class="fl">1</span>], <span class="no">tau.hat</span>$<span class="no">predictions</span> + <span class="fl">1.96</span> * <span class="no">sigma.hat</span>, <span class="kw">col</span> <span class="kw">=</span> <span class="fl">1</span>, <span class="kw">lty</span> <span class="kw">=</span> <span class="fl">2</span>)
+<span class="fu"><a href="https://rdrr.io/r/graphics/lines.html">lines</a></span>(<span class="no">X.test</span>[, <span class="fl">1</span>], <span class="no">tau.hat</span>$<span class="no">predictions</span> - <span class="fl">1.96</span> * <span class="no">sigma.hat</span>, <span class="kw">col</span> <span class="kw">=</span> <span class="fl">1</span>, <span class="kw">lty</span> <span class="kw">=</span> <span class="fl">2</span>)
+<span class="fu"><a href="https://rdrr.io/r/graphics/lines.html">lines</a></span>(<span class="no">X.test</span>[, <span class="fl">1</span>], <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmax</a></span>(<span class="fl">0</span>, <span class="no">X.test</span>[, <span class="fl">1</span>]), <span class="kw">col</span> <span class="kw">=</span> <span class="fl">2</span>, <span class="kw">lty</span> <span class="kw">=</span> <span class="fl">1</span>)</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/grf_files/figure-html/unnamed-chunk-7-1.png" alt="" width="700"></p>
+<p>In some examples, pre-fitting models for Y and W separately may be
+helpful (e.g., if different models use different covariates). In some
+applications, one may even want to get Y.hat and W.hat using a
+completely different method (e.g., boosting).</p>
+<div class="sourceCode" id="cb8"><pre class="r"><span class="co"># Generate new data.</span>
+<span class="no">n</span> <span class="kw">&lt;-</span> <span class="fl">4000</span>
+<span class="no">p</span> <span class="kw">&lt;-</span> <span class="fl">20</span>
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+<span class="no">TAU</span> <span class="kw">&lt;-</span> <span class="fl">1</span> / (<span class="fl">1</span> + <span class="fu"><a href="https://rdrr.io/r/base/Log.html">exp</a></span>(-<span class="no">X</span>[, <span class="fl">3</span>]))
+<span class="no">W</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="fl">1</span> / (<span class="fl">1</span> + <span class="fu"><a href="https://rdrr.io/r/base/Log.html">exp</a></span>(-<span class="no">X</span>[, <span class="fl">1</span>] - <span class="no">X</span>[, <span class="fl">2</span>])))
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmax</a></span>(<span class="no">X</span>[, <span class="fl">2</span>] + <span class="no">X</span>[, <span class="fl">3</span>], <span class="fl">0</span>) + <span class="fu"><a href="https://rdrr.io/r/base/colSums.html">rowMeans</a></span>(<span class="no">X</span>[, <span class="fl">4</span>:<span class="fl">6</span>]) / <span class="fl">2</span> + <span class="no">W</span> * <span class="no">TAU</span> + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+<span class="no">forest.W</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/regression_forest.html">regression_forest</a></span>(<span class="no">X</span>, <span class="no">W</span>, <span class="kw">tune.parameters</span> <span class="kw">=</span> <span class="st">"all"</span>)
+<span class="no">W.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest.W</span>)$<span class="no">predictions</span>
+
+<span class="no">forest.Y</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/regression_forest.html">regression_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="kw">tune.parameters</span> <span class="kw">=</span> <span class="st">"all"</span>)
+<span class="no">Y.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest.Y</span>)$<span class="no">predictions</span>
+
+<span class="no">forest.Y.varimp</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/variable_importance.html">variable_importance</a></span>(<span class="no">forest.Y</span>)
+
+<span class="co"># Note: Forests may have a hard time when trained on very few variables</span>
+<span class="co"># (e.g., ncol(X) = 1, 2, or 3). We recommend not being too aggressive</span>
+<span class="co"># in selection.</span>
+<span class="no">selected.vars</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/which.html">which</a></span>(<span class="no">forest.Y.varimp</span> / <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">forest.Y.varimp</span>) <span class="kw">&gt;</span> <span class="fl">0.2</span>)
+
+<span class="no">tau.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[, <span class="no">selected.vars</span>], <span class="no">Y</span>, <span class="no">W</span>,
+                            <span class="kw">W.hat</span> <span class="kw">=</span> <span class="no">W.hat</span>, <span class="kw">Y.hat</span> <span class="kw">=</span> <span class="no">Y.hat</span>,
+                            <span class="kw">tune.parameters</span> <span class="kw">=</span> <span class="st">"all"</span>)</pre></div>
+<p>See if a causal forest succeeded in capturing heterogeneity by
+plotting the TOC and calculating a 95% CI for the AUTOC.</p>
+<div class="sourceCode" id="cb9"><pre class="r"><span class="no">train</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span>(<span class="fl">1</span>:<span class="no">n</span>, <span class="no">n</span> / <span class="fl">2</span>)
+<span class="no">train.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[<span class="no">train</span>, ], <span class="no">Y</span>[<span class="no">train</span>], <span class="no">W</span>[<span class="no">train</span>])
+<span class="no">eval.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[-<span class="no">train</span>, ], <span class="no">Y</span>[-<span class="no">train</span>], <span class="no">W</span>[-<span class="no">train</span>])
+<span class="no">rate</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.html">rank_average_treatment_effect</a></span>(<span class="no">eval.forest</span>,
+                                      <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">train.forest</span>, <span class="no">X</span>[-<span class="no">train</span>, ])$<span class="no">predictions</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">rate</span>)</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/grf_files/figure-html/unnamed-chunk-9-1.png" alt="" width="700"></p>
+<div class="sourceCode" id="cb10"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span>(<span class="st">"AUTOC:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span>(<span class="no">rate</span>$<span class="no">estimate</span>, <span class="fl">2</span>), <span class="st">"+/"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span>(<span class="fl">1.96</span> * <span class="no">rate</span>$<span class="no">std.err</span>, <span class="fl">2</span>))
+<span class="co">#&gt; [1] "AUTOC: 0.2 +/ 0.1"</span></pre></div>
+<p>For more worked examples see the <em>Tutorials</em> section.</p>
+  
