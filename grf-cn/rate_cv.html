@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme-default="light">
+<head>
+<script>
+(function(){
+  var KEY="share-theme", d=document.documentElement;
+  try{var saved=localStorage.getItem(KEY);}catch(e){var saved=null;}
+  d.setAttribute("data-theme", saved || d.getAttribute("data-theme-default") || "light");
+  document.addEventListener("DOMContentLoaded",function(){
+    var b=document.getElementById("theme-toggle"); if(!b) return;
+    function sync(){
+      var dark=d.getAttribute("data-theme")==="dark";
+      b.setAttribute("aria-pressed", dark?"true":"false");
+      b.setAttribute("title", dark?"切换到亮色主题 (Alt+T)":"切换到暗色主题 (Alt+T)");
+    }
+    b.addEventListener("click",function(){
+      var nxt=d.getAttribute("data-theme")==="dark"?"light":"dark";
+      d.setAttribute("data-theme",nxt);
+      try{localStorage.setItem(KEY,nxt);}catch(e){}
+      sync();
+    });
+    document.addEventListener("keydown",function(e){
+      if(e.altKey&&(e.key==="t"||e.key==="T")) b.click();
+    });
+    sync();
+  });
+})();
+</script>
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},
+options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>异质性的交叉验证（RATE-CV） · grf 中文教程</title>
+<style>
+:root{
+  --bg:#f7f7f5; --card:#ffffff; --text:#2c2c2a; --muted:#6b6a65;
+  --line:#e3e2dd; --accent:#534ab7; --accent-soft:#eeedfe; --tag:#f1efe8;
+  --code-bg:#f4f3ef; --code-line:#e7e5df; --code-text:#2c2c2a;
+  --note-bg:#eef6ff; --note-line:#bcd6f5; --note-text:#1f3a5f;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  line-height:1.8; margin:0;
+}
+.wrap{max-width:840px;margin:0 auto;padding:32px 22px 80px}
+.topbar{margin-bottom:26px}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;
+  font-size:14px;font-weight:600}
+.back:hover{text-decoration:underline}
+h1{font-size:30px;font-weight:700;letter-spacing:-.3px;margin:6px 0 4px;line-height:1.3}
+.sub{color:var(--muted);font-size:14px;margin-bottom:8px}
+.sub a{color:var(--accent)}
+.lead{font-size:16px;color:var(--text);margin:14px 0 22px;border-left:3px solid var(--accent);
+  padding:4px 0 4px 16px;background:var(--accent-soft);border-radius:0 8px 8px 0}
+.content h2{font-size:22px;font-weight:700;margin:38px 0 12px;padding-bottom:6px;
+  border-bottom:1px solid var(--line)}
+.content h3{font-size:18px;font-weight:700;margin:26px 0 10px}
+.content h4{font-size:16px;font-weight:700;margin:20px 0 8px}
+.content p{margin:12px 0}
+.content ul,.content ol{margin:12px 0;padding-left:26px}
+.content li{margin:6px 0}
+.content a{color:var(--accent);text-decoration:none}
+.content a:hover{text-decoration:underline}
+.content img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;
+  margin:14px 0;background:#fff;display:block}
+.content table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+.content th,.content td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+.content th{background:var(--accent-soft);font-weight:600}
+.content tr:nth-child(even) td{background:var(--card)}
+.content blockquote{margin:16px 0;padding:12px 16px;border-left:3px solid var(--line);
+  color:var(--muted);background:var(--card);border-radius:0 8px 8px 0}
+.content code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13.5px;background:var(--code-bg);padding:2px 5px;border-radius:4px;color:var(--code-text)}
+pre{background:var(--code-bg);border:1px solid var(--code-line);border-radius:10px;
+  padding:16px 18px;overflow-x:auto;margin:16px 0;line-height:1.6}
+pre code{background:none;padding:0;font-size:13.5px;color:var(--code-text)}
+.content .sourceCode{margin:16px 0}
+/* downlit token coloring (light) */
+.content .co{color:#6a737d}
+.content .st{color:#032f62}
+.content .fu{color:#4078f2}
+.content .cf{color:#d73a49}
+.content .kw{color:#a626a4}
+.content .fl,.content .cn{color:#b9520f}
+.content .op{color:#444}
+/* 背景与解释 callout */
+.note{margin:18px 0;padding:14px 18px;border:1px solid var(--note-line);
+  background:var(--note-bg);border-radius:10px;color:var(--note-text)}
+.note .nt{display:inline-block;font-weight:700;font-size:13px;letter-spacing:.04em;
+  margin-bottom:6px;color:var(--accent)}
+.note p{margin:6px 0}
+.note code{background:rgba(255,255,255,.6)}
+.foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--muted)}
+.foot a{color:var(--accent)}
+
+:root[data-theme="dark"]{
+  --bg:#0f1116; --card:#181b22; --text:#e4e6ea; --muted:#98a0ac;
+  --line:#2a2f3a; --accent:#7aa2f7; --accent-soft:#16203a; --tag:#1e222b;
+  --code-bg:#0b0d12; --code-line:#1d2129; --code-text:#d7dae0;
+  --note-bg:#15233b; --note-line:#274168; --note-text:#bcd6f5;
+}
+:root[data-theme="dark"] .content th{background:var(--accent-soft)}
+:root[data-theme="dark"] .content tr:nth-child(even) td{background:#14171e}
+:root[data-theme="dark"] .content img{background:#0b0d12}
+:root[data-theme="dark"] .content .co{color:#7f8b9a}
+:root[data-theme="dark"] .content .st{color:#9ecbff}
+:root[data-theme="dark"] .content .fu{color:#82aaff}
+:root[data-theme="dark"] .content .cf{color:#f07178}
+:root[data-theme="dark"] .content .kw{color:#c792ea}
+:root[data-theme="dark"] .content .fl,.content .cn{color:#f78c6c}
+
+.tt{
+  position:fixed; top:16px; right:16px; z-index:9999; width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center; border-radius:50%;
+  cursor:pointer; color:var(--text); background:var(--card);
+  border:1px solid var(--line);
+  box-shadow:0 2px 10px rgba(0,0,0,.24); transition:transform .15s, border-color .15s, background .15s;
+}
+.tt:hover{transform:translateY(-1px); border-color:var(--accent)}
+.tt:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tt svg{display:none}
+[data-theme="dark"] .ico-sun{display:block}
+[data-theme="dark"] .ico-moon{display:none}
+[data-theme="light"] .ico-sun{display:none}
+[data-theme="light"] .ico-moon{display:block}
+@media(max-width:640px){.tt{top:10px; right:10px; width:36px; height:36px}}
+@media print{.tt{display:none}}
+</style>
+<style>
+/* ---- 全局搜索 ---- */
+.sbox{position:relative;display:inline-flex;align-items:center;margin-left:10px}
+.sbox input{background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);color:inherit;
+ border-radius:6px;padding:4px 9px 4px 25px;font-size:13px;width:170px;font-family:inherit;outline:none}
+.sbox input:focus{border-color:#4ea1ff;width:220px}
+.sbox .si{position:absolute;left:8px;font-size:12px;opacity:.6;pointer-events:none}
+.spanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:440px;max-width:88vw;
+ max-height:64vh;overflow-y:auto;z-index:900;background:var(--panel,#262c34);
+ border:1px solid var(--border,#3a4350);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.spanel.open{display:block}
+.spanel .sh{padding:7px 10px;font-size:12px;opacity:.7;border-bottom:1px solid var(--border,#3a4350);margin-bottom:4px}
+.spanel .sempty{font-size:12px;opacity:.65;padding:16px 10px;text-align:center}
+.sres{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:inherit}
+.sres:hover,.sres.sel{background:var(--panel2,#2e3540)}
+.sres .c{font-size:11px;opacity:.65;margin-bottom:1px}
+.sres .s{font-size:12px;color:#4ea1ff;margin-bottom:2px}
+.sres .t{font-size:13px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sres mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+.srch-main{margin:22px 0}
+.srch-main input{width:100%;background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);
+ color:inherit;border-radius:8px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none}
+.srch-main input:focus{border-color:#4ea1ff}
+.srch-meta{font-size:13px;opacity:.7;margin:12px 0 6px}
+.srch-list{list-style:none;margin:0;padding:0}
+.srch-list .sres{border:1px solid var(--border,#3a4350);margin:7px 0;padding:9px 11px}
+.srch-list .sres:hover{border-color:#4ea1ff}
+@media (max-width:640px){.sbox input{width:110px}.sbox input:focus{width:150px}.spanel{width:86vw}}
+</style><!--search.css-marker-->
+<style>
+/* ===== 因果森林知识库 · 统一导航 ===== */
+.cfh-nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:10px;
+ padding:8px 16px;background:var(--bg,#181b22);border-bottom:1px solid var(--line,#2a2f3a);
+ font-size:13.5px;flex-wrap:wrap}
+.cfh-nav .cfh-home{font-weight:600;color:var(--text,#e4e6ea);text-decoration:none;font-size:14px;
+ display:flex;align-items:center;gap:6px}
+.cfh-nav .cfh-home:hover{color:var(--accent,#7aa2f7)}
+.cfh-nav .cfh-crumb{color:var(--muted,#98a0ac);font-size:12.5px}
+.cfh-nav .cfh-crumb a{color:var(--accent,#7aa2f7);text-decoration:none}
+.cfh-nav .cfh-sp{flex:1}
+.cfh-nav select{background:var(--card,#181b22);color:var(--text,#e4e6ea);
+ border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:4px 8px;font-size:12.5px;
+ font-family:inherit;outline:none;cursor:pointer;max-width:230px}
+.cfh-nav select:hover{border-color:var(--accent,#7aa2f7)}
+.cfh-nav a.cfh-sbtn{color:var(--text,#e4e6ea);text-decoration:none;border:1px solid var(--line,#2a2f3a);
+ border-radius:6px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.cfh-nav a.cfh-sbtn:hover{border-color:var(--accent,#7aa2f7);color:var(--accent,#7aa2f7)}
+@media (max-width:700px){.cfh-nav .cfh-crumb{display:none}.cfh-nav select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="cfh-nav">
+<a class="cfh-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="cfh-crumb">/ <a href="index.html">grf 广义随机森林</a> / rate_cv</span>
+<span class="cfh-sp"></span>
+<select onchange="if(this.value)location.href=this.value" aria-label="切换库">
+<option value="grf-cn/index.html" selected>grf 广义随机森林</option>
+<option value="policytree-cn/index.html">policytree 策略树</option>
+<option value="surefq/surefq.html">SURE / QRF 充分表示</option>
+<option value="tidyhte-cn/index.html">tidyhte 优雅的 HTE</option>
+<option value="metalearner-cn/index.html">Meta-Learner 元学习器</option>
+<option value="model4you-cn/index.html">model4you 个体化治疗</option>
+<option value="evalITR-cn/index.html">evalITR 规则评估</option>
+<option value="rj-dlc-cn/index.html">DeepLearningCausal</option>
+<option value="survlearners-cn/index.html">survlearners 生存 HTE</option>
+<option value="bocf-cn/index.html">BOCF 基线观测结转</option>
+<option value="hte-course/index.html">HTE 公开课讲义</option>
+<option value="causal-tools-cn/index.html">因果推断三件工具</option>
+<option value="imputeTS-cn/index.html">imputeTS 缺失填补</option>
+</select>
+<a class="cfh-sbtn" href="search.html">&#128269; 搜索本页</a>
+</div>
+<button id="theme-toggle" class="tt" type="button" aria-label="切换明暗主题" title="切换明暗主题 (Alt+T)">
+  <svg class="ico-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7"/></svg>
+  <svg class="ico-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.2 8.2 0 1 0 10.5 10.5z"/></svg>
+</button>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">&larr; grf 教程总览</a><span class="sbox"><span class="si">&#128269;</span>
+<input type="search" id="s-q" placeholder="搜索本站…（按 /）" autocomplete="off" aria-label="搜索本站">
+<span class="spanel" id="s-panel"></span></span>
+  </div>
+  <h1>异质性的交叉验证（RATE-CV）</h1>
+  <p class="sub">原文：<a href="https://grf-labs.github.io/grf/articles/rate_cv.html" target="_blank" rel="noopener">Cross-fold validation of heterogeneity</a>（英文）&nbsp;·&nbsp;grf 官方文档中文译本</p>
+
+  <div class="content">
+<p>本篇教程简要介绍如何借助「秩加权平均处理效应」（Rank-Weighted Average Treatment Effects，简称 RATE）来评估条件平均处理效应（CATE）估计量的质量，并且避免使用「单一训练集 + 单一验证集」这种一次性的切分方式。我们将以因果森林（causal forest）为例，针对「二值处理（treatment）分配」的观察性数据或实验数据，演示如何利用 RATE 来检验处理效应的异质性（heterogeneity），并介绍两种思路：一种是「顺序折叠估计（sequential fold estimation）」流程，另一种是基于袋外（out-of-bag）估计、用于单侧检验的启发式方法。</p>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>为什么异质性检验需要「交叉验证」？</strong> RATE 检验天然分两步：先用一部分数据<em>拟合</em>出 CATE 函数 \(\hat \tau(\cdot)\)，再用<em>另一部分</em>独立数据<em>评估</em>它。关键在于这两步必须用不同的样本，否则就像「自己出题自己改卷」，会把噪声当信号。最朴素的办法是做一次性的训练/测试切分，但这在样本量不大（比如很多医学研究、罕见病或早期 RCT）时很浪费——你只用了一半数据去拟合模型。交叉折叠（cross-fold）的初衷，正是想「轮流让每一折都当一次测试集」，从而既多用数据、又保持训练与验证相互独立。</p>
+</div>
+
+<div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">grf</span>)</pre></div>
+<div id="cross-fold-estimation-of-rate-metrics" class="section level2">
+<h2 class="hasAnchor" id="sec-rate-指标的交叉折叠估计">
+<a href="#cross-fold-estimation-of-rate-metrics" class="anchor"></a>RATE 指标的交叉折叠估计</h2>
+<p>如 RATE 篇教程所述，RATE 指标本身就可以作为「是否存在处理效应异质性」的检验工具。一个常见的做法是：先用训练集拟合出条件平均处理效应（CATE）的估计，再在一个留出的测试集上用 RATE 去评估它。具体来说，我们在训练集上得到某个估计出的 CATE 函数 <span class="math inline">\(\hat \tau(\cdot)\)</span>，然后在测试集上算出 RATE 的估计值，并据此构造如下假设检验：</p>
+<p><span class="math inline">\(H_0\)</span>：RATE <span class="math inline">\(=0\)</span>（即 <span class="math inline">\(\hat \tau(\cdot)\)</span> 没有检出异质性）</p>
+<p><span class="math inline">\(H_A\)</span>：RATE <span class="math inline">\(\neq 0\)</span>。</p>
+<p>RATE 指标满足中心极限定理，因此可以用一个简单的 t 检验来检验这个假设：</p>
+<p><span class="math display">\[
+t = \frac{\widehat{RATE}}{\sqrt{Var(\widehat{RATE})}}.
+\]</span></p>
+<p>在 5% 的显著性水平（<span class="math inline">\(\alpha\)</span>）下，如果 p 值 <span class="math inline">\(2\Phi(-|t|)\)</span> 小于 5%，我们就拒绝 <span class="math inline">\(H_0\)</span>。</p>
+<p>这种做法的一个缺点是：我们只用到了数据的一个子集去训练 CATE 估计量。当样本量较小、而异质性又难以检出时，这会很不利。一个诱人的替代方案是使用交叉折叠（cross-fold）估计：把数据分成 <span class="math inline">\(K\)</span> 折（fold），轮流用其中一部分训练 CATE 估计量、用另一部分估计 RATE。下图展示了 <span class="math inline">\(K=5\)</span> 折的情形：在蓝色样本上拟合 CATE 估计量，在红色样本上评估 RATE。</p>
+<p><img src="https://grf-labs.github.io/grf/articles/rate_cv_files/figure-html/unnamed-chunk-2-1.png" alt="" width="700"></p>
+<p>这套策略会给出 5 个 RATE 估计和 5 个 t 值；我们希望，把它们聚合起来之后能提高检出异质性的能力（统计功效，power）。单独来看，每个 t 值都构成一个有效的检验。但<strong>问题</strong>在于：聚合时它们并不相互独立，因为各折之间存在样本重叠，从而引入了相关性。</p>
+<p>我们可以通过一个简单的模拟实验来观察这一点。下面我们定义一个简单函数：把数据分成 5 折，在每一折上各算出一个 RATE 估计和 t 值，再把各折的检验统计量聚合起来算出 p 值。</p>
+<div class="sourceCode" id="cb2"><pre class="r"><span class="co"># 在 K 个随机折上估计 RATE，得到 K 个 t 统计量，再据此返回一个 p 值</span>
+<span class="co"># （针对 H0，使用这些 t 值之和）</span>
+<span class="no">rate_cv_naive</span> <span class="kw">=</span> <span class="kw">function</span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>, <span class="no">num.folds</span> <span class="kw">=</span> <span class="fl">5</span>) {
+  <span class="no">fold.id</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="fl">1</span>:<span class="no">num.folds</span>, <span class="kw">length</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(<span class="no">X</span>)))
+  <span class="no">samples.by.fold</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html">split</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_along</a></span>(<span class="no">fold.id</span>), <span class="no">fold.id</span>)
+
+  <span class="no">t.statistics</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>()
+
+  <span class="co"># 构造用于估计 RATE 的 AIPW 得分</span>
+  <span class="no">nuisance.forest</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+  <span class="no">DR.scores</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/get_scores.html">get_scores</a></span>(<span class="no">nuisance.forest</span>)
+
+  <span class="kw">for</span> (<span class="no">k</span> <span class="kw">in</span> <span class="fl">1</span>:<span class="no">num.folds</span>) {
+    <span class="no">train</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html">unlist</a></span>(<span class="no">samples.by.fold</span>[-<span class="no">k</span>])
+    <span class="no">test</span> <span class="kw">=</span> <span class="no">samples.by.fold</span><span class="kw">[[</span><span class="no">k</span>]]
+
+    <span class="no">cate.forest</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[<span class="no">train</span>, ], <span class="no">Y</span>[<span class="no">train</span>], <span class="no">W</span>[<span class="no">train</span>])
+
+    <span class="no">cate.hat.test</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">cate.forest</span>, <span class="no">X</span>[<span class="no">test</span>, ])$<span class="no">predictions</span>
+
+    <span class="no">rate.fold</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.fit.html">rank_average_treatment_effect.fit</a></span>(<span class="no">DR.scores</span>[<span class="no">test</span>], <span class="no">cate.hat.test</span>)
+    <span class="no">t.statistics</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="no">t.statistics</span>, <span class="no">rate.fold</span>$<span class="no">estimate</span> / <span class="no">rate.fold</span>$<span class="no">std.err</span>)
+  }
+
+  <span class="no">p.value.naive</span> <span class="kw">=</span> <span class="fl">2</span> * <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">pnorm</a></span>(-<span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span>(<span class="no">t.statistics</span>) / <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span>(<span class="no">num.folds</span>)))
+
+  <span class="no">p.value.naive</span>
+}</pre></div>
+<p>接下来，我们模拟一批「没有任何处理异质性」的合成数据，并用 5% 的显著性水平，通过蒙特卡洛（Monte Carlo）方法估计这个朴素流程的拒绝概率：</p>
+<div class="sourceCode" id="cb3"><pre class="r"><span class="no">res</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/lapply.html">replicate</a></span>(<span class="fl">500</span>, {
+  <span class="no">n</span> <span class="kw">=</span> <span class="fl">1500</span>
+  <span class="no">p</span> <span class="kw">=</span> <span class="fl">5</span>
+  <span class="no">X</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+  <span class="no">W</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="fl">0.5</span>)
+  <span class="no">Y</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="no">X</span>[, <span class="fl">3</span>], <span class="fl">0</span>) + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+  <span class="no">pval.naive</span> <span class="kw">=</span> <span class="fu">rate_cv_naive</span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+
+  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(
+    <span class="kw">reject</span> <span class="kw">=</span> <span class="no">pval.naive</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>
+  )
+}))
+<span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span>(<span class="st">"Rejection rate:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">res</span>) * <span class="fl">100</span>, <span class="st">"%"</span>)
+<span class="co">#&gt; [1] "Rejection rate: 16.8 %"</span></pre></div>
+<p>在 5% 的显著性水平下，任何拒绝率高于 5% 的检验都是无效的检验。</p>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>过拟合风险：为什么朴素交叉折叠会让 p 值「膨胀」？</strong> 上面模拟得到 16.8% 的拒绝率，远高于名义上的 5%——这说明检验「太容易拒绝 H0」，假阳性偏高。根源在于：各折之间是<em>重叠</em>的（每个样本除了当测试集的那一折外，还出现在其余所有折的训练集里），因此各折算出的 t 值彼此相关。当你直接把 K 个相关的 t 值当作独立量加起来求 p 值时，聚合后的标准误被<em>低估</em>了，于是检验统计量被人为放大。这其实是「同一批数据既拟合又评估」导致的过拟合，在交叉验证里以「折叠相关性」的形式残留了下来。所以，<em>不是所有交叉折叠都自动保证独立性</em>。</p>
+</div>
+
+</div>
+<div id="sequential-cross-fold-estimation" class="section level2">
+<h2 class="hasAnchor" id="sec-顺序交叉折叠估计">
+<a href="#sequential-cross-fold-estimation" class="anchor"></a>顺序交叉折叠估计</h2>
+<p>不过，确实存在一个简单的算法修正，可以弥补朴素交叉折叠验证的上述缺陷。我们称之为<strong>顺序</strong>交叉折叠估计（<strong>sequential</strong> cross-fold estimation）的方法，它只按先后顺序使用训练折，从而打断了各折之间 RATE 指标的相关性。如下图所示，这套策略会给出 <span class="math inline">\(K -
+1\)</span> 个相互独立的 <span class="math inline">\(t\)</span> 值。</p>
+<p><img src="https://grf-labs.github.io/grf/articles/rate_cv_files/figure-html/unnamed-chunk-5-1.png" alt="" width="700"></p>
+<p>这种构造会让我们的 <span class="math inline">\(t\)</span> 值满足<strong>鞅（martingale）性质</strong>，从而可以进行合法的聚合（参见 Luedtke &amp; van der Laan (2016) 以及 Wager (2024)）。具体步骤如下：</p>
+<ol style="list-style-type: decimal">
+<li><p>把数据随机分成 <span class="math inline">\(k=1,\ldots,K\)</span> 个大小相等的折。</p></li>
+<li>
+<p>对于每一折 <span class="math inline">\(k=2,\ldots,K\)</span>：</p>
+<p>用第 <span class="math inline">\(1,\ldots,k-1\)</span> 折的（蓝色）<span class="math inline">\(\color{blue}{\text{training}}\)</span> 数据，得到估计的 CATE 函数。</p>
+<p>用第 <span class="math inline">\(k\)</span> 折的（红色）<span class="math inline">\(\color{red}{\text{test}}\)</span> 数据构造 RATE 估计，并算出一个 <span class="math inline">\(t\)</span> 统计量。</p>
+</li>
+<li><p>把 <span class="math inline">\(K-1\)</span> 个不同的 <span class="math inline">\(t\)</span> 统计量聚合起来，作为最终的检验统计量。</p></li>
+</ol>
+<p>下面这个简单函数实现了上述流程。</p>
+<div class="sourceCode" id="cb4"><pre class="r"><span class="co"># 在 K-1 个随机顺序折上估计 RATE，得到 K-1 个 t 统计量，再据此返回一个 p 值</span>
+<span class="co"># （针对 H0，使用这些 t 值之和）</span>
+<span class="no">rate_sequential</span> <span class="kw">=</span> <span class="kw">function</span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>, <span class="no">num.folds</span> <span class="kw">=</span> <span class="fl">5</span>) {
+  <span class="no">fold.id</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="fl">1</span>:<span class="no">num.folds</span>, <span class="kw">length</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(<span class="no">X</span>)))
+  <span class="no">samples.by.fold</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html">split</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_along</a></span>(<span class="no">fold.id</span>), <span class="no">fold.id</span>)
+
+  <span class="no">t.statistics</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>()
+
+  <span class="co"># 构造用于估计 RATE 的 AIPW 得分</span>
+  <span class="no">nuisance.forest</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+  <span class="no">DR.scores</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/get_scores.html">get_scores</a></span>(<span class="no">nuisance.forest</span>)
+
+  <span class="kw">for</span> (<span class="no">k</span> <span class="kw">in</span> <span class="fl">2</span>:<span class="no">num.folds</span>) {
+    <span class="no">train</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html">unlist</a></span>(<span class="no">samples.by.fold</span>[<span class="fl">1</span>:(<span class="no">k</span> - <span class="fl">1</span>)])
+    <span class="no">test</span> <span class="kw">=</span> <span class="no">samples.by.fold</span><span class="kw">[[</span><span class="no">k</span>]]
+
+    <span class="no">cate.forest</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[<span class="no">train</span>, ], <span class="no">Y</span>[<span class="no">train</span>], <span class="no">W</span>[<span class="no">train</span>])
+
+    <span class="no">cate.hat.test</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">cate.forest</span>, <span class="no">X</span>[<span class="no">test</span>, ])$<span class="no">predictions</span>
+
+    <span class="no">rate.fold</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.fit.html">rank_average_treatment_effect.fit</a></span>(<span class="no">DR.scores</span>[<span class="no">test</span>], <span class="no">cate.hat.test</span>)
+    <span class="no">t.statistics</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="no">t.statistics</span>, <span class="no">rate.fold</span>$<span class="no">estimate</span> / <span class="no">rate.fold</span>$<span class="no">std.err</span>)
+  }
+
+  <span class="no">p.value</span> <span class="kw">=</span> <span class="fl">2</span> * <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">pnorm</a></span>(-<span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span>(<span class="no">t.statistics</span>) / <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span>(<span class="no">num.folds</span> - <span class="fl">1</span>)))
+
+  <span class="no">p.value</span>
+}</pre></div>
+<p>如果我们把同样的检查放到「无异质性」的数据上重复，可以看到这种构造能给出正确的拒绝率（在蒙特卡洛重复次数的误差容忍范围内）：</p>
+<div class="sourceCode" id="cb5"><pre class="r"><span class="no">res</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/lapply.html">replicate</a></span>(<span class="fl">500</span>, {
+  <span class="no">n</span> <span class="kw">=</span> <span class="fl">1500</span>
+  <span class="no">p</span> <span class="kw">=</span> <span class="fl">5</span>
+  <span class="no">X</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+  <span class="no">W</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="fl">0.5</span>)
+  <span class="no">Y</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="no">X</span>[, <span class="fl">3</span>], <span class="fl">0</span>) + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+  <span class="no">pval.sequential</span> <span class="kw">=</span> <span class="fu">rate_sequential</span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+
+  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(
+    <span class="kw">reject.sequential</span> <span class="kw">=</span> <span class="no">pval.sequential</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>
+  )
+}))
+<span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span>(<span class="st">"Rejection rate:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">res</span>) * <span class="fl">100</span>, <span class="st">"%"</span>)
+<span class="co">#&gt; [1] "Rejection rate: 5.4 %"</span></pre></div>
+<p>既然现在有了一个能用到多折、且对处理异质性有效的检验，我们就拿一个模拟例子来试试，看看它在检出处理效应异质性时表现如何。我们对比的基线（baseline）是样本切分（sample splitting）——在 RATE 那篇论文里它已被证明是有效的，但由于只用了一部分数据做验证，其功效（power）可能较低。</p>
+<p>下面我们基于一组合成观察性数据（Nie &amp; Wager (2021) 中的 Setup A）来生成数据，这种情形下处理效应的异质性很难检出。请记住，在这种情况下，我们希望检验能够拒绝「无异质性」的 <span class="math inline">\(H_0\)</span>。</p>
+<div class="sourceCode" id="cb6"><pre class="r"><span class="no">res</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/lapply.html">replicate</a></span>(<span class="fl">500</span>, {
+  <span class="co"># 模拟"弱"处理异质性的合成数据</span>
+  <span class="no">n</span> <span class="kw">=</span> <span class="fl">2500</span>
+  <span class="no">p</span> <span class="kw">=</span> <span class="fl">5</span>
+  <span class="no">data</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/generate_causal_data.html">generate_causal_data</a></span>(<span class="no">n</span>, <span class="no">p</span>, <span class="kw">sigma.tau</span> <span class="kw">=</span> <span class="fl">0.15</span>, <span class="kw">sigma.noise</span> <span class="kw">=</span> <span class="fl">1</span>, <span class="kw">dgp</span> <span class="kw">=</span> <span class="st">"nw1"</span>)
+  <span class="no">X</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">X</span>
+  <span class="no">Y</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">Y</span>
+  <span class="no">W</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">W</span>
+
+  <span class="no">pval.sequential</span> <span class="kw">=</span> <span class="fu">rate_sequential</span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+
+  <span class="co"># 与单次训练/测试切分做对比</span>
+  <span class="no">train</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span>(<span class="no">n</span>, <span class="no">n</span> / <span class="fl">2</span>)
+  <span class="no">test</span> <span class="kw">=</span> -<span class="no">train</span>
+  <span class="no">cf.train</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[<span class="no">train</span>,], <span class="no">Y</span>[<span class="no">train</span>], <span class="no">W</span>[<span class="no">train</span>])
+  <span class="no">cf.test</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[<span class="no">test</span>,], <span class="no">Y</span>[<span class="no">test</span>], <span class="no">W</span>[<span class="no">test</span>])
+  <span class="no">rate</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.html">rank_average_treatment_effect</a></span>(<span class="no">cf.test</span>, <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">cf.train</span>, <span class="no">X</span>[<span class="no">test</span>, ])$<span class="no">predictions</span>)
+  <span class="no">tstat.split</span> <span class="kw">=</span> <span class="no">rate</span>$<span class="no">estimate</span> / <span class="no">rate</span>$<span class="no">std.err</span>
+  <span class="no">pval.split</span> <span class="kw">=</span> <span class="fl">2</span> * <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">pnorm</a></span>(-<span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span>(<span class="no">tstat.split</span>))
+
+  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(
+    <span class="kw">reject.sequential</span> <span class="kw">=</span> <span class="no">pval.sequential</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>,
+    <span class="kw">reject.split</span> <span class="kw">=</span> <span class="no">pval.split</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>
+  )
+}))
+<span class="fu"><a href="https://rdrr.io/r/base/colSums.html">colMeans</a></span>(<span class="no">res</span>) * <span class="fl">100</span>
+<span class="co">#&gt; reject.sequential    reject.split</span>
+<span class="co">#&gt; 56.6                 47.0</span></pre></div>
+<p>令人放心的是，在这个例子中，交叉折叠估计相比基线方法，确实提升了检出处理异质性的功效（power）。</p>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>顺序估计如何「破解」折叠相关性？</strong> 朴素方法失败是因为各折相关；顺序法的巧妙之处在于：第 k 步只用<em>前面</em>第 1…k-1 折训练、用第 k 折验证，所以每一步的测试集都与之前所有训练数据相互独立。这样得到的 <span class="math inline">\(K-1\)</span> 个 t 统计量满足<strong>鞅（martingale）性质</strong>——每一步的新信息都和过去「正交」，因此可以像独立量一样合法地求和、再求 p 值。代价只是丢掉第一折（只能得到 <span class="math inline">\(K-1\)</span> 个统计量而非 <span class="math inline">\(K\)</span> 个），但换来了「拒绝率回到约 5%（有效）」且「功效高于单次切分」的双赢。读结果时关注两点：其一，模拟里拒绝率从单次切分的 47.0% 提升到 56.6%，说明更灵敏；其二，5.4% 的零拒绝率证明它<em>没有</em>假阳性膨胀。</p>
+</div>
+
+</div>
+<div id="heuristic-out-of-bag-estimation-with-one-sided-tests" class="section level2">
+<h2 class="hasAnchor" id="sec-启发式方法-基于单侧检验的袋外-oob-估计">
+<a href="#heuristic-out-of-bag-estimation-with-one-sided-tests" class="anchor"></a>启发式方法：基于单侧检验的袋外（OOB）估计</h2>
+<p>用同一批数据既去估计 CATE、又去评估异质性是否存在，其核心困难在于过拟合：说到底，我们受制于一个事实——不能简单地用同一份数据既做估计又做评估。我们已经看到，朴素交叉折叠估计由于折之间存在相关性（这会把估计值向下偏倚），并没有真正解决这个难题。要「挽救」这种朴素聚合，一个启发式办法是使用<strong>单侧</strong> p 值。只要我们愿意事先确定一个单侧检验的方向——比如检验 RATE <span class="math inline">\(&gt;0\)</span>——它就能成为一个有用的策略。</p>
+<p>不过，随机森林提供了一种比简单交叉折叠更省算力的替代方案。森林原生的「留一」估计就是袋外（out-of-bag，OOB）估计。对于第 <span class="math inline">\(i\)</span> 个个体，OOB 估计只使用那些「没有包含第 <span class="math inline">\(i\)</span> 个个体」的子样本所生长出来的树来构造。当我们要用全部数据同时拟合并评估异质性时，把 OOB 估计的 RATE 与单侧检验搭配起来，就是一个很有用的启发式方法。</p>
+<p>在下面的例子中，我们比较两种做法（均在 5% 水平下）：双侧检验（RATE <span class="math inline">\(\neq 0\)</span>）与单侧检验（RATE <span class="math inline">\(&gt;0\)</span>）。</p>
+<div class="sourceCode" id="cb7"><pre class="r"><span class="no">res</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/lapply.html">replicate</a></span>(<span class="fl">500</span>, {
+  <span class="no">n</span> <span class="kw">=</span> <span class="fl">1500</span>
+  <span class="no">p</span> <span class="kw">=</span> <span class="fl">5</span>
+  <span class="no">X</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+  <span class="no">W</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="fl">0.5</span>)
+  <span class="no">Y</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="no">X</span>[, <span class="fl">3</span>], <span class="fl">0</span>) + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+  <span class="no">c.forest</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+  <span class="no">tau.hat.oob</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">c.forest</span>)$<span class="no">predictions</span>
+  <span class="no">rate.oob</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.html">rank_average_treatment_effect</a></span>(<span class="no">c.forest</span>, <span class="no">tau.hat.oob</span>)
+
+  <span class="no">t.stat.oob</span> <span class="kw">=</span> <span class="no">rate.oob</span>$<span class="no">estimate</span> / <span class="no">rate.oob</span>$<span class="no">std.err</span>
+  <span class="co"># 计算双侧 p 值 Pr(&gt;|t|)</span>
+  <span class="no">p.val</span> <span class="kw">=</span> <span class="fl">2</span> * <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">pnorm</a></span>(-<span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span>(<span class="no">t.stat.oob</span>))
+  <span class="co"># 计算单侧 p 值 Pr(&gt;t)</span>
+  <span class="no">p.val.onesided</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">pnorm</a></span>(<span class="no">t.stat.oob</span>, <span class="kw">lower.tail</span> <span class="kw">=</span> <span class="fl">FALSE</span>)
+
+  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(
+    <span class="kw">reject.oob</span> <span class="kw">=</span> <span class="no">p.val</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>,
+    <span class="kw">reject.oob.onesided</span> <span class="kw">=</span> <span class="no">p.val.onesided</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>
+  )
+}))
+<span class="fu"><a href="https://rdrr.io/r/base/colSums.html">colMeans</a></span>(<span class="no">res</span>) * <span class="fl">100</span>
+<span class="co">#&gt; reject.oob reject.oob.onesided</span>
+<span class="co">#&gt; 30.4                 4.0</span></pre></div>
+<p>可以看到，单侧检验对「无效应」这一零假设的拒绝率是正确的（约 5%）。</p>
+<p>如果我们重复上面那个简单的功效（power）实验，会发现它达到的功效基本和顺序聚合相当。</p>
+<div class="sourceCode" id="cb8"><pre class="r"><span class="no">res</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/lapply.html">replicate</a></span>(<span class="fl">500</span>, {
+  <span class="co"># 模拟"弱"处理异质性的合成数据</span>
+  <span class="no">n</span> <span class="kw">=</span> <span class="fl">2500</span>
+  <span class="no">p</span> <span class="kw">=</span> <span class="fl">5</span>
+  <span class="no">data</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/generate_causal_data.html">generate_causal_data</a></span>(<span class="no">n</span>, <span class="no">p</span>, <span class="kw">sigma.tau</span> <span class="kw">=</span> <span class="fl">0.15</span>, <span class="kw">sigma.noise</span> <span class="kw">=</span> <span class="fl">1</span>, <span class="kw">dgp</span> <span class="kw">=</span> <span class="st">"nw1"</span>)
+  <span class="no">X</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">X</span>
+  <span class="no">Y</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">Y</span>
+  <span class="no">W</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">W</span>
+
+  <span class="no">c.forest</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+  <span class="no">tau.hat.oob</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">c.forest</span>)$<span class="no">predictions</span>
+  <span class="no">rate.oob</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.html">rank_average_treatment_effect</a></span>(<span class="no">c.forest</span>, <span class="no">tau.hat.oob</span>)
+  <span class="no">t.stat.oob</span> <span class="kw">=</span> <span class="no">rate.oob</span>$<span class="no">estimate</span> / <span class="no">rate.oob</span>$<span class="no">std.err</span>
+  <span class="co"># 计算单侧 p 值 Pr(&gt;t)</span>
+  <span class="no">p.val.onesided</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">pnorm</a></span>(<span class="no">t.stat.oob</span>, <span class="kw">lower.tail</span> <span class="kw">=</span> <span class="fl">FALSE</span>)
+
+  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(
+    <span class="kw">reject.oob.onesided</span> <span class="kw">=</span> <span class="no">p.val.onesided</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>
+  )
+}))
+<span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">res</span>) * <span class="fl">100</span>
+<span class="co">#&gt; [1] 54.0</span></pre></div>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>如何读懂 RATE-CV 的结果（给医学研究者的实操清单）</strong>：① <em>先看方向</em>：双侧检验 RATE ≠ 0 只在「有正有负」的异质性下灵敏；若你预期处理对部分亚组有效（RATE > 0），用单侧检验更省力，但<strong>方向必须在看数据之前就定好</strong>，不能先看到结果再改成单侧，否则 p 值会失真（上面双侧 30.4% 的拒绝率明显是假阳性膨胀，正是因为同一批数据既拟合又评估）。② <em>对比功效</em>：顺序法约 56.6%、OOB 单侧约 54.0%，都高于单次切分的 47.0%，说明在样本有限时更值得用。③ <em>OOB 是省算力的启发式</em>：它免去了反复重拟合森林，代价是依赖「袋外预测近似独立」的假设，报告时应注明方法名与折数。④ 报告时务必同时给出 p 值、所用检验（单/双侧）与拒绝率来源，方便读者复现。</p>
+</div>
+
+</div>
+<div id="references" class="section level2">
+<h2 class="hasAnchor" id="sec-参考文献">
+<a href="#references" class="anchor"></a>参考文献</h2>
+<p>Chernozhukov, Victor, Mert Demirer, Esther Duflo, and Ivan
+Fernandez-Val. Generic machine learning inference on heterogeneous
+treatment effects in randomized experiments, with an application to
+immunization in India. <em>Econometrica, forthcoming</em>.</p>
+<p>Luedtke, Alexander R., and Mark J. van der Laan. Statistical
+inference for the mean outcome under a possibly non-unique optimal
+treatment strategy. <em>Annals of Statistics 44(2), 2016</em>.</p>
+<p>Nie, Xinkun, and Stefan Wager. Quasi-oracle estimation of
+heterogeneous treatment effects. <em>Biometrika 108(2), 2021</em>.</p>
+<p>Wager, Stefan. Sequential Validation of Treatment Heterogeneity.
+<em>arXiv preprint arXiv:2405.05534</em> (<a href="https://arxiv.org/abs/2405.05534">arxiv</a>)</p>
+</div>
+<div id="appendix-median-aggregation-of-p-values" class="section level2">
+<h2 class="hasAnchor" id="sec-附录-p-值的中位数聚合">
+<a href="#appendix-median-aggregation-of-p-values" class="anchor"></a>附录：p 值的中位数聚合</h2>
+<p>还有一种思路可以「挽救」 <code>rate_cv_naive</code>：保留传统的 <span class="math inline">\(K\)</span> 折结构，但改变各折 t 统计量的聚合方式。这正是 Chernozhukov 等人（2024）采取的做法。与其基于「聚合后的 t 统计量」去算一个 p 值，不如先为每一个 t 统计量分别算出一个 p 值，再取这些 p 值的中位数——这样就能得到一个有效的检验。</p>
+<div class="sourceCode" id="cb9"><pre class="r"><span class="co"># 本函数与 rate_naive 基本一致，只是返回</span>
+<span class="co"># 中位数 p 值。</span>
+<span class="no">rate_cv_median</span> <span class="kw">=</span> <span class="kw">function</span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>, <span class="no">num.folds</span> <span class="kw">=</span> <span class="fl">5</span>) {
+  <span class="no">fold.id</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="fl">1</span>:<span class="no">num.folds</span>, <span class="kw">length</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(<span class="no">X</span>)))
+  <span class="no">samples.by.fold</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html">split</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_along</a></span>(<span class="no">fold.id</span>), <span class="no">fold.id</span>)
+
+  <span class="no">t.statistics</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>()
+
+  <span class="no">nuisance.forest</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+  <span class="no">DR.scores</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/get_scores.html">get_scores</a></span>(<span class="no">nuisance.forest</span>)
+
+  <span class="kw">for</span> (<span class="no">k</span> <span class="kw">in</span> <span class="fl">1</span>:<span class="no">num.folds</span>) {
+    <span class="no">train</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html">unlist</a></span>(<span class="no">samples.by.fold</span>[-<span class="no">k</span>])
+    <span class="no">test</span> <span class="kw">=</span> <span class="no">samples.by.fold</span><span class="kw">[[</span><span class="no">k</span>]]
+
+    <span class="no">cate.forest</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[<span class="no">train</span>, ], <span class="no">Y</span>[<span class="no">train</span>], <span class="no">W</span>[<span class="no">train</span>])
+
+    <span class="no">cate.hat.test</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">cate.forest</span>, <span class="no">X</span>[<span class="no">test</span>, ])$<span class="no">predictions</span>
+
+    <span class="no">rate.fold</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.fit.html">rank_average_treatment_effect.fit</a></span>(<span class="no">DR.scores</span>[<span class="no">test</span>], <span class="no">cate.hat.test</span>)
+    <span class="no">t.statistics</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="no">t.statistics</span>, <span class="no">rate.fold</span>$<span class="no">estimate</span> / <span class="no">rate.fold</span>$<span class="no">std.err</span>)
+  }
+
+  <span class="no">p.value.median</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/median.html">median</a></span>(<span class="fl">2</span> * <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">pnorm</a></span>(-<span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span>(<span class="no">t.statistics</span>)))
+
+  <span class="no">p.value.median</span>
+}</pre></div>
+<p>在 5% 的显著性水平下，这种构造能给出有效的拒绝率，但相当保守：</p>
+<div class="sourceCode" id="cb10"><pre class="r"><span class="no">res</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/lapply.html">replicate</a></span>(<span class="fl">500</span>, {
+  <span class="no">n</span> <span class="kw">=</span> <span class="fl">1500</span>
+  <span class="no">p</span> <span class="kw">=</span> <span class="fl">5</span>
+  <span class="no">X</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+  <span class="no">W</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="fl">0.5</span>)
+  <span class="no">Y</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="no">X</span>[, <span class="fl">3</span>], <span class="fl">0</span>) + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+  <span class="no">rate.cv.median</span> <span class="kw">=</span> <span class="fu">rate_cv_median</span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+
+  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(
+    <span class="kw">reject.median</span> <span class="kw">=</span> <span class="no">rate.cv.median</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>
+  )
+}))
+<span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span>(<span class="st">"Rejection rate:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">res</span>) * <span class="fl">100</span>, <span class="st">"%"</span>)
+<span class="co">#&gt; [1] "Rejection rate: 0.2 %"</span></pre></div>
+<p>如果我们重复上面的功效（power）模拟，遗憾的是，这个算法的功效并没有超过简单的样本切分法。这个方法的一个缺陷是：当所有 t 统计量都是正数、但各自都不显著时，<code>rate_sequential</code> 能把这些信号综合起来考虑，而 <code>rate_cv_median</code> 却做不到。</p>
+<div class="sourceCode" id="cb11"><pre class="r"><span class="no">res</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/lapply.html">replicate</a></span>(<span class="fl">500</span>, {
+  <span class="co"># 模拟"弱"处理异质性的合成数据</span>
+  <span class="no">n</span> <span class="kw">=</span> <span class="fl">2500</span>
+  <span class="no">p</span> <span class="kw">=</span> <span class="fl">5</span>
+  <span class="no">data</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/generate_causal_data.html">generate_causal_data</a></span>(<span class="no">n</span>, <span class="no">p</span>, <span class="kw">sigma.tau</span> <span class="kw">=</span> <span class="fl">0.15</span>, <span class="kw">sigma.noise</span> <span class="kw">=</span> <span class="fl">1</span>, <span class="kw">dgp</span> <span class="kw">=</span> <span class="st">"nw1"</span>)
+  <span class="no">X</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">X</span>
+  <span class="no">Y</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">Y</span>
+  <span class="no">W</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">W</span>
+
+  <span class="no">pval.median</span> <span class="kw">=</span> <span class="fu">rate_cv_median</span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+
+  <span class="co"># 与样本切分做对比</span>
+  <span class="no">train</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span>(<span class="no">n</span>, <span class="no">n</span> / <span class="fl">2</span>)
+  <span class="no">test</span> <span class="kw">=</span> -<span class="no">train</span>
+  <span class="no">cf.train</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[<span class="no">train</span>,], <span class="no">Y</span>[<span class="no">train</span>], <span class="no">W</span>[<span class="no">train</span>])
+  <span class="no">cf.test</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[<span class="no">test</span>,], <span class="no">Y</span>[<span class="no">test</span>], <span class="no">W</span>[<span class="no">test</span>])
+  <span class="no">rate</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.html">rank_average_treatment_effect</a></span>(<span class="no">cf.test</span>, <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">cf.train</span>, <span class="no">X</span>[<span class="no">test</span>, ])$<span class="no">predictions</span>)
+  <span class="no">tstat.split</span> <span class="kw">=</span> <span class="no">rate</span>$<span class="no">estimate</span> / <span class="no">rate</span>$<span class="no">std.err</span>
+  <span class="no">pval.split</span> <span class="kw">=</span> <span class="fl">2</span> * <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">pnorm</a></span>(-<span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span>(<span class="no">tstat.split</span>))
+
+  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(
+    <span class="kw">reject.median</span> <span class="kw">=</span> <span class="no">pval.median</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>,
+    <span class="kw">reject.split</span> <span class="kw">=</span> <span class="no">pval.split</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>
+  )
+}))
+<span class="fu"><a href="https://rdrr.io/r/base/colSums.html">colMeans</a></span>(<span class="no">res</span>) * <span class="fl">100</span>
+<span class="co">#&gt; reject.median  reject.split</span>
+<span class="co">#&gt; 14.6          47.8</span></pre></div>
+</div>
+  </div>
+
+  <div class="foot">
+    <p>本页为 <a href="https://grf-labs.github.io/grf/articles/rate_cv.html" target="_blank" rel="noopener">grf 官方文档</a> 的中文译本，原文版权归 grf 作者所有，依据项目许可（MIT）翻译并注明出处，仅供学习交流。代码与公式保持原样，译文新增的「背景与解释」框为译者补充。</p>
+  </div>
+</div>
+<script src="search.js"></script>
+</body>
+</html>
