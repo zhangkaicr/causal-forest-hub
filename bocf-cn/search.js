@@ -87,7 +87,9 @@
     for (var i = 0; i < index.length; i++) {
       var rec = index[i];
       if (ts.every(function (t) { return rec.key.indexOf(t) >= 0; })) {
-        hits.push({ rec: rec, score: 1000, snippet: snippet(rec.paras[0] || '', ts, SNIPPET_LEN) });
+        // 标题命中：优先用首段作摘要；若该小节无正文（页面级标题条目），回退用标题本身
+        var head = rec.paras[0] || rec.section || rec.chapter || '';
+        hits.push({ rec: rec, score: 1000, snippet: snippet(head, ts, SNIPPET_LEN) });
         continue;
       }
       for (var j = 0; j < rec.paras.length; j++) {
