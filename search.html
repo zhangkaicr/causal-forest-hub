@@ -133,7 +133,7 @@ function search(q){var ts=terms(q);if(!ts.length||!idx)return [];
   var hits=[];
   for(var i=0;i<idx.length;i++){var r=idx[i];
     if(ts.every(function(t){return r.key.indexOf(t)>=0;})){
-      hits.push({rec:r,score:1000,snippet:snip(r.paras[0]||'',ts,LEN)});continue;}
+      hits.push({rec:r,score:1000,snippet:snip(r.paras[0]||r.section||r.chapter||'',ts,LEN)});continue;}
     for(var j=0;j<r.paras.length;j++){var low=r.paras[j].toLowerCase(),ok=true,sc=0;
       for(var k=0;k<ts.length;k++){var p=low.indexOf(ts[k]);if(p<0){ok=false;break;}
         sc+=10-Math.min(9,Math.floor(p/400));}
@@ -215,7 +215,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <div class="wrap">
 <div class="hero" style="padding-top:32px">
 <h1 style="font-size:26px">全局搜索</h1>
-<p class="tagline">检索全部 13 个库的文字内容（不含代码块）</p>
+<p class="tagline">检索全部 3 个核心工具库的文字内容（不含代码块）</p>
 <div class="srch-main"><input type="search" id="s-page-q" placeholder="输入关键词，多个词用空格分隔（同时匹配）…" autocomplete="off" aria-label="全局搜索"></div>
 <div class="srch-meta" id="s-page-meta">输入关键词开始搜索</div>
 <ul class="srch-list" id="s-page-list"></ul>
