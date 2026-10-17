@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme-default="light">
+<head>
+<script>
+(function(){
+  var KEY="share-theme", d=document.documentElement;
+  try{var saved=localStorage.getItem(KEY);}catch(e){var saved=null;}
+  d.setAttribute("data-theme", saved || d.getAttribute("data-theme-default") || "light");
+  document.addEventListener("DOMContentLoaded",function(){
+    var b=document.getElementById("theme-toggle"); if(!b) return;
+    function sync(){
+      var dark=d.getAttribute("data-theme")==="dark";
+      b.setAttribute("aria-pressed", dark?"true":"false");
+      b.setAttribute("title", dark?"切换到亮色主题 (Alt+T)":"切换到暗色主题 (Alt+T)");
+    }
+    b.addEventListener("click",function(){
+      var nxt=d.getAttribute("data-theme")==="dark"?"light":"dark";
+      d.setAttribute("data-theme",nxt);
+      try{localStorage.setItem(KEY,nxt);}catch(e){}
+      sync();
+    });
+    document.addEventListener("keydown",function(e){
+      if(e.altKey&&(e.key==="t"||e.key==="T")) b.click();
+    });
+    sync();
+  });
+})();
+</script>
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},
+options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《grf 方法导论：广义随机森林》 · grf 中文教程</title>
+<style>
+:root{
+  --bg:#f7f7f5; --card:#ffffff; --text:#2c2c2a; --muted:#6b6a65;
+  --line:#e3e2dd; --accent:#534ab7; --accent-soft:#eeedfe; --tag:#f1efe8;
+  --code-bg:#f4f3ef; --code-line:#e7e5df; --code-text:#2c2c2a;
+  --note-bg:#eef6ff; --note-line:#bcd6f5; --note-text:#1f3a5f;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  line-height:1.8; margin:0;
+}
+.wrap{max-width:840px;margin:0 auto;padding:32px 22px 80px}
+.topbar{margin-bottom:26px}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;
+  font-size:14px;font-weight:600}
+.back:hover{text-decoration:underline}
+h1{font-size:30px;font-weight:700;letter-spacing:-.3px;margin:6px 0 4px;line-height:1.3}
+.sub{color:var(--muted);font-size:14px;margin-bottom:8px}
+.sub a{color:var(--accent)}
+.lead{font-size:16px;color:var(--text);margin:14px 0 22px;border-left:3px solid var(--accent);
+  padding:4px 0 4px 16px;background:var(--accent-soft);border-radius:0 8px 8px 0}
+.content h2{font-size:22px;font-weight:700;margin:38px 0 12px;padding-bottom:6px;
+  border-bottom:1px solid var(--line)}
+.content h3{font-size:18px;font-weight:700;margin:26px 0 10px}
+.content h4{font-size:16px;font-weight:700;margin:20px 0 8px}
+.content p{margin:12px 0}
+.content ul,.content ol{margin:12px 0;padding-left:26px}
+.content li{margin:6px 0}
+.content a{color:var(--accent);text-decoration:none}
+.content a:hover{text-decoration:underline}
+.content img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;
+  margin:14px 0;background:#fff;display:block}
+.content table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+.content th,.content td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+.content th{background:var(--accent-soft);font-weight:600}
+.content tr:nth-child(even) td{background:var(--card)}
+.content blockquote{margin:16px 0;padding:12px 16px;border-left:3px solid var(--line);
+  color:var(--muted);background:var(--card);border-radius:0 8px 8px 0}
+.content code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13.5px;background:var(--code-bg);padding:2px 5px;border-radius:4px;color:var(--code-text)}
+pre{background:var(--code-bg);border:1px solid var(--code-line);border-radius:10px;
+  padding:16px 18px;overflow-x:auto;margin:16px 0;line-height:1.6}
+pre code{background:none;padding:0;font-size:13.5px;color:var(--code-text)}
+.content .sourceCode{margin:16px 0}
+/* downlit token coloring (light) */
+.content .co{color:#6a737d}
+.content .st{color:#032f62}
+.content .fu{color:#4078f2}
+.content .cf{color:#d73a49}
+.content .kw{color:#a626a4}
+.content .fl,.content .cn{color:#b9520f}
+.content .op{color:#444}
+/* 背景与解释 callout */
+.note{margin:18px 0;padding:14px 18px;border:1px solid var(--note-line);
+  background:var(--note-bg);border-radius:10px;color:var(--note-text)}
+.note .nt{display:inline-block;font-weight:700;font-size:13px;letter-spacing:.04em;
+  margin-bottom:6px;color:var(--accent)}
+.note p{margin:6px 0}
+.note code{background:rgba(255,255,255,.6)}
+.foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--muted)}
+.foot a{color:var(--accent)}
+
+:root[data-theme="dark"]{
+  --bg:#0f1116; --card:#181b22; --text:#e4e6ea; --muted:#98a0ac;
+  --line:#2a2f3a; --accent:#7aa2f7; --accent-soft:#16203a; --tag:#1e222b;
+  --code-bg:#0b0d12; --code-line:#1d2129; --code-text:#d7dae0;
+  --note-bg:#15233b; --note-line:#274168; --note-text:#bcd6f5;
+}
+:root[data-theme="dark"] .content th{background:var(--accent-soft)}
+:root[data-theme="dark"] .content tr:nth-child(even) td{background:#14171e}
+:root[data-theme="dark"] .content img{background:#0b0d12}
+:root[data-theme="dark"] .content .co{color:#7f8b9a}
+:root[data-theme="dark"] .content .st{color:#9ecbff}
+:root[data-theme="dark"] .content .fu{color:#82aaff}
+:root[data-theme="dark"] .content .cf{color:#f07178}
+:root[data-theme="dark"] .content .kw{color:#c792ea}
+:root[data-theme="dark"] .content .fl,.content .cn{color:#f78c6c}
+
+.tt{
+  position:fixed; top:16px; right:16px; z-index:9999; width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center; border-radius:50%;
+  cursor:pointer; color:var(--text); background:var(--card);
+  border:1px solid var(--line);
+  box-shadow:0 2px 10px rgba(0,0,0,.24); transition:transform .15s, border-color .15s, background .15s;
+}
+.tt:hover{transform:translateY(-1px); border-color:var(--accent)}
+.tt:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tt svg{display:none}
+[data-theme="dark"] .ico-sun{display:block}
+[data-theme="dark"] .ico-moon{display:none}
+[data-theme="light"] .ico-sun{display:none}
+[data-theme="light"] .ico-moon{display:block}
+@media(max-width:640px){.tt{top:10px; right:10px; width:36px; height:36px}}
+@media print{.tt{display:none}}
+</style>
+<style>
+/* ---- 全局搜索 ---- */
+.sbox{position:relative;display:inline-flex;align-items:center;margin-left:10px}
+.sbox input{background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);color:inherit;
+ border-radius:6px;padding:4px 9px 4px 25px;font-size:13px;width:170px;font-family:inherit;outline:none}
+.sbox input:focus{border-color:#4ea1ff;width:220px}
+.sbox .si{position:absolute;left:8px;font-size:12px;opacity:.6;pointer-events:none}
+.spanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:440px;max-width:88vw;
+ max-height:64vh;overflow-y:auto;z-index:900;background:var(--panel,#262c34);
+ border:1px solid var(--border,#3a4350);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.spanel.open{display:block}
+.spanel .sh{padding:7px 10px;font-size:12px;opacity:.7;border-bottom:1px solid var(--border,#3a4350);margin-bottom:4px}
+.spanel .sempty{font-size:12px;opacity:.65;padding:16px 10px;text-align:center}
+.sres{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:inherit}
+.sres:hover,.sres.sel{background:var(--panel2,#2e3540)}
+.sres .c{font-size:11px;opacity:.65;margin-bottom:1px}
+.sres .s{font-size:12px;color:#4ea1ff;margin-bottom:2px}
+.sres .t{font-size:13px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sres mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+.srch-main{margin:22px 0}
+.srch-main input{width:100%;background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);
+ color:inherit;border-radius:8px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none}
+.srch-main input:focus{border-color:#4ea1ff}
+.srch-meta{font-size:13px;opacity:.7;margin:12px 0 6px}
+.srch-list{list-style:none;margin:0;padding:0}
+.srch-list .sres{border:1px solid var(--border,#3a4350);margin:7px 0;padding:9px 11px}
+.srch-list .sres:hover{border-color:#4ea1ff}
+@media (max-width:640px){.sbox input{width:110px}.sbox input:focus{width:150px}.spanel{width:86vw}}
+</style><!--search.css-marker-->
+<style>
+/* ===== 因果森林知识库 · 统一导航 ===== */
+.cfh-nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:10px;
+ padding:8px 16px;background:var(--bg,#181b22);border-bottom:1px solid var(--line,#2a2f3a);
+ font-size:13.5px;flex-wrap:wrap}
+.cfh-nav .cfh-home{font-weight:600;color:var(--text,#e4e6ea);text-decoration:none;font-size:14px;
+ display:flex;align-items:center;gap:6px}
+.cfh-nav .cfh-home:hover{color:var(--accent,#7aa2f7)}
+.cfh-nav .cfh-crumb{color:var(--muted,#98a0ac);font-size:12.5px}
+.cfh-nav .cfh-crumb a{color:var(--accent,#7aa2f7);text-decoration:none}
+.cfh-nav .cfh-sp{flex:1}
+.cfh-nav select{background:var(--card,#181b22);color:var(--text,#e4e6ea);
+ border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:4px 8px;font-size:12.5px;
+ font-family:inherit;outline:none;cursor:pointer;max-width:230px}
+.cfh-nav select:hover{border-color:var(--accent,#7aa2f7)}
+.cfh-nav a.cfh-sbtn{color:var(--text,#e4e6ea);text-decoration:none;border:1px solid var(--line,#2a2f3a);
+ border-radius:6px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.cfh-nav a.cfh-sbtn:hover{border-color:var(--accent,#7aa2f7);color:var(--accent,#7aa2f7)}
+@media (max-width:700px){.cfh-nav .cfh-crumb{display:none}.cfh-nav select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="cfh-nav">
+<a class="cfh-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="cfh-crumb">/ <a href="index.html">grf 广义随机森林</a> / grf_guide</span>
+<span class="cfh-sp"></span>
+<select onchange="if(this.value)location.href=this.value" aria-label="切换库">
+<option value="grf-cn/index.html" selected>grf 广义随机森林</option>
+<option value="policytree-cn/index.html">policytree 策略树</option>
+<option value="surefq/surefq.html">SURE / QRF 充分表示</option>
+<option value="tidyhte-cn/index.html">tidyhte 优雅的 HTE</option>
+<option value="metalearner-cn/index.html">Meta-Learner 元学习器</option>
+<option value="model4you-cn/index.html">model4you 个体化治疗</option>
+<option value="evalITR-cn/index.html">evalITR 规则评估</option>
+<option value="rj-dlc-cn/index.html">DeepLearningCausal</option>
+<option value="survlearners-cn/index.html">survlearners 生存 HTE</option>
+<option value="bocf-cn/index.html">BOCF 基线观测结转</option>
+<option value="hte-course/index.html">HTE 公开课讲义</option>
+<option value="causal-tools-cn/index.html">因果推断三件工具</option>
+<option value="imputeTS-cn/index.html">imputeTS 缺失填补</option>
+</select>
+<a class="cfh-sbtn" href="search.html">&#128269; 搜索本页</a>
+</div>
+<button id="theme-toggle" class="tt" type="button" aria-label="切换明暗主题" title="切换明暗主题 (Alt+T)">
+  <svg class="ico-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7"/></svg>
+  <svg class="ico-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.2 8.2 0 1 0 10.5 10.5z"/></svg>
+</button>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">&larr; grf 教程总览</a><span class="sbox"><span class="si">&#128269;</span>
+<input type="search" id="s-q" placeholder="搜索本站…（按 /）" autocomplete="off" aria-label="搜索本站">
+<span class="spanel" id="s-panel"></span></span>
+  </div>
+  <h1>《grf 方法导论：广义随机森林》</h1>
+  <p class="sub">原文：<a href="https://grf-labs.github.io/grf/articles/grf_guide.html" target="_blank" rel="noopener">An introduction to grf</a>（英文）&nbsp;·&nbsp;grf 官方文档中文译本</p>
+
+  <div class="content">
+
+<center>
+<img src="https://raw.githubusercontent.com/grf-labs/grf/master/images/logo/grf_logo_green.png" height="132">
+</center>
+<p>本教程介绍如何使用 <code>grf</code> 这个 <code>R</code> 包，借助随机森林来做因果推断。广义随机森林（generalized random forest，Athey、Tibshirani 与 Wager，2019）在 Breiman（2001）随机森林的基础上做了扩展，能够数据驱动地估计因果参数的异质性，例如在无混杂假设（unconfoundedness）下的条件平均处理效应（conditional average treatment effect，CATE）。下面我们概览其核心功能，包括平均处理效应的双稳健估计、最优线性投影（best linear projection）、用 TOC 曲线评估异质性的工具、用 Qini 曲线评价处理规则，以及学习可解释的基于树的策略。本教程包含两个应用实例，展示处理效应异质性在实践中的表现。更多细节可参见包文档，以及 Athey 与 Wager（2019）、Sverdrup、Petukhova 与 Wager（2024）的进阶应用教程。</p>
+<p><em>本教程章节</em>：</p>
+<ol style="list-style-type: decimal">
+<li><p><a href="#a-grf-guided-tour"><em>grf 导览</em></a></p></li>
+<li><p><a href="#example-treatment-heterogeneity-and-financial-proficiency"><em>实例：处理效应的异质性与金融素养</em></a></p></li>
+<li><p><a href="#example-the-effect-of-poverty-on-attention"><em>实例：贫困对注意力的影响</em></a></p></li>
+</ol>
+<!-- -------------------GRF OVERVIEW------------------- --><div id="a-grf-guided-tour" class="section level2">
+<h2 class="hasAnchor" id="sec-grf-导览">
+<a href="#a-grf-guided-tour" class="anchor"></a>grf 导览</h2>
+<p>我们将说明：在估计平均处理效应时，现代机器学习如何灵活地控制混杂；Breiman（2001）的随机森林如何被改造以针对处理效应的异质性；以及这种方法如何推广到一大类场景，包括工具变量（instrumental variable）和右删截结局（right-censored outcome）。更多内容可参考 Athey 与 Wager（2019）、Cui 等人（2023）、Dandl 等人（2024）、Friedberg 等人（2020）以及 Sverdrup 等人（2024）。关于更系统的理论论述，Wager（2024）提供了教科书式的讨论。</p>
+<div id="machine-learning-for-causal-inference" class="section level3">
+<h3 class="hasAnchor" id="sec-用机器学习做因果推断">
+<a href="#machine-learning-for-causal-inference" class="anchor"></a>用机器学习做因果推断</h3>
+<p>机器学习方法天生是为预测而设计的。但在因果应用中，我们的目标往往是推断（inference）而非预测（prediction）。尽管统计估计与统计预测是不同的任务（Efron，2020），但预测工具用得合适时，也能支撑有效的推断。本节将概述：现代机器学习如何结合半参数统计（semi-parametric statistics）的思想，为因果推断提供灵活、且与具体模型形式无关（model-agnostic）的工具。</p>
+<p>假设我们观测到结局 <span class="math inline">\(Y_i\)</span>、二元处理指示变量 <span class="math inline">\(W_i \in
+{0,1}\)</span> 以及协变量 <span class="math inline">\(X_i\)</span>。我们的目标是估计平均处理效应（average treatment effect，ATE）<span class="math inline">\(\tau = \text{E}[Y_i(1) - Y_i(0)]\)</span>。在观察性研究中，我们可能会跑一个回归 <span class="math display">\[
+Y_i \sim \tau W_i + \beta X_i,
+\]</span> 并把 <span class="math inline">\(\hat\tau\)</span> 解释为 ATE 的一个估计。这种解释依赖于以下几点：</p>
+<ol style="list-style-type: decimal">
+<li>
+<span class="math inline">\(W\)</span> 在给定
+<span class="math inline">\(X\)</span> 的条件下是无混杂的（unconfounded）（例如 Rosenbaum 与 Rubin，<a href="https://doi.org/10.1093/biomet/70.1.41">1983</a>）。</li>
+<li>混杂因素 <span class="math inline">\(X\)</span> 对 <span class="math inline">\(Y\)</span> 有线性影响。</li>
+<li>处理效应 <span class="math inline">\(\tau\)</span> 是恒定的（constant）。</li>
+</ol>
+<p>假设 1) 是一个识别（identifying）假设，我们只能依赖领域知识来接受它。而假设 2) 和 3) 属于建模选择，是我们希望放宽的限制。</p>
+<p><strong><em>放宽假设 2)</em></strong>。不再假设线性，而是考虑部分线性模型（partially linear model）<span class="math display">\[
+Y_i = \tau W_i + f(X_i) + \varepsilon_i, \quad \text{E}[\varepsilon_i
+\mid X_i, W_i] = 0,
+\]</span> 其中 <span class="math inline">\(f\)</span> 是一个未知函数。难点在于 <span class="math inline">\(f(X_i)\)</span> 并没有被事先指定。</p>
+<p>Robinson（<a href="https://doi.org/10.2307/1912705">1988</a>）指出，借助以下两个中间量——倾向得分（propensity score）<span class="math display">\[
+e(x) = \text{E}[W_i \mid X_i=x],
+\]</span> 和条件均值（conditional mean），<span class="math display">\[
+m(x) = \text{E}[Y_i \mid X_i = x] = f(x) + \tau e(x),
+\]</span> 我们可以把模型改写成中心化（centered）形式：<span class="math display">\[
+Y_i - m(x) = \tau \Big(W_i - e(x)\Big) + \varepsilon_i.
+\]</span> 这意味着，<span class="math inline">\(\tau\)</span> 可以通过把"残差化后的结局"对"残差化后的处理"做回归来估计。重要的是，Robinson（<a href="https://doi.org/10.2307/1912705">1988</a>）证明：即使 <span class="math inline">\(m(x)\)</span> 和 <span class="math inline">\(e(x)\)</span> 估计得比较慢，这个估计量依然是 √n 一致的（root-n consistent）。这种稳健性常被称为正交性（orthogonality）：干扰参数（nuisance）估计中的微小误差，不会显著偏倚我们关心的目标参数。</p>
+<div class="note"><span class="nt">背景与解释 · 正交化与去偏</span>
+<p>Robinson 的中心化变换是整篇文章的"地基"。它的关键在于：我们并不需要对混杂函数 <span class="math inline">\(f(X)\)</span> 估计得很准。把模型写成"残差化的结局 对 残差化的处理"之后，真正要估计的目标 <span class="math inline">\(\tau\)</span> 与那些 nuisance（倾向得分 <span class="math inline">\(e\)</span>、条件均值 <span class="math inline">\(m\)</span>）被"解耦"了——只要 <span class="math inline">\(e\)</span> 和 <span class="math inline">\(m\)</span> 估计得"够好"（收敛速度比 <span class="math inline">\(n^{-1/4}\)</span> 快即可），<span class="math inline">\(\tau\)</span> 的估计误差就不会被它们带偏。这种性质叫作<strong>正交性（orthogonality）</strong>，在半参数文献里也叫"去偏（debiasing）"。</p>
+<p>对医学研究者而言，这点的价值在于：我们几乎从不知道协变量怎样真正影响结局，但可以用随机森林、提升方法等灵活地"黑箱式"去拟合，而不必担心某一步建模不准就毁掉因果结论。换句话说，机器学习在这里充当"预处理工具"，而因果推断的严谨性由正交结构来保证。</p>
+</div>
+<p>我们怎样灵活地估计 <span class="math inline">\(m(x)\)</span> 和 <span class="math inline">\(e(x)\)</span> 呢？它们本质上是标准的回归问题：用 <span class="math inline">\(X_i\)</span> 预测 <span class="math inline">\(Y_i\)</span>，以及用 <span class="math inline">\(X_i\)</span> 预测 <span class="math inline">\(W_i\)</span>。提升方法（boosting）或随机森林等现代机器学习方法非常适合这类任务（James 等人，<a href="https://doi.org/10.1007/978-1-0716-1418-1">2013</a>）。这里有个小陷阱：直接把机器学习的估计值代入上面的估计量，会因为正则化（regularization）而引入偏倚。半参数估计中有一个标准技巧叫样本分割（sample splitting），即用不同的数据子集分别训练和评估这些分量。交叉拟合（cross-fitting）——轮流用不同的折（fold）做训练与估计——是常见的实现方式（Chernozhukov 等人，<a href="https://doi.org/10.1111/ectj.12097">2018</a>；Zheng 与 van der Laan，<a href="https://doi.org/10.1007/978-1-4419-9782-1_27">2011</a>）。在 <code>grf</code> 中，袋外（out-of-bag）预测提供了一种"森林原生"的留一法交叉拟合。</p>
+<p><strong><em>放宽假设 3)</em></strong>。不再假设处理效应恒定，而是假设处理效应随协变量变化：<span class="math display">\[
+Y_i = \textcolor{red}{\tau(X_i)}W_i + f(X_i) + \varepsilon_i, \,\,
+\text{E}[\varepsilon_i \mid X_i, W_i] = 0,
+\]</span> 其中 <span class="math inline">\(\textcolor{red}{\tau(x)}\)</span> 是条件平均处理效应（conditional average treatment effect，CATE）<span class="math inline">\(\text{E}[Y_i(1) - Y_i(0) \mid X_i = x]\)</span>。如果我们能找到一个邻域 <span class="math inline">\(\mathcal{N}(x)\)</span>，在其中 <span class="math inline">\(\tau\)</span> 近似恒定，就可以像之前一样，对属于 <span class="math inline">\(\mathcal{N}(x)\)</span> 的样本做一次残差对残差（residual-on-residual）的回归，即：<span class="math display">\[
+\tau(x) := \text{lm}\Biggl( Y_i - \hat m^{(-i)}(X_i) \sim W_i - \hat
+e^{(-i)}(X_i), \text{weights} = 1\{X_i \in \mathcal{N}(x) \}\Biggr),
+\]</span> 其中 <span class="math inline">\(^{{(-i)}}\)</span> 表示袋外估计。从概念上讲，因果森林（causal forest）就是利用那些被预测为具有相似处理效应的样本，跑一个局部加权的残差对残差回归，从而估计出 <span class="math inline">\(\tau(x)\)</span>。</p>
+<p>关键在于如何构造这些权重。下一节将回顾 Breiman 的随机森林，并解释它如何充当"自适应邻域寻找器"（adaptive neighborhood finder）。</p>
+</div>
+<div id="random-forest-as-an-adaptive-neighborhood-finder" class="section level3">
+<h3 class="hasAnchor" id="sec-把随机森林当作自适应邻域寻找器">
+<a href="#random-forest-as-an-adaptive-neighborhood-finder" class="anchor"></a>把随机森林当作自适应邻域寻找器</h3>
+<p>Breiman 的随机森林分两个阶段来估计条件均值 <span class="math inline">\(\mu(x) = \text{E}[Y_i \mid X_i = x]\)</span>：</p>
+<ol style="list-style-type: decimal">
+<li><p><strong>建树阶段（Building phase）</strong>：贪心地选择能使子组均值平方差最大化的协变量切分点，该平方差为 <span class="math inline">\(n_L n_R (\bar y_L - \bar y_R)^2\)</span>。</p></li>
+<li><p><strong>预测阶段（Prediction phase）</strong>：对于目标样本 <span class="math inline">\(x\)</span>，跨所有树取其落在同一个终端叶子（terminal leaf）<span class="math inline">\(L_b(x)\)</span> 中的结局 <span class="math inline">\(Y_i\)</span> 取平均：<span class="math inline">\(\hat \mu(x) = \frac{1}{B} \sum\limits_{b=1}^{B}
+\sum\limits_{i=1}^{n} Y_i \dfrac{1\{Xi \in L_b(x)\}}
+{|L_b(x)|}\)</span>。</p></li>
+</ol>
+<p><img src="https://grf-labs.github.io/grf/articles/grf_guide_files/figure-html/unnamed-chunk-2-1.png" alt="" width="480" style="display: block; margin: auto;"></p>
+<p>对于单棵树和单次切分，图 1 展示了所选的切分点：即那条能使叶子均值差异最大化的竖线。目标点 <span class="math inline">\(x\)</span> 会落进其中一个叶子，预测值就是该叶子内结局的平均。对多棵树重复这一过程再取平均，就得到最终估计。</p>
+<p>把预测式改写为 <span class="math display">\[\begin{equation*}
+\begin{split}
+\hat \mu(x) &amp; = \sum_{i=1}^{n} \frac{1}{B} \sum_{b=1}^{B} Y_i
+\frac{1\{X_i \in L_b(x)\}} {|L_b(x)|} \\
+&amp; = \sum_{i=1}^{n} Y_i \textcolor{magenta}{\alpha_i(x)},
+\end{split}
+\end{equation*}\]</span> 可以看出：随机森林的预测其实是结局的一个加权平均。权重 <span class="math inline">\(\textcolor{magenta}{\alpha_i(x)}\)</span> 反映了训练样本 <span class="math inline">\(i\)</span> 与 <span class="math inline">\(x\)</span> 落在同一叶子的频繁程度。它们可以被理解为自适应相似度权重（adaptive similarity weights）。这种把随机森林看作加权过程的视角在统计应用中很常见，例如可参见 Zeileis、Hothorn 与 Hornik（<a href="https://doi.org/10.1198/106186008X319331">2003</a>）。</p>
+<p><em>因果森林（causal forest）</em>把这种森林权重与 Robinson 的方法结合起来：</p>
+<ol style="list-style-type: decimal">
+<li><p><strong>建树阶段</strong>：选择能最大化"估计出的子组处理效应平方差"的切分点，即 <span class="math inline">\(n_L n_R (\hat \tau_L - \hat \tau_R)^2\)</span>，其中 <span class="math inline">\(\hat\tau\)</span> 由残差对残差回归算得。</p></li>
+<li><p><strong>预测阶段</strong>：用得到的森林权重 <span class="math inline">\(\textcolor{magenta}{\alpha(x)}\)</span> 来估计 <span class="math display">\[
+\tau(x) := \text{lm}\Biggl( Y_i - \hat m^{(-i)}(X_i) \sim W_i - \hat
+e^{(-i)}(X_i),~ \text{weights} = \textcolor{magenta}{\alpha_i(x)}
+\Biggr).
+\]</span></p></li>
+</ol>
+<p>因此，因果森林执行的是 Robinson 回归的"森林局部化"版本。在 <code>causal_forest</code> 中，参数 <code>Y.hat</code> 和 <code>W.hat</code> 提供 <span class="math inline">\(m(x)\)</span> 和 <span class="math inline">\(e(x)\)</span> 的估计，默认由独立的回归森林（regression forest）给出。如果我们处在随机化实验场景下、且已知倾向得分，就可以直接通过 <code>W.hat</code> 参数传入。Robinson 的变换还启发了一种针对异质性处理效应的通用损失函数（Nie 与 Wager，<a href="https://doi.org/10.1093/biomet/asaa076">2021</a>），<code>causal_forest</code> 用它来指导调参。</p>
+<div class="note"><span class="nt">背景与解释 · 为什么用随机森林做因果推断</span>
+<p>传统做法找"异质性"往往要先拍脑袋定下亚组（如"按年龄分层""按性别分层"），但真实世界的效应差异未必落在这些预设边界上。随机森林的妙处是把"找相似个体"这件事交给数据自己完成：每棵树的叶子就是一群特征相近的样本，跨树汇总后得到的权重 <span class="math inline">\(\alpha_i(x)\)</span> 衡量"训练样本 <span class="math inline">\(i\)</span> 与目标 <span class="math inline">\(x\)</span> 有多像"。</p>
+<p>这正是<strong>局部中心化（local centering）</strong>的思路——在这样一个自适应邻域里，处理效应近似恒定，于是又能套用 Robinson 的残差对残差回归。和普通线性回归只能给一个全局常数 <span class="math inline">\(\tau\)</span> 不同，因果森林给的是每个 <span class="math inline">\(x\)</span> 各不相同的 <span class="math inline">\(\tau(x)\)</span>，而且不需要你事先假设效应随哪些变量、以什么形式变化。对临床异质性研究来说，这等于"用数据发现亚组"，而不是"用假设框定亚组"。</p>
+</div>
+<p>同样的思路并不限于处理效应和残差对残差回归。在广义随机森林框架中，森林被定制用来针对任意由估计方程（estimating equation）<span class="math inline">\(\psi_\theta(\cdot)\)</span> 所定义的参数的异质性。给定一个在没有协变量时就能识别参数 <span class="math inline">\(\theta\)</span> 的估计方程后，<code>grf</code> 会构造权重 <span class="math inline">\(\alpha(x)\)</span>，从而给出针对各协变量取值的估计 <span class="math inline">\(\theta(x)\)</span>，其蓝图正是 Breiman 的随机森林。对于因果森林，这个估计方程就对应 Robinson 的回归。</p>
+<p>正交估计方程（orthogonal estimating equation）通过把各项统计任务分离开来，带来了实际好处。其他森林，如 <code>instrumental_forest</code>（工具变量森林）和 <code>causal_survival_forest</code>（因果生存森林），也采用类似构造。例如，<code>causal_survival_forest</code> 会拟合两个独立的生存森林，来构造对右删失（right-censoring）的校正。这些校正随后被用来构造一个正交估计方程，接着 <code>grf</code> 训练最终的随机森林，专门针对处理效应参数中的异质性。</p>
+<p>出于计算与实现的考虑，<code>grf</code> 不会在建树阶段的每个候选切分处都重新估计目标参数。相反，它使用基于影响函数（influence function）的近似，这个近似只在父节点处计算一次。<code>grf</code> 随后复用标准的随机森林机制（Breiman 式的树生长和基于回归的切分），但把原始结局替换为从正交得分（orthogonal score）导出的伪结局（pseudo-outcome）。从实现角度看，这意味着：只要指定合适的得分和伪结局，就能构建新的森林估计量，而底层的随机森林算法保持不变。</p>
+<blockquote>
+<p><strong>注意</strong>：目标参数 <span class="math inline">\(\theta\)</span> 可以是向量值。此时，切分依据的是平方 <span class="math inline">\(\ell_2\)</span> 距离 <span class="math inline">\(n_L n_R \lVert \hat\theta_L - \hat\theta_R
+\rVert^2\)</span>，正如 <code>grf</code> 中的
+<code>multi_arm_causal_forest</code> 和 <code>lm_forest</code> 那样。</p>
+</blockquote>
+</div>
+<div id="efficiently-estimating-summaries-of-the-cates" class="section level3">
+<h3 class="hasAnchor" id="sec-高效估计-cate-的汇总量">
+<a href="#efficiently-estimating-summaries-of-the-cates" class="anchor"></a>高效估计 CATE 的汇总量</h3>
+<p>Robinson 的残差对残差方法是正交的，因此很适合那些收敛较慢的估计。但如果我们想要 <span class="math inline">\(\tau(x)\)</span> 的一些汇总量——比如 ATE 或最优线性投影（best linear projection，BLP）——并且要求它们具有保证的 √n 收敛速率，还要配上有精确置信区间呢？</p>
+<p>简单地对估计值 <span class="math inline">\(\hat\tau(X_i)\)</span> 取平均并不是最优的：预测误差太大，而且不会相互抵消。Robins、Rotnitzky 与 Zhao（<a href="https://doi.org/10.1080/01621459.1994.10476818">1994</a>）提出了增强逆概率加权（Augmented Inverse Probability Weighted，AIPW）估计量，它把倾向得分与条件均值估计结合起来，对其中任一分量估计误差都具有稳健性。它可以表示为一种"一步去偏"（one-step debiasing）校正，形式如下：</p>
+<p><span class="math display">\[
+\hat \Gamma_i = \hat \tau^{(-i)}(X_i) + \frac{W_i - \hat
+e^{(-i)}(X_i)}{\hat e^{(-i)}(X_i)[1 - \hat e^{(-i)}(X_i)]} \Big(Y_i -
+\hat \mu^{(-i)}(X_i, W_i)\Big),
+\]</span> 其中 <span class="math inline">\(\mu(x, w) = E[Y_i \mid X_i =
+x, W_i = w]\)</span>（这一点可以从因果森林的拟合结果中反推出来）。基于森林的 ATE 则为 <span class="math display">\[
+\hat \tau_{\text{AIPW}} = \frac{1}{n} \sum_{i=1}^{n} \hat \Gamma_i.
+\]</span></p>
+<p>这种构造产生了双稳健（doubly robust）估计方程，并构成了 <code>grf</code> 中各类汇总方法的基础，包括 <code>average_treatment_effect</code> 和 <code>best_linear_projection</code>。相关的双稳健得分 <span class="math inline">\(\hat
+\Gamma_i\)</span> 可通过函数 <code>get_scores</code> 获取。举个具体例子：ATE 就是 <span class="math inline">\(\hat
+\Gamma_i\)</span> 的平均，而最优线性投影则是把 <span class="math inline">\(\hat \Gamma_i\)</span> 对一组协变量 <span class="math inline">\(X_i\)</span> 做回归。</p>
+<div class="note"><span class="nt">背景与解释 · 双稳健与 AIPW 一步去偏</span>
+<p>前面因果森林估的是每个点的 <span class="math inline">\(\tau(x)\)</span>，但想要"整体 ATE""最优线性投影"这类汇总量，并且要 √n 速率和精确置信区间，就不能简单对 <span class="math inline">\(\hat\tau(x)\)</span> 取平均（那样预测误差不会抵消）。AIPW 的解法是把两个 nuisance 估计——倾向得分 <span class="math inline">\(e\)</span> 和条件均值 <span class="math inline">\(\mu\)</span>——组合进一个校正项。</p>
+<p>它的<strong>双稳健（doubly robust）</strong>性质意味着：只要 <span class="math inline">\(e\)</span> 和 <span class="math inline">\(\mu\)</span> 中<em>有一个</em>估计对了，得到的 ATE 就是一致且无偏的；即便两个都只估计得"还行"，一步校正仍能把它拉回到无偏。这是它比单纯回归或单纯逆概率加权更放心的地方。</p>
+<p>对医学应用尤其友好：倾向得分模型或结局模型往往都不完美，双稳健给我们留了"容错空间"，而且 <code>grf</code> 自动产出这些得分（<span class="math inline">\(\hat\Gamma_i\)</span>），ATE、BLP、TOC、Qini 全都基于它，保证下游推断口径一致。</p>
+</div>
+</div>
+<div id="assessing-heterogeneity-with-toc-curves" class="section level3">
+<h3 class="hasAnchor" id="sec-用-toc-曲线评估异质性">
+<a href="#assessing-heterogeneity-with-toc-curves" class="anchor"></a>用 TOC 曲线评估异质性</h3>
+<p>结合诚实估计（honesty）和子抽样（subsampling）等技术（Wager 与 Athey，<a href="https://doi.org/10.1080/01621459.2017.1319839">2018</a>），广义随机森林算法具备逐点渐近保证（pointwise asymptotic guarantee）。这类结果令人安心，因为它们刻画了森林在大样本下的行为。不过从实用角度看，还有更直接、更透明的方式来检验某个数据集中是否存在有意义的异质性。</p>
+<p>一种简单而务实的做法是训练/测试集评估（train/test evaluation）。我们在训练集上拟合一个 CATE 模型，然后在留出（held-out）的测试集上，根据预测出的处理效应划分亚组，并检查各组的平均处理效应是否存在系统性差异。这种方法相当通用：我们可以评估任何机器学习得到的靶向函数（targeting function），包括替代性的效应指标，比如预测风险（predicted risk）或在某应用场景中可能与治疗获益相对应的其他量。只要"值越大、预期治疗获益越高"这一关系成立，同样的评估逻辑就适用（关于不依赖单一训练/测试划分的方法，可参见例如 Wager，<a href="https://arxiv.org/abs/2405.05534">2024</a>）。</p>
+<p>函数 <code>rank_average_treatment_effect</code> 提供了这一过程的自动化实现：它根据估计出的靶向函数的所有分位数，对测试样本进行分层。靶向算子特征（Targeting Operator Characteristic，TOC）曲线（Yadlowsky 等人，<a href="https://doi.org/10.1080/01621459.2024.2393466">2024</a>）把"预测 CATE 处于最高的 <span class="math inline">\(q\)</span> 分位数中的个体"的平均处理效应，与整体 ATE 做比较。<span class="math display">\[
+\text{TOC}(q) = \text{E}[Y_i(1) - Y_i(0) \mid \text{Estimated CATE}(X_i)
+\geq (1 - q)\text{-th quantile}] - \text{ATE}.
+\]</span> 给定一个训练好的评估森林后，<code>grf</code> 会给出 TOC 及其曲线下面积（area under the TOC）的双稳健估计，并附带标准误，从而可以对异质性的存在做简单而有效的 <span class="math inline">\(t\)</span> 检验。在"处理效应恒定"的零假设下，TOC 曲线下面积的期望为零。</p>
+<p>用户也可以提供两个估计出的 CATE，或者更一般地，提供两个靶向得分（targeting score），以比较两个优先级排序策略。<code>rank_average_treatment_effect</code> 函数随后会返回两条 TOC 曲线下面积之差的估计值与置信区间，可用于检验：这两个靶向得分在"给个体排治疗优先级"的能力上是否存在显著差异。</p>
+<div class="note"><span class="nt">背景与解释 · 标签权重与 TOC 曲线怎么读</span>
+<p>TOC（Targeting Operator Characteristic）曲线解决的是一个非常"临床决策"的问题：如果按模型预测的处理效应从高到低给人排序、优先干预，这种优先级策略到底有没有用？</p>
+<p>这里的"<strong>标签权重</strong>"指的是用于排序的那个分数——通常是估计出的 CATE <span class="math inline">\(\hat\tau(x)\)</span>。TOC(<span class="math inline">\(q\)</span>) 比较的是"预测 CATE 位于最高 <span class="math inline">\(q\)</span> 分位"那群人的平均处理效应，与整体 ATE 的差。直观上：如果高分位人群真的获益更大，TOC 就往上翘；如果处理效应处处相同（零假设），TOC 整条贴着 0，曲线下面积（AUTOC）期望为 0。<code>grf</code> 给出带标准误的双稳健估计，于是能直接做 <span class="math inline">\(t\)</span> 检验。</p>
+<p>一个实用提醒：AUTOC 不显著 ≠ 没有可干预的亚组。像下文贫困—注意力那例，整体检验不显著，但盯住某个预设分位（比如最低自主度那 20%）仍可能找到可信的正效应。TOC 的价值正在于把"有没有异质性"细化成"在哪个优先级区间有异质性"。</p>
+</div>
+</div>
+<div id="policy-evaluation-with-qini-curves" class="section level3">
+<h3 class="hasAnchor" id="sec-用-qini-曲线评估策略">
+<a href="#policy-evaluation-with-qini-curves" class="anchor"></a>用 Qini 曲线评估策略</h3>
+<p>我们经常关心用数据驱动的规则来指导治疗分配决策，这类规则也称为策略（policy）。在二元处理下，一个策略就是一条规则 <span class="math inline">\(\pi(X_i) \in \{0, 1\}\)</span>，把协变量映射到某个处理决策。一个策略的价值（value）就是遵循它所带来的预期收益，<span class="math display">\[
+G(\pi) = \text{E}[\pi(X_i)\{Y_i(1) - Y_i(0)\}].
+\]</span> 给定双稳健得分 <span class="math inline">\(\hat
+\Gamma_i\)</span> 后，我们可以通过对满足 <span class="math inline">\(\pi(X_i) = 1\)</span> 的样本求 <span class="math inline">\(\hat \Gamma_i\)</span> 的平均，来估计任意固定策略的价值。一个估计出的 CATE 函数 <span class="math inline">\(\hat\tau(\cdot)\)</span> 会自然地诱导出各种靶向规则。一个简单的例子是阈值策略（threshold policy）<span class="math display">\[
+\pi_0(X_i) =
+\begin{cases}
+    1,&amp; \hat \tau(X_i) \geq 0\\
+    0,              &amp; \text{otherwise}.
+\end{cases}
+\]</span> 如果真实的 CATE 已知，最优策略就会去处理那些满足 <span class="math inline">\(\tau(X_i) \geq 0\)</span> 的个体。由于我们只有估计值 <span class="math inline">\(\hat\tau(\cdot)\)</span>，于是改为通过估计其价值 <span class="math inline">\(G(\pi_0)\)</span> 来评估这类数据驱动策略的表现。</p>
+<p>很多时候，治疗是有成本或受限的，我们可能只能处理人群中的一部分。例如，我们可以按预测效应排序、以第 80 百分位为阈值，专门处理排在前 20% 的个体。改变这个阈值，就得到一族由"被处理比例预算"<span class="math inline">\(B \in
+(0,1]\)</span> 索引的策略。Qini 曲线通过画出下式来总结它们的表现：<span class="math display">\[
+G(\pi_B) = \text{E}[\pi_B(X_i)\{Y_i(1) - Y_i(0)\}],
+\]</span> 其中 <span class="math display">\[
+\pi_B(X_i) =
+\begin{cases}
+1, &amp; \hat\tau(X_i) &gt; 0 \text{ and } \hat\tau(X_i) \ge
+(1-B)\text{-th quantile of positive predicted CATEs} \\
+0, &amp; \text{otherwise}.
+\end{cases}
+\]</span> 利用双稳健得分和合适的重抽样方法，我们可以得到整条曲线上 <span class="math inline">\(G(\pi_B)\)</span> 的置信区间。这一方法在姊妹包 <a href="https://CRAN.R-project.org/package=maq"><code>maq</code></a>（Sverdrup 等人，<a href="https://doi.org/10.1080/10618600.2024.2418820">2025</a>）中实现，该包还支持带可变成本的多处理臂——它通过求解一个中间的线性规划（linear program），把预测效应与成本映射为受预算约束的策略。</p>
+</div>
+<div id="learning-interpretable-policies" class="section level3">
+<h3 class="hasAnchor" id="sec-学习可解释的策瑋">
+<a href="#learning-interpretable-policies" class="anchor"></a>学习可解释的策瑋</h3>
+<p>在某些应用中，直接依据复杂、黑箱式的 CATE 预测来分配治疗并不可取。决策者往往要求透明、可解释的决策规则——只基于少数几个可观测特征来分配治疗。这类策略易于沟通和落地（例如，在数据库查询里写几条条件语句即可），同时又利用了处理效应的异质性。</p>
+<p>给定实验性或观察性数据，我们可以通过最大化策略价值来学习这类可解释策略，<span class="math display">\[
+V(\pi) = \text{E}[Y_i(\pi(X_i))],
+\]</span> 其中我们把策略 <span class="math inline">\(\pi\)</span> 限制在一类预先指定的规则中，例如浅层决策树（shallow decision tree）。由于反事实的两个潜在结局我们永远无法同时观测到，我们需要合适的奖励代理（reward proxy）。结果证明（Athey 与 Wager，<a href="https://doi.org/10.3982/ECTA15732">2021</a>）：用 <span class="math inline">\(\text{E}[Y_i(1)]\)</span> 和 <span class="math inline">\(\text{E}[Y_i(0)]\)</span> 的双稳健得分作为奖励代理，就能高效地求解该问题的经验对应版本。 <code>grf</code> 包会自动构造这些得分，而姊妹包 <a href="https://CRAN.R-project.org/package=policytree"><code>policytree</code></a>（Sverdrup 等人，<a href="https://doi.org/10.21105/joss.02232">2020</a>）负责求解浅层（depth-k）决策树的优化问题。这会产出简单的处理规则，既能在留出数据上评估，也能与"全治"或"全不治"这类自然基线做比较。</p>
+<!-- -------------------APPLICATION: BRAZIL --------------------->
+</div>
+</div>
+<div id="example-treatment-heterogeneity-and-financial-proficiency" class="section level2">
+<h2 class="hasAnchor" id="sec-实例-处理效应的异质性与金融素养">
+<a href="#example-treatment-heterogeneity-and-financial-proficiency" class="anchor"></a>实例：处理效应的异质性与金融素养</h2>
+<p>作为一个简单的实证示例，我们用 <code>causal_forest</code> 函数来分析一项随机对照试验（RCT），该试验测量了金融教育的效果。Bruhn 等人（<a href="https://doi.org/10.1257/app.20150149">2016</a>）把巴西的高中随机分配参与一个金融教育项目，并测量了诸如金融素养（financial proficiency）等结局。在学校层面做随机化，可以避免学生之间的相互干扰。我们使用 <code>grf</code> 内置的一份已处理数据，包含约 850 所高中、约 17,000 名学生的个体层面信息。结局是处理后的金融读写能力，共有 13 个处理前协变量，包括问卷回答，以及衡量学生储蓄能力和财务自主度的两个指数。</p>
+<p>有 4% 到 10% 的协变量含有缺失值（<code>NA</code>）。我们假设缺失是随机的并将其保留，因为 <code>grf</code> 通过"把缺失性纳入属性"（missingness incorporated in attributes，MIA）切分来处理缺失数据（Mayer 等人，<a href="https://doi.org/10.1214/20-AOAS1356">2020</a>；Twala 等人，<a href="https://doi.org/10.1016/j.patrec.2008.01.010">2008</a>）。</p>
+<div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/utils/data.html">data</a></span>(<span class="st">"schoolrct"</span>)
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="no">schoolrct</span>$<span class="no">outcome</span>
+<span class="no">W</span> <span class="kw">&lt;-</span> <span class="no">schoolrct</span>$<span class="no">treatment</span>
+<span class="no">school</span> <span class="kw">&lt;-</span> <span class="no">schoolrct</span>$<span class="no">school</span>
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="no">schoolrct</span>[-(<span class="fl">1</span>:<span class="fl">3</span>)]</pre></div>
+<p>这里，我们认为用以下处理前协变量来定义 CATE 会很有意思：</p>
+<div class="sourceCode" id="cb2"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(<span class="no">X</span>)
+<span class="co">#&gt;  [1] "is.female"                           </span>
+<span class="co">#&gt;  [2] "mother.attended.secondary.school"    </span>
+<span class="co">#&gt;  [3] "father.attened.secondary.school"     </span>
+<span class="co">#&gt;  [4] "failed.at.least.one.school.year"     </span>
+<span class="co">#&gt;  [5] "family.receives.cash.transfer"       </span>
+<span class="co">#&gt;  [6] "has.computer.with.internet.at.home"  </span>
+<span class="co">#&gt;  [7] "is.unemployed"                       </span>
+<span class="co">#&gt;  [8] "has.some.form.of.income"             </span>
+<span class="co">#&gt;  [9] "saves.money.for.future.purchases"    </span>
+<span class="co">#&gt; [10] "intention.to.save.index"             </span>
+<span class="co">#&gt; [11] "makes.list.of.expenses.every.month"  </span>
+<span class="co">#&gt; [12] "negotiates.prices.or.payment.methods"</span>
+<span class="co">#&gt; [13] "financial.autonomy.index"</span></pre></div>
+<p>接下来，我们用默认设置拟合一个因果森林。由于这是一项 RCT，我们通过 <code>W.hat = 0.5</code> 传入试验的随机化概率。我们还传入 <code>clusters = school</code>，以便在方差估计中考虑学校层面的聚类（clustering）。</p>
+<blockquote>
+<p><strong>备注</strong>：在大型数据集上，设置
+<code><a href="https://rdrr.io/r/base/options.html">options(grf.verbose = TRUE)</a></code> 可以在训练和预测过程中显示进度。</p>
+</blockquote>
+<div class="sourceCode" id="cb3"><pre class="r"><span class="no">c.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>, <span class="kw">W.hat</span> <span class="kw">=</span> <span class="fl">0.5</span>, <span class="kw">clusters</span> <span class="kw">=</span> <span class="no">school</span>)</pre></div>
+<p>计算 ATE：</p>
+<div class="sourceCode" id="cb4"><pre class="r"><span class="no">ate</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/average_treatment_effect.html">average_treatment_effect</a></span>(<span class="no">c.forest</span>)
+<span class="no">ate</span>
+<span class="co">#&gt; estimate  std.err </span>
+<span class="co">#&gt;     4.35     0.52</span>
+<span class="no">ate</span>[<span class="fl">1</span>] / <span class="fu"><a href="https://rdrr.io/r/stats/sd.html">sd</a></span>(<span class="no">Y</span>) <span class="co"># effect in SD units</span>
+<span class="co">#&gt; estimate </span>
+<span class="co">#&gt;      0.3</span></pre></div>
+<p>该项目的效应为正且显著，使素养（proficiency）提升了约四分之一个标准差。</p>
+<p>接下来，我们通过对所选协变量估计一个最优线性投影，来汇总 <span class="math inline">\(\tau(X_i)\)</span>：<span class="math display">\[
+\tau(X_i) \sim a + \beta_1\text{is.female}_i +
+\beta_2\text{family.receives.cash.transfer}_i +
+\beta_3\text{is.unemployed}_i + \beta_4
+\text{financial.autonomy.index}_i.
+\]</span> 借此，我们可以得到模型中系数的双稳健估计：</p>
+<div class="sourceCode" id="cb5"><pre class="r"><span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/best_linear_projection.html">best_linear_projection</a></span>(<span class="no">c.forest</span>, <span class="no">X</span>[<span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"is.female"</span>,
+                                     <span class="st">"family.receives.cash.transfer"</span>,
+                                     <span class="st">"is.unemployed"</span>,
+                                     <span class="st">"financial.autonomy.index"</span>)])
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Best linear projection of the conditional average treatment effect.</span>
+<span class="co">#&gt; Confidence intervals are cluster- and heteroskedasticity-robust (HC3):</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;                               Estimate Std. Error t value Pr(&gt;|t|)    </span>
+<span class="co">#&gt; (Intercept)                     6.7392     0.9777    6.89  5.7e-12 ***</span>
+<span class="co">#&gt; is.female                      -0.7268     0.5307   -1.37   0.1709    </span>
+<span class="co">#&gt; family.receives.cash.transfer  -1.1992     0.6526   -1.84   0.0661 .  </span>
+<span class="co">#&gt; is.unemployed                   0.3206     0.6277    0.51   0.6095    </span>
+<span class="co">#&gt; financial.autonomy.index       -0.0329     0.0128   -2.58   0.0099 ** </span>
+<span class="co">#&gt; ---</span>
+<span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></pre></div>
+<p>我们可以看到：金融自主度越高的学生，平均而言从培训项目中获益越少。</p>
+<p>接下来，我们基于全部 13 个协变量估计袋外（OOB）的 CATE 预测：</p>
+<div class="sourceCode" id="cb6"><pre class="r"><span class="no">tau.hat.oob</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">c.forest</span>)$<span class="no">predictions</span>
+<span class="fu"><a href="https://rdrr.io/r/graphics/hist.html">hist</a></span>(<span class="no">tau.hat.oob</span>)</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/grf_guide_files/figure-html/unnamed-chunk-8-1.png" alt="" width="480" style="display: block; margin: auto;"></p>
+<p>直方图显示，大多数学生的效应都接近整体 ATE，但也存在一定差异。为了评估这些估计是否捕捉到了有意义的异质性，我们估计 TOC 下的面积：</p>
+<div class="sourceCode" id="cb7"><pre class="r"><span class="no">rate.oob</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.html">rank_average_treatment_effect</a></span>(<span class="no">c.forest</span>, <span class="no">tau.hat.oob</span>)
+<span class="no">t.stat.oob</span> <span class="kw">&lt;-</span> <span class="no">rate.oob</span>$<span class="no">estimate</span> / <span class="no">rate.oob</span>$<span class="no">std.err</span>
+<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">pnorm</a></span>(<span class="no">t.stat.oob</span>, <span class="kw">lower.tail</span> <span class="kw">=</span> <span class="fl">FALSE</span>)  <span class="co"># one-sided p-value Pr(&gt;t)</span>
+<span class="co">#&gt; [1] 0.65</span></pre></div>
+<p>这里我们用袋外预测既来构造 <span class="math inline">\(\hat\tau(\cdot)\)</span>，又来评估 TOC。由于复用了同一批数据，所得 <span class="math inline">\(t\)</span> 统计量便没有确切的有限样本保证。我们没有做显式的训练/测试划分，而是采取一个务实的启发式做法：报告我们关注方向上的单侧检验（AUTOC <span class="math inline">\(&gt; 0\)</span>）。在本例中，单侧检验并未拒绝"无异质性"的零假设。</p>
+<div class="note"><span class="nt">背景与解释 · 诚实估计与袋外数据的陷阱</span>
+<p><strong>诚实估计（honest estimation）</strong>是让森林推断"靠得住"的关键技巧。做法上，它把样本一分为二：一部分只用来决定树怎么切（选切分点），另一部分只用来估计叶子里的参数值。这样叶子里的估计就不会"记住"自己参与挑选的结构和噪声，从而避免过于乐观的、过拟合的异质性结论。</p>
+<p>本例里我们用的是<strong>袋外（OOB）</strong>预测：每个样本都被它没参与建树的那些树来打分。OOB 天然近似留一交叉拟合，很方便；但要注意——当同一批 OOB 预测既用于构造 CATE、又用于评估 TOC 时，数据被复用了，严格意义上的有限样本保证就不再成立。文中因此改用"单侧检验 + 务实启发式"来下结论。</p>
+<p>对医学研究者的重要提醒：在报告"某亚组效应显著"之前，务必确认它建立在独立验证（诚实估计 / 留出测试集 / 显式训练—测试划分）之上，否则很容易把随机波动误当成真实的疗效差异，进而误导治疗决策。</p>
+</div>
+<p>不过，TOC 在评估替代性优先级策略时依然有用。例如，金融自主度较低的学生可能获益更多。因果森林的变量重要性（variable importance）证实了 <code>financial.autonomy.index</code> 是一个关键预测变量：</p>
+<div class="sourceCode" id="cb8"><pre class="r"><span class="no">var.imp</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/variable_importance.html">variable_importance</a></span>(<span class="no">c.forest</span>)
+<span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(<span class="no">X</span>)[<span class="fu"><a href="https://rdrr.io/r/base/order.html">order</a></span>(<span class="no">var.imp</span>, <span class="kw">decreasing</span> <span class="kw">=</span> <span class="fl">TRUE</span>)])
+<span class="co">#&gt; [1] "financial.autonomy.index"           "intention.to.save.index"           </span>
+<span class="co">#&gt; [3] "family.receives.cash.transfer"      "father.attened.secondary.school"   </span>
+<span class="co">#&gt; [5] "is.female"                          "has.computer.with.internet.at.home"</span></pre></div>
+<p>我们可以构造一条 TOC，专门给金融自主度较低的学生排更高优先级：</p>
+<div class="sourceCode" id="cb9"><pre class="r"><span class="no">rate.autonomy</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.html">rank_average_treatment_effect</a></span>(
+  <span class="no">c.forest</span>,
+  -<span class="fl">1</span> * <span class="no">X</span>$<span class="no">financial.autonomy.index</span>, <span class="co"># Negate priorities to rank by lowest first.</span>
+  <span class="kw">q</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span>(<span class="fl">0.05</span>, <span class="fl">1</span>, <span class="kw">length.out</span> <span class="kw">=</span> <span class="fl">100</span>),
+  <span class="kw">subset</span> <span class="kw">=</span> !<span class="fu"><a href="https://rdrr.io/r/base/NA.html">is.na</a></span>(<span class="no">X</span>$<span class="no">financial.autonomy.index</span>))
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">rate.autonomy</span>, <span class="kw">main</span> <span class="kw">=</span> <span class="st">"TOC: By increasing financial autonomy"</span>)</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/grf_guide_files/figure-html/unnamed-chunk-11-1.png" alt="" width="480" style="display: block; margin: auto;"></p>
+<p>结果显示：金融自主度处于最低 20% 的学生，其 ATE 比整体平均高出约 1.1 分，且置信区间不含零。</p>
+<p>像这样的培训项目，通常要投入资源才能实施、推广到大量学生。这里的分析表明，把资源投向金融自主度低的学生，可能是一种可取的策略。如果我们估计这条 TOC 下的面积，得到的 <span class="math inline">\(t\)</span> 值会高于 1.96。我们会在常规显著性水平下拒绝零假设，从而得出结论：这一优先级排序策略是有效的。</p>
+<div class="sourceCode" id="cb10"><pre class="r"><span class="no">rate.autonomy</span>
+<span class="co">#&gt;  estimate std.err             target</span>
+<span class="co">#&gt;      0.69    0.22 priorities | AUTOC</span>
+<span class="no">rate.autonomy</span>$<span class="no">estimate</span> / <span class="no">rate.autonomy</span>$<span class="no">std.err</span>
+<span class="co">#&gt; [1] 3.2</span></pre></div>
+<p>接下来，我们考虑用 <code>policytree</code> 包学习一个简单的策略，把协变量 <code>X</code> 映射为一个处理决策。我们在没有协变量缺失的观测上完成这一任务。首先，我们用 <code>policytree</code> 包中的函数 <code>double_robust_scores</code>，获取 <span class="math inline">\(\text{E}[Y_i(0)]\)</span> 与 <span class="math inline">\(\text{E}[Y_i(1)]\)</span> 的双稳健得分。</p>
+<div class="sourceCode" id="cb11"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">policytree</span>)
+
+<span class="no">Gamma.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/policytree/man/double_robust_scores.html">double_robust_scores</a></span>(<span class="no">c.forest</span>)
+<span class="no">no.missing</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/complete.cases.html">complete.cases</a></span>(<span class="no">X</span>)
+<span class="no">X.nm</span> <span class="kw">&lt;-</span> <span class="no">X</span>[<span class="no">no.missing</span>, ]
+<span class="no">Gamma.nm</span> <span class="kw">&lt;-</span> <span class="no">Gamma.hat</span>[<span class="no">no.missing</span>, ]</pre></div>
+<p>两种处理状态下平均金融素养得分的双稳健估计为：</p>
+<div class="sourceCode" id="cb12"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/colSums.html">colMeans</a></span>(<span class="no">Gamma.nm</span>)
+<span class="co">#&gt; control treated </span>
+<span class="co">#&gt;      58      62</span></pre></div>
+<p>在本应用中，很难想象会有学生"不从治疗中获益"，而"全员治疗"策略很可能提升人群整体的金融素养。但全员治疗成本高昂；因此很自然会问：是否存在某种策略，能在扣除成本后仍为整体人群带来净收益？这里，我们假设每次分配治疗时都要支付 ATE 的代价，并在目标函数中把它扣除：</p>
+<div class="sourceCode" id="cb13"><pre class="r"><span class="no">Gamma.nm</span>[, <span class="st">"treated"</span>] <span class="kw">&lt;-</span> <span class="no">Gamma.nm</span>[, <span class="st">"treated"</span>] - <span class="no">ate</span>[<span class="st">"estimate"</span>]</pre></div>
+<p>然后，我们让 <code>policy_tree</code> 执行如下最大化：<span class="math display">\[
+\underset{\pi \in \text{depth-1 trees}}{\text{argmax}}
+\frac{1}{n}\sum_{i=1}^{n} \hat \Gamma[\pi(X_i)],
+\]</span> 其中 <span class="math inline">\(\pi(X_i) \in \{1,
+2\}\)</span> 对应 <code>Gamma</code> 矩阵中的控制组（control）与处理组（treated）两列。</p>
+<div class="sourceCode" id="cb14"><pre class="r"><span class="no">ptree</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/policytree/man/policy_tree.html">policy_tree</a></span>(<span class="no">X.nm</span>, <span class="no">Gamma.nm</span>, <span class="kw">depth</span> <span class="kw">=</span> <span class="fl">1</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">ptree</span>)</pre></div>
+<div class="grViz html-widget html-fill-item" id="htmlwidget-59eb0ec830a4c65b8e83" style="width:480px;height:384px;"></div>
+<script type="application/json" data-for="htmlwidget-59eb0ec830a4c65b8e83">{"x":{"diagram":"digraph nodes { \n node [shape=box] ;\n0 [label=\" financial.autonomy.index <= 41 \"] ;\n0 -> 1 [labeldistance=2.5, labelangle=45, headlabel=\"True\"];\n0 -> 2 [labeldistance=2.5, labelangle=-45, headlabel=\"False\"]\n1  [shape=box,style=filled,color=\".7 .3 1.0\" , label=\" leaf node\n action = 2 \"];\n2  [shape=box,style=filled,color=\".7 .3 1.0\" , label=\" leaf node\n action = 1 \"];\n}","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script><p>到这里，我们得到了一条简单的决策规则——"若金融自主度得分 ≤ 41，则分配金融教育培训项目"，这再次印证了之前的分析：处理前变量 <code>financial.autonomy.index</code> 可以作为治疗决策的一个良好候选特征（<em>注意</em>：在实践中，我们会留出一份测试集来估计该策略的价值）。</p>
+<!-- -------------------APPLICATION: POVERTY------------------- -->
+</div>
+<div id="example-the-effect-of-poverty-on-attention" class="section level2">
+<h2 class="hasAnchor" id="sec-实例-贫困对注意力的影响">
+<a href="#example-the-effect-of-poverty-on-attention" class="anchor"></a>实例：贫困对注意力的影响</h2>
+<p>本节我们分析 Carvalho 等人（<a href="https://www.aeaweb.org/articles?id=10.1257/aer.20140481">2016</a>）最初研究过的实验数据。作者做了一项随机实验：让低收入个体在发薪日之前或之后完成一项认知测试。结局是某认知测试中的答对题数。原研究没有发现统计显著的平均效应。但后续分析表明，贫困可能会损害某些亚群的认知功能（Farbmacher 等人，<a href="https://doi.org/10.1016/j.labeco.2021.102028">2021</a>）。<code>grf</code> 中提供了一份已处理的数据，包含约 2,500 名个体和 24 个处理前特征（年龄、收入、教育程度等）。教育程度按有序编码（4：大学毕业；3：部分大学；2：高中毕业；1：高中以下），因此可以直接用于随机森林的切分。</p>
+<p>我们对处理状态做如下编码：若个体在发薪日之后被观测，则 <span class="math inline">\(W_i=1\)</span>。按此编码，正的处理效应就对应认知表现改善（即损害减轻）。这种选择简化了理解：例如，当优先级排序成功锁定获益最大的个体时，TOC 曲线为正。用潜在结局（potential outcomes）记号，令 <span class="math inline">\(Y_i(1)\)</span> 表示"无贫困"状态（发薪日后）下的答对题数，<span class="math inline">\(Y_i(0)\)</span> 表示财务困顿（发薪日前）下的答对题数。平均处理效应为 <span class="math display">\[
+\text{E}[Y_i(1) - Y_i(0)],
+\]</span> 它衡量的是个体不受财务约束时，认知表现的平均改善程度。而 CATE 则刻画了这一改善在不同个体间的异质性。</p>
+<div class="sourceCode" id="cb15"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/utils/data.html">data</a></span>(<span class="st">"attentionrct"</span>)
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="no">attentionrct</span>$<span class="no">outcome.correct.ans.per.second</span>
+<span class="no">W</span> <span class="kw">&lt;-</span> <span class="fl">1</span> - <span class="no">attentionrct</span>$<span class="no">treatment</span>
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="no">attentionrct</span>[-(<span class="fl">1</span>:<span class="fl">4</span>)]</pre></div>
+<p>鉴于样本量相对预测变量数来说只是中等规模，若在所有协变量上拟合 CATE 估计量并做训练/测试评估，检验效能（power）可能不足。为了降维，我们先估计条件均值 <span class="math inline">\(\text{E}[Y_i \mid
+X_i]\)</span>，再用森林的变量重要性选出一部分协变量用于 CATE。在下面这个例子里，按重要性保留前 10 个变量就是一种简单的启发式做法。</p>
+<div class="sourceCode" id="cb16"><pre class="r"><span class="no">train</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(<span class="no">X</span>), <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(<span class="no">X</span>) * <span class="fl">0.6</span>)
+<span class="no">test</span> <span class="kw">&lt;-</span> -<span class="no">train</span>
+
+<span class="no">Y.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/regression_forest.html">regression_forest</a></span>(<span class="no">X</span>[<span class="no">train</span>, ], <span class="no">Y</span>[<span class="no">train</span>], <span class="kw">num.trees</span> <span class="kw">=</span> <span class="fl">500</span>)
+<span class="no">varimp.Y</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/variable_importance.html">variable_importance</a></span>(<span class="no">Y.forest</span>)
+<span class="no">keep</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(<span class="no">X</span>)[<span class="fu"><a href="https://rdrr.io/r/base/order.html">order</a></span>(<span class="no">varimp.Y</span>, <span class="kw">decreasing</span> <span class="kw">=</span> <span class="fl">TRUE</span>)[<span class="fl">1</span>:<span class="fl">10</span>]]
+<span class="no">X.cate</span> <span class="kw">&lt;-</span> <span class="no">X</span>[, <span class="no">keep</span>]
+<span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span>(<span class="no">keep</span>)
+<span class="co">#&gt;  [1] "age"                               "working"                          </span>
+<span class="co">#&gt;  [3] "education"                         "current.income"                   </span>
+<span class="co">#&gt;  [5] "pay.day.amount.fraction.of.income" "black"                            </span>
+<span class="co">#&gt;  [7] "household.income"                  "white"                            </span>
+<span class="co">#&gt;  [9] "disabled"                          "retired"</span></pre></div>
+<p>接下来，我们在训练样本上拟合一个 CATE 森林，并在留出的测试样本上评估异质性。由于数据来自随机实验，我们通过 <code>W.hat</code> 参数传入已知的随机化概率。</p>
+<div class="sourceCode" id="cb17"><pre class="r"><span class="co"># Estimate CATE function.</span>
+<span class="no">Y.hat.train</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">Y.forest</span>)$<span class="no">predictions</span>
+<span class="no">cate.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(
+  <span class="no">X.cate</span>[<span class="no">train</span>, ],
+  <span class="no">Y</span>[<span class="no">train</span>],
+  <span class="no">W</span>[<span class="no">train</span>],
+  <span class="kw">Y.hat</span> <span class="kw">=</span> <span class="no">Y.hat.train</span>,
+  <span class="kw">W.hat</span> <span class="kw">=</span> <span class="fl">0.5</span>
+)
+<span class="no">tau.hat.eval</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">cate.forest</span>, <span class="no">X.cate</span>[<span class="no">test</span>, ])$<span class="no">predictions</span>
+
+<span class="co"># Fit evaluation forest.</span>
+<span class="no">eval.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(
+  <span class="no">X</span>[<span class="no">test</span>, ],
+  <span class="no">Y</span>[<span class="no">test</span>],
+  <span class="no">W</span>[<span class="no">test</span>],
+  <span class="kw">W.hat</span> <span class="kw">=</span> <span class="fl">0.5</span>
+)</pre></div>
+<p>接下来，我们通过估计 TOC 及其下面积，来评估估计出的 CATE 是否捕捉到了认知损害上的异质性。</p>
+<div class="sourceCode" id="cb18"><pre class="r"><span class="no">rate.cate</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.html">rank_average_treatment_effect</a></span>(
+  <span class="no">eval.forest</span>,
+  <span class="no">tau.hat.eval</span>,
+  <span class="kw">q</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span>(<span class="fl">0.05</span>, <span class="fl">1</span>, <span class="kw">length.out</span> <span class="kw">=</span> <span class="fl">100</span>)
+)
+<span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span>(<span class="no">rate.cate</span>)
+<span class="co">#&gt;  estimate std.err             target</span>
+<span class="co">#&gt;    0.0061  0.0092 priorities | AUTOC</span>
+<span class="no">rate.cate</span>$<span class="no">estimate</span> / <span class="no">rate.cate</span>$<span class="no">std.err</span> <span class="co"># t-statistic</span>
+<span class="co">#&gt; [1] 0.67</span>
+
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">rate.cate</span>, <span class="kw">main</span> <span class="kw">=</span> <span class="st">"TOC: By decreasing CATEs"</span>)</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/grf_guide_files/figure-html/unnamed-chunk-20-1.png" alt="" width="480" style="display: block; margin: auto;"></p>
+<p>AUTOC 在常规显著性水平下与零没有统计上的显著差异。不过，对 TOC 曲线的直观观察提示：可能有很小一部分个体确实受到了影响。如果愿意预先指定一个分位数，就可以通过查看 TOC 曲线上该点的置信区间来正式检验这一点。</p>
+<center>
+<img src="https://raw.githubusercontent.com/grf-labs/grf/master/images/logo/grf_leaf_green.png" height="64">
+</center>
+</div>
+<div id="references" class="section level2">
+<h2 class="hasAnchor" id="sec-参考文献">
+<a href="#references" class="anchor"></a>参考文献</h2>
+<p>Athey, Susan, Julie Tibshirani, and Stefan Wager. “Generalized random
+forests.” The Annals of Statistics 47, no. 2 (2019): 1148-1178.</p>
+<p>Athey, Susan, and Stefan Wager. “Estimating treatment effects with
+causal forests: An application.” Observational studies 5, no. 2 (2019):
+37-51.</p>
+<p>Athey, Susan, and Stefan Wager. “Policy learning with observational
+data.” Econometrica 89, no. 1 (2021): 133-161.</p>
+<p>Breiman, Leo. “Random forests.” Machine learning 45, no. 1 (2001):
+5-32.</p>
+<p>Bruhn, Miriam, Luciana de Souza Leão, Arianna Legovini, Rogelio
+Marchetti, and Bilal Zia. “The impact of high school financial
+education: Evidence from a large-scale evaluation in Brazil.” American
+Economic Journal: Applied Economics 8, no. 4 (2016).</p>
+<p>Carvalho, Leandro S., Stephan Meier, and Stephanie W. Wang. “Poverty
+and economic decision-making: Evidence from changes in financial
+resources at payday.” American Economic Review 106, no. 2 (2016):
+260-84.</p>
+<p>Chernozhukov, Victor, Denis Chetverikov, Mert Demirer, Esther Duflo,
+Christian Hansen, Whitney Newey, and James Robins. “Double/debiased
+machine learning for treatment and structural parameters.” The
+Econometrics Journal, 2018.</p>
+<p>Cui, Yifan, Michael R. Kosorok, Erik Sverdrup, Stefan Wager, and
+Ruoqing Zhu. “Estimating heterogeneous treatment effects with
+right-censored data via causal survival forests.” Journal of the Royal
+Statistical Society Series B: Statistical Methodology 85, no. 2 (2023):
+179-211.</p>
+<p>Dandl, Susanne, Christian Haslinger, Torsten Hothorn, Heidi Seibold,
+Erik Sverdrup, Stefan Wager, and Achim Zeileis. “What makes forest-based
+heterogeneous treatment effect estimators work?.” The Annals of Applied
+Statistics 18, no. 1 (2024): 506-528.</p>
+<p>Efron, Bradley. “Prediction, estimation, and attribution.”
+International Statistical Review 88 (2020): S28-S59.</p>
+<p>Farbmacher, Helmut, Heinrich Kögel, and Martin Spindler.
+“Heterogeneous effects of poverty on attention.” Labour Economics 71
+(2021): 102028.</p>
+<p>Friedberg, Rina, Julie Tibshirani, Susan Athey, and Stefan Wager.
+“Local linear forests.” Journal of Computational and Graphical
+Statistics 30, no. 2 (2020): 503-517.</p>
+<p>James, Gareth, Daniela Witten, Trevor Hastie, and Robert Tibshirani.
+An introduction to statistical learning: with applications in R. Vol.
+103. New York: springer, 2013.</p>
+<p>Mayer, Imke, Erik Sverdrup, Tobias Gauss, Jean-Denis Moyer, Stefan
+Wager, and Julie Josse. “Doubly robust treatment effect estimation with
+missing attributes.” The Annals of Applied Statistics 14, no. 3 (2020):
+1409-1431.</p>
+<p>Robins, James M., Andrea Rotnitzky, and Lue Ping Zhao. “Estimation of
+regression coefficients when some regressors are not always observed.”
+Journal of the American Statistical Association 89, no. 427 (1994):
+846-866.</p>
+<p>Nie, Xinkun, and Stefan Wager. “Quasi-oracle estimation of
+heterogeneous treatment effects.” Biometrika 108, no. 2 (2021):
+299-319.</p>
+<p>Robinson, Peter M. “Root-N-consistent semiparametric regression.”
+Econometrica: Journal of the Econometric Society (1988): 931-954.</p>
+<p>Rosenbaum, Paul R., and Donald B. Rubin. “The central role of the
+propensity score in observational studies for causal effects.”
+Biometrika 70, no. 1 (1983): 41-55.</p>
+<p>Sverdrup, Erik, Maria Petukhova, and Stefan Wager. “Estimating
+treatment effect heterogeneity in psychiatry: A review and tutorial with
+causal forests.” International Journal of Methods in Psychiatric
+Research 34, no. 2 (2025): e70015.</p>
+<p>Sverdrup, Erik, Han Wu, Susan Athey, and Stefan Wager. “Qini curves
+for multi-armed treatment rules.” Journal of Computational and Graphical
+Statistics 34, no. 3 (2025): 948-960.</p>
+<p>Sverdrup, Erik, Ayush Kanodia, Zhengyuan Zhou, Susan Athey, and
+Stefan Wager. “policytree: Policy learning via doubly robust empirical
+welfare maximization over trees.” Journal of Open Source Software 5, no.
+50 (2020): 2232.</p>
+<p>Twala, Bheki ETH, M. C. Jones, and David J. Hand. “Good methods for
+coping with missing data in decision trees.” Pattern Recognition Letters
+29, no. 7 (2008): 950-956.</p>
+<p>Zheng, Wenjing, and Mark J. van der Laan. “Cross-validated targeted
+minimum-loss-based estimation.” In Targeted Learning, pp. 459-474.
+Springer, New York, NY, 2011.</p>
+<p>Wager, Stefan. Causal Inference: A Statistical Learning Approach.
+Cambridge University Press (in preparation), 2024.</p>
+<p>Wager, Stefan. Sequential validation of treatment heterogeneity.
+arXiv preprint arXiv:2405.05534 (2024).</p>
+<p>Wager, Stefan, and Susan Athey. “Estimation and inference of
+heterogeneous treatment effects using random forests.” Journal of the
+American Statistical Association 113.523 (2018): 1228-1242.</p>
+<p>Yadlowsky, Steve, Scott Fleming, Nigam Shah, Emma Brunskill, and
+Stefan Wager. “Evaluating Treatment Prioritization Rules via
+Rank-Weighted Average Treatment Effects.” Journal of the American
+Statistical Association, 120(549), 2025.</p>
+<p>Zeileis, Achim, Torsten Hothorn, and Kurt Hornik. “Model-based
+recursive partitioning.” Journal of Computational and Graphical
+Statistics 17, no. 2 (2008): 492-514.</p>
+</div>
+
+  </div>
+
+  <div class="foot">
+    <p>本页为 <a href="https://grf-labs.github.io/grf/articles/grf_guide.html" target="_blank" rel="noopener">grf 官方文档</a> 的中文译本，原文版权归 grf 作者所有，依据项目许可（MIT）翻译并注明出处，仅供学习交流。代码与公式保持原样，译文新增的「背景与解释」框为译者补充。</p>
+  </div>
+</div>
+<script src="search.js"></script>
+</body>
+</html>
