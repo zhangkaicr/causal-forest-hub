@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme-default="light">
+<head>
+<script>
+(function(){
+  var KEY="share-theme", d=document.documentElement;
+  try{var saved=localStorage.getItem(KEY);}catch(e){var saved=null;}
+  d.setAttribute("data-theme", saved || d.getAttribute("data-theme-default") || "light");
+  document.addEventListener("DOMContentLoaded",function(){
+    var b=document.getElementById("theme-toggle"); if(!b) return;
+    function sync(){
+      var dark=d.getAttribute("data-theme")==="dark";
+      b.setAttribute("aria-pressed", dark?"true":"false");
+      b.setAttribute("title", dark?"切换到亮色主题 (Alt+T)":"切换到暗色主题 (Alt+T)");
+    }
+    b.addEventListener("click",function(){
+      var nxt=d.getAttribute("data-theme")==="dark"?"light":"dark";
+      d.setAttribute("data-theme",nxt);
+      try{localStorage.setItem(KEY,nxt);}catch(e){}
+      sync();
+    });
+    document.addEventListener("keydown",function(e){
+      if(e.altKey&&(e.key==="t"||e.key==="T")) b.click();
+    });
+    sync();
+  });
+})();
+</script>
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},
+options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>把平均处理效应迁移到新目标人群 · grf 中文教程</title>
+<style>
+:root{
+  --bg:#f7f7f5; --card:#ffffff; --text:#2c2c2a; --muted:#6b6a65;
+  --line:#e3e2dd; --accent:#534ab7; --accent-soft:#eeedfe; --tag:#f1efe8;
+  --code-bg:#f4f3ef; --code-line:#e7e5df; --code-text:#2c2c2a;
+  --note-bg:#eef6ff; --note-line:#bcd6f5; --note-text:#1f3a5f;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  line-height:1.8; margin:0;
+}
+.wrap{max-width:840px;margin:0 auto;padding:32px 22px 80px}
+.topbar{margin-bottom:26px}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;
+  font-size:14px;font-weight:600}
+.back:hover{text-decoration:underline}
+h1{font-size:30px;font-weight:700;letter-spacing:-.3px;margin:6px 0 4px;line-height:1.3}
+.sub{color:var(--muted);font-size:14px;margin-bottom:8px}
+.sub a{color:var(--accent)}
+.lead{font-size:16px;color:var(--text);margin:14px 0 22px;border-left:3px solid var(--accent);
+  padding:4px 0 4px 16px;background:var(--accent-soft);border-radius:0 8px 8px 0}
+.content h2{font-size:22px;font-weight:700;margin:38px 0 12px;padding-bottom:6px;
+  border-bottom:1px solid var(--line)}
+.content h3{font-size:18px;font-weight:700;margin:26px 0 10px}
+.content h4{font-size:16px;font-weight:700;margin:20px 0 8px}
+.content p{margin:12px 0}
+.content ul,.content ol{margin:12px 0;padding-left:26px}
+.content li{margin:6px 0}
+.content a{color:var(--accent);text-decoration:none}
+.content a:hover{text-decoration:underline}
+.content img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;
+  margin:14px 0;background:#fff;display:block}
+.content table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+.content th,.content td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+.content th{background:var(--accent-soft);font-weight:600}
+.content tr:nth-child(even) td{background:var(--card)}
+.content blockquote{margin:16px 0;padding:12px 16px;border-left:3px solid var(--line);
+  color:var(--muted);background:var(--card);border-radius:0 8px 8px 0}
+.content code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13.5px;background:var(--code-bg);padding:2px 5px;border-radius:4px;color:var(--code-text)}
+pre{background:var(--code-bg);border:1px solid var(--code-line);border-radius:10px;
+  padding:16px 18px;overflow-x:auto;margin:16px 0;line-height:1.6}
+pre code{background:none;padding:0;font-size:13.5px;color:var(--code-text)}
+.content .sourceCode{margin:16px 0}
+/* downlit token coloring (light) */
+.content .co{color:#6a737d}
+.content .st{color:#032f62}
+.content .fu{color:#4078f2}
+.content .cf{color:#d73a49}
+.content .kw{color:#a626a4}
+.content .fl,.content .cn{color:#b9520f}
+.content .op{color:#444}
+/* 背景与解释 callout */
+.note{margin:18px 0;padding:14px 18px;border:1px solid var(--note-line);
+  background:var(--note-bg);border-radius:10px;color:var(--note-text)}
+.note .nt{display:inline-block;font-weight:700;font-size:13px;letter-spacing:.04em;
+  margin-bottom:6px;color:var(--accent)}
+.note p{margin:6px 0}
+.note code{background:rgba(255,255,255,.6)}
+.foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--muted)}
+.foot a{color:var(--accent)}
+
+:root[data-theme="dark"]{
+  --bg:#0f1116; --card:#181b22; --text:#e4e6ea; --muted:#98a0ac;
+  --line:#2a2f3a; --accent:#7aa2f7; --accent-soft:#16203a; --tag:#1e222b;
+  --code-bg:#0b0d12; --code-line:#1d2129; --code-text:#d7dae0;
+  --note-bg:#15233b; --note-line:#274168; --note-text:#bcd6f5;
+}
+:root[data-theme="dark"] .content th{background:var(--accent-soft)}
+:root[data-theme="dark"] .content tr:nth-child(even) td{background:#14171e}
+:root[data-theme="dark"] .content img{background:#0b0d12}
+:root[data-theme="dark"] .content .co{color:#7f8b9a}
+:root[data-theme="dark"] .content .st{color:#9ecbff}
+:root[data-theme="dark"] .content .fu{color:#82aaff}
+:root[data-theme="dark"] .content .cf{color:#f07178}
+:root[data-theme="dark"] .content .kw{color:#c792ea}
+:root[data-theme="dark"] .content .fl,.content .cn{color:#f78c6c}
+
+.tt{
+  position:fixed; top:16px; right:16px; z-index:9999; width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center; border-radius:50%;
+  cursor:pointer; color:var(--text); background:var(--card);
+  border:1px solid var(--line);
+  box-shadow:0 2px 10px rgba(0,0,0,.24); transition:transform .15s, border-color .15s, background .15s;
+}
+.tt:hover{transform:translateY(-1px); border-color:var(--accent)}
+.tt:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tt svg{display:none}
+[data-theme="dark"] .ico-sun{display:block}
+[data-theme="dark"] .ico-moon{display:none}
+[data-theme="light"] .ico-sun{display:none}
+[data-theme="light"] .ico-moon{display:block}
+@media(max-width:640px){.tt{top:10px; right:10px; width:36px; height:36px}}
+@media print{.tt{display:none}}
+</style>
+<style>
+/* ---- 全局搜索 ---- */
+.sbox{position:relative;display:inline-flex;align-items:center;margin-left:10px}
+.sbox input{background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);color:inherit;
+ border-radius:6px;padding:4px 9px 4px 25px;font-size:13px;width:170px;font-family:inherit;outline:none}
+.sbox input:focus{border-color:#4ea1ff;width:220px}
+.sbox .si{position:absolute;left:8px;font-size:12px;opacity:.6;pointer-events:none}
+.spanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:440px;max-width:88vw;
+ max-height:64vh;overflow-y:auto;z-index:900;background:var(--panel,#262c34);
+ border:1px solid var(--border,#3a4350);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.spanel.open{display:block}
+.spanel .sh{padding:7px 10px;font-size:12px;opacity:.7;border-bottom:1px solid var(--border,#3a4350);margin-bottom:4px}
+.spanel .sempty{font-size:12px;opacity:.65;padding:16px 10px;text-align:center}
+.sres{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:inherit}
+.sres:hover,.sres.sel{background:var(--panel2,#2e3540)}
+.sres .c{font-size:11px;opacity:.65;margin-bottom:1px}
+.sres .s{font-size:12px;color:#4ea1ff;margin-bottom:2px}
+.sres .t{font-size:13px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sres mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+.srch-main{margin:22px 0}
+.srch-main input{width:100%;background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);
+ color:inherit;border-radius:8px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none}
+.srch-main input:focus{border-color:#4ea1ff}
+.srch-meta{font-size:13px;opacity:.7;margin:12px 0 6px}
+.srch-list{list-style:none;margin:0;padding:0}
+.srch-list .sres{border:1px solid var(--border,#3a4350);margin:7px 0;padding:9px 11px}
+.srch-list .sres:hover{border-color:#4ea1ff}
+@media (max-width:640px){.sbox input{width:110px}.sbox input:focus{width:150px}.spanel{width:86vw}}
+</style><!--search.css-marker-->
+<style>
+/* ===== 因果森林知识库 · 统一导航 ===== */
+.cfh-nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:10px;
+ padding:8px 16px;background:var(--bg,#181b22);border-bottom:1px solid var(--line,#2a2f3a);
+ font-size:13.5px;flex-wrap:wrap}
+.cfh-nav .cfh-home{font-weight:600;color:var(--text,#e4e6ea);text-decoration:none;font-size:14px;
+ display:flex;align-items:center;gap:6px}
+.cfh-nav .cfh-home:hover{color:var(--accent,#7aa2f7)}
+.cfh-nav .cfh-crumb{color:var(--muted,#98a0ac);font-size:12.5px}
+.cfh-nav .cfh-crumb a{color:var(--accent,#7aa2f7);text-decoration:none}
+.cfh-nav .cfh-sp{flex:1}
+.cfh-nav select{background:var(--card,#181b22);color:var(--text,#e4e6ea);
+ border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:4px 8px;font-size:12.5px;
+ font-family:inherit;outline:none;cursor:pointer;max-width:230px}
+.cfh-nav select:hover{border-color:var(--accent,#7aa2f7)}
+.cfh-nav a.cfh-sbtn{color:var(--text,#e4e6ea);text-decoration:none;border:1px solid var(--line,#2a2f3a);
+ border-radius:6px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.cfh-nav a.cfh-sbtn:hover{border-color:var(--accent,#7aa2f7);color:var(--accent,#7aa2f7)}
+@media (max-width:700px){.cfh-nav .cfh-crumb{display:none}.cfh-nav select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="cfh-nav">
+<a class="cfh-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="cfh-crumb">/ <a href="index.html">grf 广义随机森林</a> / ate_transport</span>
+<span class="cfh-sp"></span>
+<select onchange="if(this.value)location.href=this.value" aria-label="切换库">
+<option value="grf-cn/index.html" selected>grf 广义随机森林</option>
+<option value="policytree-cn/index.html">policytree 策略树</option>
+<option value="surefq/surefq.html">SURE / QRF 充分表示</option>
+<option value="tidyhte-cn/index.html">tidyhte 优雅的 HTE</option>
+<option value="metalearner-cn/index.html">Meta-Learner 元学习器</option>
+<option value="model4you-cn/index.html">model4you 个体化治疗</option>
+<option value="evalITR-cn/index.html">evalITR 规则评估</option>
+<option value="rj-dlc-cn/index.html">DeepLearningCausal</option>
+<option value="survlearners-cn/index.html">survlearners 生存 HTE</option>
+<option value="bocf-cn/index.html">BOCF 基线观测结转</option>
+<option value="hte-course/index.html">HTE 公开课讲义</option>
+<option value="causal-tools-cn/index.html">因果推断三件工具</option>
+<option value="imputeTS-cn/index.html">imputeTS 缺失填补</option>
+</select>
+<a class="cfh-sbtn" href="search.html">&#128269; 搜索本页</a>
+</div>
+<button id="theme-toggle" class="tt" type="button" aria-label="切换明暗主题" title="切换明暗主题 (Alt+T)">
+  <svg class="ico-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7"/></svg>
+  <svg class="ico-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.2 8.2 0 1 0 10.5 10.5z"/></svg>
+</button>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">&larr; grf 教程总览</a><span class="sbox"><span class="si">&#128269;</span>
+<input type="search" id="s-q" placeholder="搜索本站…（按 /）" autocomplete="off" aria-label="搜索本站">
+<span class="spanel" id="s-panel"></span></span>
+  </div>
+  <h1>把平均处理效应迁移到新目标人群</h1>
+  <p class="sub">原文：<a href="https://grf-labs.github.io/grf/articles/ate_transport.html" target="_blank" rel="noopener">Estimating ATEs on a new target population</a>（英文）&nbsp;·&nbsp;grf 官方文档中文译本</p>
+
+  <div class="content">
+<p class="lead">本篇简要介绍如何使用广义随机森林（GRF）来估计某个新目标人群上的平均处理效应（average treatment effect，ATE）。这里的目标人群由一组协变量 <span class="math inline">\(X_{test}\)</span> 来定义。第一部分给出问题设定和一个双稳健（doubly robust）估计量的概览，第二部分给出一个用 GRF 实现该估计量的完整代码示例。</p>
+<div id="transport-overview" class="section level2">
+<h2 class="hasAnchor" id="sec-迁移问题概览">
+<a href="#transport-overview" class="anchor"></a>迁移问题概览</h2>
+<p>给定一个已有试验得到的估计值，要在某个新的目标人群上做统计推断，这个一般性问题被称为"迁移问题"（transport problem），相关文献非常多。本篇采用 Dahabreh 等人（2020）提出的设定与双稳健估计量。</p>
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>外部效度与"可推广性"。</strong> 一篇论文里算出的处理效应，能不能套用到另一群人身上？这就是统计学与流行病学常说的<strong>外部效度（external validity）</strong>问题，也叫<strong>可推广性 / 可外推性（generalizability）</strong>。随机对照试验（RCT）内部做得再严谨，它的受试者往往和真实世界里要用药的患者不一样（比如更年轻、合并症更少），所以"试验里有效"不等于"在目标人群里也有效"。</p>
+<p>把试验结果<strong>迁移（transport）</strong>到目标人群，正是为了解决上述问题。医学语境下，它和"真实世界证据（RWE）""目标试验模拟（target trial emulation）"一脉相承：我们手里有试验数据（知道处理、结局、协变量），还有一批目标人群的代表性抽样（只知道协变量），想知道后者若接受处理会怎样。注意"迁移（transport）"与"可推广性（generalizability）"在文献里常混用，但严格说前者强调把<em>已估计的效应</em>搬到新人群，后者更泛指把<em>任何结论</em>外推；本篇二者含义一致。</p>
+</div>
+<div id="setup" class="section level3">
+<h3 class="hasAnchor" id="sec-问题设定">
+<a href="#setup" class="anchor"></a>问题设定</h3>
+<p>我们把总体记为第 <span class="math inline">\(i = 1
+... n\)</span> 个个体。其中有一个子集 <span class="math inline">\(RCT\)</span> 来自一次随机化（或观察性）试验/研究，对这部分我们拿得到完整数据：共有 <span class="math inline">\(n_{RCT}\)</span> 条观测，包括基线协变量 <span class="math inline">\(X_i\)</span>、二值处理指示 <span class="math inline">\(W_i=\{0, 1\}\)</span> 以及结局 <span class="math inline">\(Y_i\)</span>。此外我们还掌握剩下的子集 <span class="math inline">\(obs\)</span>，对这部分只观察到了 <span class="math inline">\(n_{obs}\)</span> 条基线协变量 <span class="math inline">\(X_i\)</span>（且 <span class="math inline">\(n_{RCT} + n_{obs}=n\)</span>）。我们将前一部分称为"参加了试验"，记为 <span class="math inline">\(S_i = 1\)</span>；后一部分"没参加"，记为 <span class="math inline">\(S_i = 0\)</span>。我们关心的是未参加者（即"目标"人群）中的平均处理效应，也就是：</p>
+<p><span class="math display">\[E[Y(1) - Y(0) | S = 0],\]</span></p>
+<p>其中 <span class="math inline">\(Y(1), Y(0)\)</span> 是分别对应两种处理状态下的潜在结局（potential outcomes）。</p>
+<p>一般而言，这个平均值并不等于试验参与者人群中的 ATE，即 <span class="math inline">\(E[Y(1) - Y(0) | S =
+1]\)</span>，因为处理效应的修饰因子（treatment effect modifiers）在参与者与未参与者中的分布可能不同。</p>
+<p>下面的表格展示了这一设定：</p>
+<table class="table">
+<colgroup>
+<col width="19%">
+<col width="21%">
+<col width="3%">
+<col width="23%">
+<col width="15%">
+<col width="15%">
+</colgroup>
+<thead><tr class="header">
+<th>人群</th>
+<th>个体</th>
+<th>S</th>
+<th>X</th>
+<th>Y</th>
+<th>W</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>试验人群</td>
+<td>1</td>
+<td>1</td>
+<td><span class="math inline">\(X_1\)</span></td>
+<td><span class="math inline">\(Y_1\)</span></td>
+<td><span class="math inline">\(W_1\)</span></td>
+</tr>
+<tr class="even">
+<td>试验人群</td>
+<td>…</td>
+<td>1</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>试验人群</td>
+<td><span class="math inline">\(n_{RCT}\)</span></td>
+<td>1</td>
+<td><span class="math inline">\(X_{n_{RCT}}\)</span></td>
+<td><span class="math inline">\(Y_{n_{RCT}}\)</span></td>
+<td><span class="math inline">\(W_{n_{RCT}}\)</span></td>
+</tr>
+<tr class="even">
+<td>目标人群</td>
+<td>
+<span class="math inline">\(n_{RCT}\)</span> + 1</td>
+<td>0</td>
+<td><span class="math inline">\(X_{n_{RCT}+1}\)</span></td>
+<td>?</td>
+<td>?</td>
+</tr>
+<tr class="odd">
+<td>目标人群</td>
+<td>…</td>
+<td>0</td>
+<td></td>
+<td>?</td>
+<td>?</td>
+</tr>
+<tr class="even">
+<td>目标人群</td>
+<td><span class="math inline">\(n_{RCT} + n_{obs}\)</span></td>
+<td>0</td>
+<td><span class="math inline">\(X_{n_{RCT}+n_{obs}}\)</span></td>
+<td>?</td>
+<td>?</td>
+</tr>
+</tbody>
+</table>
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>为什么"平均"会骗人：处理效应异质性与目标人群加权。</strong> 上表目标人群那一栏的 Y 和 W 都是问号——我们既不知道他们接受处理后的结局，也没给他们施加处理。难点就在于：试验里测出的是"试验参与者的平均效应"，而目标人群里<em>效应修饰因子的分布不同</em>。比如某药对年轻人效果强、对老年人弱，而目标人群老年人更多，那么把试验的平均效应直接搬过去就会高估。</p>
+<p>这正是<strong>异质性处理效应（heterogeneous treatment effect，HTE）</strong>的核心：效应不是常数，它随协变量 X 变化。GRF 的因果森林恰好能给出每个 X 处的条件平均处理效应（CATE） <span class="math inline">\(\tau(x)\)</span>。迁移估计的本质，就是用目标人群的协变量分布 <span class="math inline">\(X_{test}\)</span> 去对 <span class="math inline">\(\tau(x)\)</span> 做<strong>加权（重新加权 / reweighting）</strong>求和——相当于把试验估计"按目标人群的样子"重新拼装一遍。后文的双稳健公式正是这种加权的一种稳健实现。</p>
+</div>
+</div>
+<div id="assumptions" class="section level3">
+<h3 class="hasAnchor" id="sec-识别假设">
+<a href="#assumptions" class="anchor"></a>识别假设</h3>
+<p>在已经估计出 <span class="math inline">\(E[Y(1) - Y(0)
+| S = 1]\)</span> 的前提下，要再去估计 <span class="math inline">\(E[Y(1) - Y(0) | S =
+0]\)</span>，除了观察性/随机化试验中因果推断的标准识别假设外，还需要两条额外假设：</p>
+<ol style="list-style-type: decimal">
+<li><p><em>关于 S 的条件可交换性（均值意义下）</em>。在给定基线协变量后，潜在结局的均值与是否参加试验无关：<span class="math inline">\(E[Y(W) | X = x, S =
+1] = E[Y(W) | X = x, S = 0]\)</span>。</p></li>
+<li><p><em>试验参与的正定性（positivity）</em>。在用于保证可交换性的那些协变量条件下，参加试验的概率为正：<span class="math inline">\(P[S = 1
+| X = x] &gt; 0\)</span>。</p></li>
+</ol>
+<p>条件 1 被称为<em>迁移条件（transport condition）</em>，它很重要，却无法从数据中检验。条件 2 本质上要求：目标人群中出现过的所有协变量组合，在试验人群中也都应当有样本；这一点可以通过查看 <span class="math inline">\(P[S = 1 | X = x]
+&gt; 0\)</span> 的估计值是否都大于 0 来大致判断。</p>
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>两条假设分别"能不能检验"。</strong> 条件 1（迁移条件 / 条件可交换性）说的是：在协变量 X 相同的层内，参不参加试验的人，其潜在结局均值一样。换句话说，只要把 X 控制住，剩下的选择偏倚就没有了。这是整个方法的基石，但它是<strong>不可检验的</strong>——因为目标人群里我们根本没观测到他们的处理结局 Y，无法拿数据去验证。医学研究者做这类分析时，必须靠<em>领域知识 + 敏感性分析</em>来为它辩护（例如论证"试验排除标准不会造成效应异质性"）。</p>
+<p>条件 2（正定性）相对友好：它要求目标人群里每一类协变量组合，试验人群里都至少有一例。如果某类人在试验里完全不存在（比如试验排除了重度肾损患者，而目标人群有），那这类人的效应就无从借力，公式里会出现除以接近 0 的情况。它<strong>可以部分检验</strong>——把试验参与概率 <span class="math inline">\(P[S=1\mid X=x]\)</span> 拟合出来画直方图，若尾部出现极小的取值，就是正定性亮红灯的信号（见下文 Algorithm 末尾的提醒）。</p>
+</div>
+</div>
+<div id="estimator" class="section level3">
+<h3 class="hasAnchor" id="sec-估计量">
+<a href="#estimator" class="anchor"></a>估计量</h3>
+<p>先交代几个记号。 <span class="math inline">\(\hat
+\tau^{(-i)}(X_i)\)</span> 是条件平均处理效应 <span class="math inline">\(E[Y_i(1) - Y_i(0) | X_i =
+x]\)</span> 的估计值。 <span class="math inline">\(\hat p^{(-i)}(X_i)\)</span> 是条件试验纳入概率 <span class="math inline">\(P[S = 1 | X_i = x]\)</span> 的估计值。 <span class="math inline">\(\hat e^{(-i)}(X_i)\)</span> 是处理倾向（propensity）<span class="math inline">\(E[W_i | X_i =
+x]\)</span> 的估计值，而 <span class="math inline">\(\mu^{(-i)}(X_i,
+W_i)\)</span> 是条件结局响应 <span class="math inline">\(E[Y_i | W_i = w, X_i = x]\)</span> 的估计值。上标 (-i) 表示交叉拟合（cross-fitting），即第 <span class="math inline">\(i\)</span> 个个体的估计值，在估计时并没有用到它自己。 <span class="math inline">\(n_{RCT}\)</span> 是参加试验的个体数，<span class="math inline">\(n_{obs}\)</span> 是目标人群中的个体数。</p>
+<p>目标人群上 ATE 的一个双稳健估计量为：</p>
+<p><span class="math display">\[\begin{equation}
+\begin{split}
+&amp; \hat \tau_{target} =
+  \frac{1}{n_{obs}}
+  \sum_{i \in obs} \hat \tau^{(-i)}(X_i) + \\ &amp;
+
+  \frac{1}{n_{obs}}
+  \sum_{i \in RCT}
+  \left(\frac{1 - \hat p^{(-i)}(X_i)}{\hat p^{(-i)}(X_i)}\right)
+  \left(\frac{W_i - \hat e^{(-i)}(X_i)}{\hat e^{(-i)}(X_i)(1-\hat
+e^{(-i)}(X_i))}\right)
+  \left(Y_i - \hat \mu^{(-i)}(X_i, W_i) \right).
+\end{split}
+\end{equation}\]</span></p>
+<p>这是 Dahabreh 等人（2020）中公式 (4) 的对照（contrast）形式写法。这个估计量所需的全部零件都能很方便地从 GRF 中得到。它与传统的"试验参与者内部"双稳健 ATE 估计量最大的区别，在于多出了迁移概率 <span class="math inline">\(\hat p^{(-i)}(X_i)\)</span>，它以"胜率倒数"（inverse odds）的形式出现。其中的 <span class="math inline">\(\mu^{(-i)}(X_i, W_i)\)</span> 可以由一个因果森林拟合得到，细节见<a href="https://grf-labs.github.io/grf/articles/muhats.html">这篇 vignette</a>。我们同样可以用这套构造来估计标准误。一般来说，双稳健估计量对 nuisance 成分具有 oracle 性质（即"神谕性质"）：我们可以用代入式（plug-in）估计去替代真实值，仍保留某种一阶等价性，并直接算出这个表达式的方差（在这种情况下，方差会化简为两项独立分量之和）。</p>
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>双稳健（doubly robust）与去偏 / 正交化到底强在哪。</strong> 这个估计量由两块相加而成：第一块只在目标人群上对各点的 CATE <span class="math inline">\(\hat\tau(X_i)\)</span> 直接取平均（这要求 CATE 估计无偏）；第二块是一个"去偏修正项"，用试验数据把第一块的偏差扳回来。关键在于<strong>双稳健</strong>：只要下面两组模型<em>中有一组</em>估计正确——要么处理倾向 <span class="math inline">\(\hat e\)</span> 与条件结局 <span class="math inline">\(\hat\mu\)</span> 都对，要么 CATE 模型 <span class="math inline">\(\hat\tau\)</span> 对——整体估计量就是一致的。错一个还有另一个兜底，所以比"只靠一个模型"稳健得多。</p>
+<p>这种"用残差做修正、对 nuisance 误差只敏感一阶"的思路，在近年因果机器学习里叫<strong>正交化 / 去偏（orthogonalization / debiasing）</strong>，也是 GRF 能做推断的理论底座（cross-fitting 上标 (-i) 就是为了切断过拟合带来的偏差而设计）。方差能化简成"两项独立分量之和"，意味着我们可以像普通均值方差那样直接给置信区间，无需复杂的 bootstrap。</p>
+</div>
+</div>
+</div>
+<div id="algorithm" class="section level2">
+<h2 class="hasAnchor" id="sec-实现算法">
+<a href="#algorithm" class="anchor"></a>实现算法</h2>
+<p>下面这个函数实现了上述估计量，它接受一个用二值处理训练好的普通因果森林（或因果生存森林）作为输入。</p>
+<p><strong><em>输入</em></strong>：</p>
+<ol style="list-style-type: decimal">
+<li>
+<code>forest</code>：一个已训练好的因果森林。</li>
+<li>
+<code>X.test</code>：用于计算 ATE 的协变量矩阵 <span class="math inline">\(X\)</span>。</li>
+<li>
+<code>p.hat</code>：可选项，试验参与个体对应的试验纳入概率 <span class="math inline">\(P[S = 1 | X = x]\)</span> 的估计值。若不提供，则用一个回归森林（regression forest）来估计。</li>
+</ol>
+<p><strong><em>输出</em></strong>：测试集上 ATE 的双稳健估计值，以及对应的标准误。</p>
+<div class="sourceCode" id="cb2"><pre class="r"><span class="no">average_treatment_effect_test</span> <span class="kw">&lt;-</span> <span class="kw">function</span>(<span class="no">forest</span>, <span class="no">X.test</span>, <span class="no">p.hat</span> <span class="kw">=</span> <span class="kw">NULL</span>) {
+  <span class="no">Y.hat</span> <span class="kw">&lt;-</span> <span class="no">forest</span>$<span class="no">Y.hat</span>
+  <span class="no">Y.orig</span> <span class="kw">&lt;-</span> <span class="no">forest</span>$<span class="no">Y.orig</span>
+  <span class="no">W.hat</span> <span class="kw">&lt;-</span> <span class="no">forest</span>$<span class="no">W.hat</span>
+  <span class="no">W.orig</span> <span class="kw">&lt;-</span> <span class="no">forest</span>$<span class="no">W.orig</span>
+  <span class="no">n.rct</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span>(<span class="no">Y.orig</span>)
+  <span class="no">n.obs</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(<span class="no">X.test</span>)
+
+  <span class="kw">if</span> (<span class="fu"><a href="https://rdrr.io/r/base/NULL.html">is.null</a></span>(<span class="no">p.hat</span>)) {
+    <span class="no">S.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/regression_forest.html">regression_forest</a></span>(<span class="kw">X</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html">rbind</a></span>(<span class="no">forest</span>$<span class="no">X.orig</span>, <span class="no">X.test</span>),
+                                  <span class="kw">Y</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="fl">1</span>, <span class="no">n.rct</span>), <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="fl">0</span>, <span class="no">n.obs</span>)),
+                                  <span class="kw">num.trees</span> <span class="kw">=</span> <span class="fl">500</span>)
+    <span class="no">p.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">S.forest</span>)$<span class="no">predictions</span>[<span class="fl">1</span>:<span class="no">n.rct</span>]
+  }
+
+  <span class="no">tau.hat.test</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest</span>, <span class="no">X.test</span>)$<span class="no">predictions</span>
+  <span class="no">tau.hat.train</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest</span>)$<span class="no">predictions</span>
+  <span class="no">debiasing.weights</span> <span class="kw">&lt;-</span> (<span class="fl">1</span> - <span class="no">p.hat</span>) / <span class="no">p.hat</span> * (<span class="no">W.orig</span> - <span class="no">W.hat</span>) / (<span class="no">W.hat</span> * (<span class="fl">1</span> - <span class="no">W.hat</span>))
+  <span class="no">Y.residual</span> <span class="kw">&lt;-</span> <span class="no">Y.orig</span> - (<span class="no">Y.hat</span> + <span class="no">tau.hat.train</span> * (<span class="no">W.orig</span> - <span class="no">W.hat</span>))
+
+  <span class="no">tau.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">tau.hat.test</span>) + <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span>(<span class="no">debiasing.weights</span> * <span class="no">Y.residual</span>) / <span class="no">n.obs</span>
+  <span class="no">sigma2.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/cor.html">var</a></span>(<span class="no">tau.hat.test</span>) / <span class="no">n.obs</span> + <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span>(<span class="no">Y.residual</span>^<span class="fl">2</span> * (<span class="no">debiasing.weights</span> / <span class="no">n.obs</span>)^<span class="fl">2</span>)
+
+  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="kw">estimate</span> <span class="kw">=</span> <span class="no">tau.hat</span>, <span class="kw">std.err</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span>(<span class="no">sigma2.hat</span>))
+}</pre></div>
+<p>注意，估计量里包含对迁移概率 <span class="math inline">\(\hat p^{(-i)}(X_i)\)</span> 的除法，如果它太小就会出问题。一般建议把这些估计值画成直方图，借此判断是否存在正定性（positivity）问题。</p>
+</div>
+<div id="an-example" class="section level2">
+<h2 class="hasAnchor" id="sec-一个示例">
+<a href="#an-example" class="anchor"></a>一个示例</h2>
+<p>本节我们模拟一个简单的例子：处理效应修饰因子（<span class="math inline">\(X_1\)</span>）在随机试验和目标人群中的分布不同（也就是说，试验的纳入概率依赖于某个效应修饰因子）。把模拟出的潜在结局画出来，两群人的分布大致如下：</p>
+<p><img src="https://grf-labs.github.io/grf/articles/ate_transport_files/figure-html/unnamed-chunk-3-1.png" alt="模拟的潜在结局分布：蓝色为目标人群，红色为随机试验人群" width="700"></p>
+<p>蓝色分布是我们想求它的 ATE 的目标人群，红色分布是我们手头能用的 RCT。虚线表示各自的均值。下面我们从这套设定中抽取一个样本，然后估计目标人群的 ATE 并算出 95% 置信区间，同时把它和"朴素（naive）"做法——也就是直接在测试集上把预测值取平均——作比较。</p>
+<div class="sourceCode" id="cb3"><pre class="r"><span class="no">n</span> <span class="kw">&lt;-</span> <span class="fl">2000</span>
+<span class="no">p</span> <span class="kw">&lt;-</span> <span class="fl">5</span>
+<span class="no">X.population</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+<span class="no">trial.inclusion.prob</span> <span class="kw">&lt;-</span> <span class="fl">1</span> / (<span class="fl">1</span> + <span class="fu"><a href="https://rdrr.io/r/base/Log.html">exp</a></span>(-<span class="no">X.population</span>[, <span class="fl">1</span>] / <span class="fl">2</span>))
+<span class="no">S</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="no">trial.inclusion.prob</span>)
+
+<span class="no">X.test</span> <span class="kw">&lt;-</span> <span class="no">X.population</span>[<span class="no">S</span> <span class="kw">==</span> <span class="fl">0</span>, ]
+
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="no">X.population</span>[<span class="no">S</span> <span class="kw">==</span> <span class="fl">1</span>, ]
+<span class="no">W</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(<span class="no">X</span>), <span class="fl">1</span>, <span class="fl">0.5</span>)
+<span class="no">tau</span> <span class="kw">&lt;-</span> <span class="no">X</span>[, <span class="fl">1</span>] + <span class="fl">1</span>
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="no">X</span>[, <span class="fl">2</span>] + <span class="no">tau</span> * <span class="no">W</span> + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(<span class="no">X</span>))
+
+<span class="no">forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>, <span class="kw">W.hat</span> <span class="kw">=</span> <span class="fl">0.5</span>)
+<span class="no">ate.test</span> <span class="kw">&lt;-</span> <span class="fu">average_treatment_effect_test</span>(<span class="no">forest</span>, <span class="no">X.test</span>)
+<span class="no">estimate</span> <span class="kw">&lt;-</span> <span class="no">ate.test</span>[<span class="fl">1</span>]
+<span class="no">std.err</span> <span class="kw">&lt;-</span> <span class="no">ate.test</span>[<span class="fl">2</span>]
+
+<span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span>(<span class="st">"Estimate: %1.2f"</span>, <span class="no">estimate</span>)
+<span class="co">#&gt; [1] "Estimate: 0.81"</span>
+<span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span>(<span class="st">"95%% CI: (%1.2f, %1.2f)"</span>, <span class="no">estimate</span> - <span class="fl">1.96</span> * <span class="no">std.err</span>, <span class="no">estimate</span> + <span class="fl">1.96</span> * <span class="no">std.err</span>)
+<span class="co">#&gt; [1] "95% CI: (0.66, 0.96)"</span>
+<span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span>(<span class="st">"Naive estimate: %1.2f"</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">forest</span>, <span class="no">X.test</span>)$<span class="no">predictions</span>))
+<span class="co">#&gt; [1] "Naive estimate: 0.87"</span>
+<span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span>(<span class="st">"True mean: %1.2f"</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">X.test</span>[, <span class="fl">1</span>] + <span class="fl">1</span>))
+<span class="co">#&gt; [1] "True mean: 0.78"</span></pre></div>
+</div>
+<div id="references" class="section level2">
+<h2 class="hasAnchor" id="sec-参考文献">
+<a href="#references" class="anchor"></a>参考文献</h2>
+<p>Dahabreh, Issa J., Sarah E. Robertson, Jon A. Steingrimsson,
+Elizabeth A. Stuart, and Miguel A. Hernan. 将随机试验的结论推广到一个新的目标人群（Extending inferences from a
+randomized trial to a new target population）. Statistics in Medicine
+39(14), 2020. (<a href="https://onlinelibrary.wiley.com/doi/10.1002/sim.8426">paper</a>,
+<a href="https://arxiv.org/abs/1805.00550">arxiv</a>)</p>
+</div>
+<div id="appendix-estimating-ey-x-test" class="section level2">
+<h2 class="hasAnchor" id="sec-附录-估计-e-y-x-test">
+<a href="#appendix-estimating-ey-x-test" class="anchor"></a>附录：估计 E[Y | X.test]</h2>
+<p>如果我们只想要条件均值 <span class="math inline">\(E[Y | X_{test}]\)</span> 的估计值，它也可以看作上面这套迁移流程的一个特例。不过还有一个更简单的做法：只用一个带"哑处理（dummy treatment）"指示的普通因果森林就能实现。记原始训练数据为 <span class="math inline">\((X_{train}, Y_{train})\)</span>，新测试数据为 <span class="math inline">\(X_{test}\)</span>。按如下方式用哑处理与哑响应变量 <span class="math inline">\((X, Y, W)\)</span> 把数据拼接起来：<span class="math inline">\((X_{train}, Y_{train}, 1)\)</span> 与 <span class="math inline">\(X_{test}, 0, 0)\)</span>。然后，在这个拼接数据上拟合因果森林，其"对照组上的平均处理效应"（ATC，average treatment effect on controls）就会给出 <span class="math inline">\(E[Y
+| X_{test}]\)</span> 的估计：因为我们"定义"了潜在结局 <span class="math inline">\(Y(1) = Y\)</span> 且 <span class="math inline">\(Y(0) = 0\)</span>，于是有 <span class="math inline">\(E[Y(1) - Y(0) | X_{test}] = E[Y |
+X_{test}]\)</span>。</p>
+<div class="sourceCode" id="cb4"><pre class="r"><span class="no">n</span> <span class="kw">&lt;-</span> <span class="fl">2000</span>
+<span class="no">p</span> <span class="kw">&lt;-</span> <span class="fl">5</span>
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+<span class="no">S.hat</span> <span class="kw">&lt;-</span> <span class="fl">1</span> / (<span class="fl">1</span> + <span class="fu"><a href="https://rdrr.io/r/base/Log.html">exp</a></span>(-<span class="no">X</span>[, <span class="fl">1</span>] / <span class="fl">2</span>))
+<span class="no">S</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="no">S.hat</span>)
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="fl">1</span> + <span class="no">X</span>[, <span class="fl">1</span>] + <span class="no">X</span>[, <span class="fl">2</span>] + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+<span class="no">X.train</span> <span class="kw">&lt;-</span> <span class="no">X</span>[<span class="no">S</span> <span class="kw">==</span> <span class="fl">1</span>, ]
+<span class="no">Y.train</span> <span class="kw">&lt;-</span> <span class="no">Y</span>[<span class="no">S</span> <span class="kw">==</span> <span class="fl">1</span>]
+<span class="no">X.test</span> <span class="kw">&lt;-</span> <span class="no">X</span>[<span class="no">S</span> <span class="kw">==</span> <span class="fl">0</span>, ]
+
+<span class="no">X.aug</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html">rbind</a></span>(<span class="no">X.train</span>, <span class="no">X.test</span>)
+<span class="no">Y.aug</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="no">Y.train</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(<span class="no">X.test</span>)))
+<span class="no">W.aug</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(<span class="no">X.train</span>)), <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(<span class="no">X.test</span>)))
+<span class="no">cf</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X.aug</span>, <span class="no">Y.aug</span>, <span class="no">W.aug</span>, <span class="kw">num.trees</span> <span class="kw">=</span> <span class="fl">500</span>)
+
+<span class="no">ate</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/average_treatment_effect.html">average_treatment_effect</a></span>(<span class="no">cf</span>, <span class="kw">target.sample</span> <span class="kw">=</span> <span class="st">"control"</span>)
+<span class="no">estimate</span> <span class="kw">&lt;-</span> <span class="no">ate</span>[<span class="fl">1</span>]
+<span class="no">std.err</span> <span class="kw">&lt;-</span> <span class="no">ate</span>[<span class="fl">2</span>]
+
+<span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span>(<span class="st">"Estimate: %1.2f"</span>, <span class="no">estimate</span>)
+<span class="co">#&gt; [1] "Estimate: 0.74"</span>
+<span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span>(<span class="st">"95%% CI: (%1.2f, %1.2f)"</span>, <span class="no">estimate</span> - <span class="fl">1.96</span> * <span class="no">std.err</span>, <span class="no">estimate</span> + <span class="fl">1.96</span> * <span class="no">std.err</span>)
+<span class="co">#&gt; [1] "95% CI: (0.64, 0.85)"</span>
+<span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span>(<span class="st">"True mean: %1.2f"</span>,  <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">Y</span>[<span class="no">S</span> <span class="kw">==</span> <span class="fl">0</span>]))
+<span class="co">#&gt; [1] "True mean: 0.79"</span></pre></div>
+</div>
+  </div>
+
+  <div class="foot">
+    <p>本页为 <a href="https://grf-labs.github.io/grf/articles/ate_transport.html" target="_blank" rel="noopener">grf 官方文档</a> 的中文译本，原文版权归 grf 作者所有，依据项目许可（MIT）翻译并注明出处，仅供学习交流。代码与公式保持原样，译文新增的「背景与解释」框为译者补充。</p>
+  </div>
+</div>
+<script src="search.js"></script>
+</body>
+</html>
