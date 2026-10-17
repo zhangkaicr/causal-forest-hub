@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme-default="light">
+<head>
+<script>
+(function(){
+  var KEY="share-theme", d=document.documentElement;
+  try{var saved=localStorage.getItem(KEY);}catch(e){var saved=null;}
+  d.setAttribute("data-theme", saved || d.getAttribute("data-theme-default") || "light");
+  document.addEventListener("DOMContentLoaded",function(){
+    var b=document.getElementById("theme-toggle"); if(!b) return;
+    function sync(){
+      var dark=d.getAttribute("data-theme")==="dark";
+      b.setAttribute("aria-pressed", dark?"true":"false");
+      b.setAttribute("title", dark?"切换到亮色主题 (Alt+T)":"切换到暗色主题 (Alt+T)");
+    }
+    b.addEventListener("click",function(){
+      var nxt=d.getAttribute("data-theme")==="dark"?"light":"dark";
+      d.setAttribute("data-theme",nxt);
+      try{localStorage.setItem(KEY,nxt);}catch(e){}
+      sync();
+    });
+    document.addEventListener("keydown",function(e){
+      if(e.altKey&&(e.key==="t"||e.key==="T")) b.click();
+    });
+    sync();
+  });
+})();
+</script>
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},
+options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生存结局的 Meta-learner：异质处理效应估计教程 · survlearners 中文译本</title>
+<style>
+:root{
+  --bg:#f7f7f5; --card:#ffffff; --text:#2c2c2a; --muted:#6b6a65;
+  --line:#e3e2dd; --accent:#534ab7; --accent-soft:#eeedfe; --tag:#f1efe8;
+  --code-bg:#f4f3ef; --code-line:#e7e5df; --code-text:#2c2c2a;
+  --note-bg:#eef6ff; --note-line:#bcd6f5; --note-text:#1f3a5f;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;line-height:1.8;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding:32px 22px 80px}
+.topbar{margin-bottom:26px}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;font-size:14px;font-weight:600}
+.back:hover{text-decoration:underline}
+h1{font-size:30px;font-weight:700;letter-spacing:-.3px;margin:6px 0 4px;line-height:1.3}
+.sub{color:var(--muted);font-size:14px;margin-bottom:8px}
+.sub a{color:var(--accent)}
+.lead{font-size:16px;color:var(--text);margin:14px 0 22px;border-left:3px solid var(--accent);padding:4px 0 4px 16px;background:var(--accent-soft);border-radius:0 8px 8px 0}
+.content h2{font-size:22px;font-weight:700;margin:38px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.content h3{font-size:18px;font-weight:700;margin:26px 0 10px}
+.content p{margin:12px 0}
+.content ul,.content ol{margin:12px 0;padding-left:26px}
+.content li{margin:6px 0}
+.content a{color:var(--accent);text-decoration:none}
+.content a:hover{text-decoration:underline}
+.content img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;margin:14px 0;background:#fff;display:block}
+.note{margin:18px 0;padding:14px 18px;border:1px solid var(--note-line);background:var(--note-bg);border-radius:10px;color:var(--note-text)}
+.note .nt{display:inline-block;font-weight:700;font-size:13px;letter-spacing:.04em;margin-bottom:6px;color:var(--accent)}
+.note p{margin:6px 0}
+.rulebox{margin:18px 0;padding:14px 18px;border-radius:10px;background:#5ADDD7;color:#0c2c2a}
+.rulebox h3{margin:0 0 6px;color:#0c2c2a}
+.rulebox p{margin:0;font-weight:400;color:#0c2c2a}
+.toc{margin:22px 0;padding:16px 20px;border:1px solid var(--line);background:var(--card);border-radius:10px}
+.toc .ttl{font-weight:700;font-size:14px;color:var(--muted);margin-bottom:8px;letter-spacing:.04em}
+.toc ol{margin:0;padding-left:22px;columns:2;column-gap:28px}
+.toc li{margin:4px 0;font-size:14.5px}
+.toc a{color:var(--text)}
+.foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.foot a{color:var(--accent)}
+.csl-entry{margin:8px 0;font-size:13.5px;line-height:1.6;padding-left:14px;text-indent:-14px}
+:root[data-theme="dark"]{--bg:#0f1116;--card:#181b22;--text:#e4e6ea;--muted:#98a0ac;--line:#2a2f3a;--accent:#7aa2f7;--accent-soft:#16203a;--tag:#1e222b;--code-bg:#0b0d12;--code-line:#1d2129;--code-text:#d7dae0;--note-bg:#15233b;--note-line:#274168;--note-text:#bcd6f5}
+:root[data-theme="dark"] .content img{background:#0b0d12}
+:root[data-theme="dark"] .rulebox{background:#1c5b56;color:#d6f5f1}
+:root[data-theme="dark"] .toc{background:var(--card)}
+.tt{position:fixed;top:16px;right:16px;z-index:9999;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;color:var(--text);background:var(--card);border:1px solid var(--line);box-shadow:0 2px 10px rgba(0,0,0,.24)}
+.tt:hover{transform:translateY(-1px);border-color:var(--accent)}
+.tt svg{display:none}
+[data-theme="dark"] .ico-sun{display:block}
+[data-theme="dark"] .ico-moon{display:none}
+[data-theme="light"] .ico-sun{display:none}
+[data-theme="light"] .ico-moon{display:block}
+@media(max-width:640px){.tt{top:10px;right:10px;width:36px;height:36px}}
+@media print{.tt{display:none}}
+</style>
+<style>
+/* 代码块与表格排版（沿用上方主题变量，不改动原有变量定义） */
+.content table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+.content th,.content td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+.content th{background:var(--accent-soft);font-weight:600}
+.content tr:nth-child(even) td{background:var(--card)}
+.content code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px;background:var(--code-bg);padding:2px 5px;border-radius:4px;color:var(--code-text)}
+pre{background:var(--code-bg);border:1px solid var(--code-line);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:16px 0;line-height:1.6}
+pre code{background:none;padding:0;font-size:13.5px;color:var(--code-text)}
+.content .sourceCode{margin:16px 0}
+.content .co{color:#6a737d}
+.content .st{color:#032f62}
+.content .fu{color:#4078f2}
+.content .cf{color:#d73a49}
+.content .kw{color:#a626a4}
+.content .fl,.content .cn{color:#b9520f}
+.content .op{color:#444}
+.note code{background:rgba(255,255,255,.6)}
+.caption{font-size:13px;color:var(--muted);margin:-4px 0 16px}
+:root[data-theme="dark"] .content th{background:var(--accent-soft)}
+:root[data-theme="dark"] .content tr:nth-child(even) td{background:#14171e}
+:root[data-theme="dark"] .content .co{color:#7f8b9a}
+:root[data-theme="dark"] .content .st{color:#9ecbff}
+:root[data-theme="dark"] .content .fu{color:#82aaff}
+:root[data-theme="dark"] .content .cf{color:#f07178}
+:root[data-theme="dark"] .content .kw{color:#c792ea}
+:root[data-theme="dark"] .content .fl,:root[data-theme="dark"] .content .cn{color:#f78c6c}
+:root[data-theme="dark"] .content .op{color:#89ddff}
+:root[data-theme="dark"] .note code{background:rgba(0,0,0,.35)}
+</style>
+<style>
+/* ---- 全局搜索 ---- */
+.sbox{position:relative;display:inline-flex;align-items:center;margin-left:10px}
+.sbox input{background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);color:inherit;
+ border-radius:6px;padding:4px 9px 4px 25px;font-size:13px;width:170px;font-family:inherit;outline:none}
+.sbox input:focus{border-color:#4ea1ff;width:220px}
+.sbox .si{position:absolute;left:8px;font-size:12px;opacity:.6;pointer-events:none}
+.spanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:440px;max-width:88vw;
+ max-height:64vh;overflow-y:auto;z-index:900;background:var(--panel,#262c34);
+ border:1px solid var(--border,#3a4350);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.spanel.open{display:block}
+.spanel .sh{padding:7px 10px;font-size:12px;opacity:.7;border-bottom:1px solid var(--border,#3a4350);margin-bottom:4px}
+.spanel .sempty{font-size:12px;opacity:.65;padding:16px 10px;text-align:center}
+.sres{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:inherit}
+.sres:hover,.sres.sel{background:var(--panel2,#2e3540)}
+.sres .c{font-size:11px;opacity:.65;margin-bottom:1px}
+.sres .s{font-size:12px;color:#4ea1ff;margin-bottom:2px}
+.sres .t{font-size:13px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sres mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+.srch-main{margin:22px 0}
+.srch-main input{width:100%;background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);
+ color:inherit;border-radius:8px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none}
+.srch-main input:focus{border-color:#4ea1ff}
+.srch-meta{font-size:13px;opacity:.7;margin:12px 0 6px}
+.srch-list{list-style:none;margin:0;padding:0}
+.srch-list .sres{border:1px solid var(--border,#3a4350);margin:7px 0;padding:9px 11px}
+.srch-list .sres:hover{border-color:#4ea1ff}
+@media (max-width:640px){.sbox input{width:110px}.sbox input:focus{width:150px}.spanel{width:86vw}}
+</style><!--search.css-marker-->
+<style>
+/* ===== 因果森林知识库 · 统一导航 ===== */
+.cfh-nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:10px;
+ padding:8px 16px;background:var(--bg,#181b22);border-bottom:1px solid var(--line,#2a2f3a);
+ font-size:13.5px;flex-wrap:wrap}
+.cfh-nav .cfh-home{font-weight:600;color:var(--text,#e4e6ea);text-decoration:none;font-size:14px;
+ display:flex;align-items:center;gap:6px}
+.cfh-nav .cfh-home:hover{color:var(--accent,#7aa2f7)}
+.cfh-nav .cfh-crumb{color:var(--muted,#98a0ac);font-size:12.5px}
+.cfh-nav .cfh-crumb a{color:var(--accent,#7aa2f7);text-decoration:none}
+.cfh-nav .cfh-sp{flex:1}
+.cfh-nav select{background:var(--card,#181b22);color:var(--text,#e4e6ea);
+ border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:4px 8px;font-size:12.5px;
+ font-family:inherit;outline:none;cursor:pointer;max-width:230px}
+.cfh-nav select:hover{border-color:var(--accent,#7aa2f7)}
+.cfh-nav a.cfh-sbtn{color:var(--text,#e4e6ea);text-decoration:none;border:1px solid var(--line,#2a2f3a);
+ border-radius:6px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.cfh-nav a.cfh-sbtn:hover{border-color:var(--accent,#7aa2f7);color:var(--accent,#7aa2f7)}
+@media (max-width:700px){.cfh-nav .cfh-crumb{display:none}.cfh-nav select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="cfh-nav">
+<a class="cfh-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="cfh-crumb">/ <a href="index.html">survlearners 生存 HTE</a> / metalearners</span>
+<span class="cfh-sp"></span>
+<select onchange="if(this.value)location.href=this.value" aria-label="切换库">
+<option value="grf-cn/index.html">grf 广义随机森林</option>
+<option value="policytree-cn/index.html">policytree 策略树</option>
+<option value="surefq/surefq.html">SURE / QRF 充分表示</option>
+<option value="tidyhte-cn/index.html">tidyhte 优雅的 HTE</option>
+<option value="metalearner-cn/index.html">Meta-Learner 元学习器</option>
+<option value="model4you-cn/index.html">model4you 个体化治疗</option>
+<option value="evalITR-cn/index.html">evalITR 规则评估</option>
+<option value="rj-dlc-cn/index.html">DeepLearningCausal</option>
+<option value="survlearners-cn/index.html" selected>survlearners 生存 HTE</option>
+<option value="bocf-cn/index.html">BOCF 基线观测结转</option>
+<option value="hte-course/index.html">HTE 公开课讲义</option>
+<option value="causal-tools-cn/index.html">因果推断三件工具</option>
+<option value="imputeTS-cn/index.html">imputeTS 缺失填补</option>
+</select>
+<a class="cfh-sbtn" href="search.html">&#128269; 搜索本页</a>
+</div>
+<button id="theme-toggle" class="tt" type="button" aria-label="切换明暗主题" title="切换明暗主题 (Alt+T)">
+  <svg class="ico-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7"/></svg>
+  <svg class="ico-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.2 8.2 0 1 0 10.5 10.5z"/></svg>
+</button>
+<div class="wrap">
+  <div class="topbar"><a class="back" href="../index.html">&larr; 返回 share 总览</a></div>
+  <h1>生存结局的 Meta-learner：异质处理效应估计教程</h1>
+  <p class="sub">译自 <a href="https://som-shahlab.github.io/survlearners/articles/metalearners.html" target="_blank" rel="noopener">som-shahlab.github.io/survlearners · Metalearners for survival data</a> ｜ 作者：斯坦福医学院 SOM ShahLab ｜ 许可：GPL-3 ｜ 本页为个人学习用途的非官方中文译本，引用请以英文原文为准</p>
+  <div class="content">
+
+<div class="lead">
+<p>本教程演示如何用 R 包 <a href="https://github.com/som-shahlab/survlearners" target="_blank" rel="noopener">survlearners</a> 估计<strong>生存结局</strong>的异质处理效应：把五种主流 meta-learner（S-learner、T-learner、X-learner、R-learner、M-learner）通过<strong>逆概率删失加权（inverse probability of censoring weighting, IPCW）</strong>改造到右删失（right-censored）生存数据上，并用 Lasso 与随机生存森林两种机器学习策略实现。本页先给出问题设定与识别假设，再逐个展示五种 meta-learner 的模拟算例与完整 R 代码。</p><span class="sbox"><span class="si">&#128269;</span>
+<input type="search" id="s-q" placeholder="搜索本站…（按 /）" autocomplete="off" aria-label="搜索本站">
+<span class="spanel" id="s-panel"></span></span>
+</div>
+
+<div class="toc">
+  <div class="ttl">本页目录</div>
+  <ol>
+    <li><a href="#problem-set-up">问题设定</a></li>
+    <li><a href="#s-learner">S-learner</a></li>
+    <li><a href="#t-learner">T-learner</a></li>
+    <li><a href="#censoring-adjustments">删失校正</a></li>
+    <li><a href="#m-learner">M-learner</a></li>
+    <li><a href="#x-learner">X-learner</a></li>
+    <li><a href="#r-learner">R-learner</a></li>
+    <li><a href="#funding">资助</a></li>
+    <li><a href="#references">参考文献</a></li>
+  </ol>
+</div>
+
+<p>首先加载本教程需要用到的包：</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">survlearners</span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span></code></pre></div>
+
+<p>这篇教程（vignette）演示如何使用 R 包 survlearners 中提供的五种主流 meta-learner（S-、T-、X-、R- 和 M-learner）来估计生存结局的异质处理效应（heterogeneous treatment effects, HTE）。Meta-learner 是一类特殊的<strong>元算法（meta-algorithm）</strong>，它借助预测模型来完成"处理效应估计"这一因果任务。对所有 meta-learner，我们考虑两种流行的机器学习方法——Lasso <span class="citation">(Tibshirani 1997; Goeman 2010)</span> 与随机（生存）森林 <span class="citation">(Breiman 2001; Ishwaran et al. 2008; Athey, Tibshirani, and Wager 2019)</span>——来构建预测模型。此外，虽然 meta-learner 原本是为<strong>无删失</strong>的连续或二分类结局开发的，我们会说明 survlearners 如何通过逆概率删失加权把它们改造到生存设定下。关于这些 meta-learner 的数学原理详解，以及基于大规模模拟的基准比较研究，请参阅《Handbook of Matching and Weighting Adjustments for Causal Inference》中题为 <a href="https://arxiv.org/abs/2207.07758" target="_blank" rel="noopener">Treatment heterogeneity for survival outcomes（生存结局的处理异质性）</a> 的一章。在本教程中，我们先描述问题设定，然后通过模拟示例演示每种 meta-learner 的用法。</p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>什么是 meta-learner？</strong>meta-learner（元学习器）并不是某一种具体的统计模型，而是一套"把因果问题拆成若干预测问题"的流程：它把 CATE 估计分解为若干个可以用现成机器学习模型（回归、分类、生存模型）完成的子步骤，再用这些子步骤的输出拼装出处理效应。好处是可以直接复用 Lasso、随机森林、梯度提升等任意预测工具，并且能自然地纳入高维协变量；代价是不同"拼法"对样本量、治疗组比例、风险模型复杂度的敏感程度不同。</p>
+  <p>本文的五个字母各自有含义：<strong>S</strong> = single（单一模型）、<strong>T</strong> = two（两个模型）、<strong>X</strong> = crossing（交叉）、<strong>R</strong> = residualization（残差化）、<strong>M</strong> = modified outcome（修正结局）。前两种是"间接"估计（先建模结局，再相减），后三种是"直接"对 CATE 建模。</p>
+</div>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>为什么生存数据的 HTE 需要专门方法？</strong>在普通的 CATE 估计中，我们直接对观测到的结局 <span class="math inline">\(Y_i\)</span> 建模。但在生存数据中，每个受试者给出的只是随访时间 <span class="math inline">\(U_i=\min(T_i,C_i)\)</span> 与事件指示 <span class="math inline">\(\Delta_i\)</span>：</p>
+  <p>① 一部分人的真实事件时间被<strong>右删失</strong>了——我们不知道他到底何时发生事件，只知道截止到某个时点还没有发生；② 即使没有删失，由于因果推断的根本问题，每个人最多只能观察到两个潜在结局中的一个。因此不能直接把 <span class="math inline">\(U_i\)</span> 当作连续结局来回归，也不能把删失者当作"未发生事件"。survlearners 的处理方式是：先把结局固定为"是否存活超过某个预先指定的时点 <span class="math inline">\(t_0\)</span>"这个二分类指标，再用逆概率删失加权把删失造成的信息损失校正回来。</p>
+</div>
+
+<h2 id="problem-set-up">问题设定</h2>
+
+<p>我们讨论因果推断中<strong>潜在结果框架</strong>（potential outcome framework）<span class="citation">(Neyman 1923; Rubin 1974)</span>下的条件平均处理效应（conditional average treatment effect, CATE）估计问题。考虑一项随机对照试验，它提供 <span class="math inline">\(N\)</span> 个独立同分布的个体层面数据，下标记为 <span class="math inline">\(i \in \mathcal{I} = \{1, 2, \dotsc, N\}\)</span>。患者的基线协变量记为 <span class="math inline">\(X_i = (X_{i1},\dotsc,X_{id}) \in \mathbb{R}^d\)</span>，治疗变量为 <span class="math inline">\(W_i \in \{0,1\}\)</span>。令 <span class="math inline">\(T_i(w)\)</span> 表示个体 <span class="math inline">\(i\)</span> 若被分配治疗 <span class="math inline">\(w\)</span> 时的潜在生存时间，<span class="math inline">\(C_i\)</span> 为删失时间。于是 <span class="math inline">\(T_i = W_i T_i(1)+ (1-W_i)T_i(0)\)</span>，观测到的随访时间为 <span class="math inline">\(U_i=\mathrm{min}(T_i, C_i)\)</span>，相应的非删失指示为 <span class="math inline">\(\Delta_i = \mathbb{1}\{T_i \leq C_i\}\)</span>。我们观测到的数据集为 <span class="math inline">\(\mathcal{O} = \{(X_i, W_i, U_i, \Delta_i): i \in \mathcal{I}\}\)</span>。我们另外约定记号 <span class="math inline">\(\mathcal{I}_0 = \{ i \in \mathcal{I}: W_i=0\}\)</span> 表示对照组下标集，<span class="math inline">\(\mathcal{O}_0 = \{(X_i, 0, U_i, \Delta_i): i \in \mathcal{I}_0\}\)</span> 表示对照数据集；对治疗组类似地定义 <span class="math inline">\(\mathcal{I}_1\)</span> 与 <span class="math inline">\(\mathcal{O}_1\)</span>。</p>
+
+<p>针对"存活超过预先指定时点 <span class="math inline">\(t_0\)</span> 的概率"这一结局，其条件平均处理效应（CATE）定义为：</p>
+<p><span class="math display">\[\tau(x) = \mathbb{E}[Y_i(1)-Y_i(0) \mid X_i=x],\]</span> 其中 <span class="math inline">\(Y_i(w) = \mathbb{1}\{T_i(w) &gt; t_0\}\)</span> 是"存活超过时点 <span class="math inline">\(t_0\)</span>"的指示变量。我们也记 <span class="math inline">\(Y_i = Y_i(W_i)\)</span>。</p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>生存概率差、RMST 与风险比（HR）不是一回事。</strong>本教程的 CATE 定义在<strong>绝对尺度</strong>上：<span class="math inline">\(\tau(x)\)</span> 是同一特征 <span class="math inline">\(x\)</span> 的患者在治疗与不治疗两种情形下"活过 <span class="math inline">\(t_0\)</span>"的概率之差。另一种常见的绝对尺度指标是限制平均生存时间（restricted mean survival time, RMST）之差，其中 <span class="math inline">\(\mathrm{RMST}(t_0)=\mathbb{E}[\min(T,t_0)]=\int_0^{t_0}S(u)\,du\)</span>，即生存曲线下从 0 到 <span class="math inline">\(t_0\)</span> 的面积。</p>
+  <p>临床上熟悉的 Cox 风险比 <span class="math inline">\(\mathrm{HR}=\frac{h_1(t)}{h_0(t)}\)</span> 则是<strong>相对尺度</strong>，并依赖比例风险假设。区别在于：① HR 恒定并不意味着绝对风险差恒定（基线风险不同时，同样的 HR 对应的生存概率差可以相差很大）；② 比例风险假设不成立时 HR 难以解释，而生存概率差/RMST 差仍然可解释；③ 绝对尺度是讨论"效应异质性"与制定个体化决策（如"这个患者值不值得治疗"）的自然尺度。survlearners 估计的是绝对尺度效应，grf 包的 <code>causal_survival_forest</code> 也支持 <code>target = "RMST"</code>。</p>
+</div>
+
+<p>为保证 CATE 可识别，我们做出如下假设 <span class="citation">(Rosenbaum and Rubin 1983)</span>：</p>
+
+<p><em>一致性（Consistency）</em>：真实数据中观测到的生存时间几乎总是等于在实际治疗分配下的潜在结局，即 <span class="math inline">\(T_i=T_i(W_i)\)</span>。</p>
+
+<p><em>随机对照试验（Randomized controlled trial, RCT）</em>：治疗分配是随机化的，从而 <span class="math inline">\(W_i\)</span> 独立于 <span class="math inline">\((X_i, T_i(1), T_i(0))\)</span>，即 <span class="math inline">\(W_i \perp \!\!\! \perp (X_i, T_i(1), T_i(0))\)</span>，且 <span class="math inline">\(\mathbb P[W_i=1] = e\)</span>，其中 <span class="math inline">\(0&lt;e&lt;1\)</span> 已知。</p>
+
+<p><em>非信息性删失（Noninformative censoring）</em>：条件于治疗分配与协变量，删失与生存时间独立，即 <span class="math inline">\(C_i \perp \!\!\! \perp T_i\,\mid\,X_i, W_i\)</span>。</p>
+
+<p><em>正性（Positivity）</em>：存在在时间范围 <span class="math inline">\(t_0\)</span> 之后仍处于风险集中的受试者，即存在某个 <span class="math inline">\(\eta_{C}&gt;0\)</span> 使得 <span class="math inline">\(\mathbb{P}[C_i &gt; t_0\,\mid\,X_i, W_i] \geq \eta_{C}\)</span>。</p>
+
+<p>若要把这些 meta-learner 应用于观察性研究，我们把上面的 RCT 假设替换为如下两条假设：</p>
+
+<p><em>无混杂性（Unconfoundedness）</em>：条件于基线协变量，潜在生存时间独立于治疗分配 <span class="math inline">\(W_i\)</span>，即 <span class="math inline">\(W_i \perp \!\!\! \perp (T_i(1), T_i(0)) | X_i\)</span>。</p>
+
+<p><em>重叠性（Overlap）</em>：存在 <span class="math inline">\(\eta \in (0,1)\)</span>，使得倾向得分 <span class="math inline">\(e(x) = \mathbb P[W_i=1 |X_i=x]\)</span> 在 <span class="math inline">\(X_i\)</span> 支撑集上的所有 <span class="math inline">\(x\)</span> 都满足 <span class="math inline">\(\eta \leq e(x) \leq 1-\eta\)</span>。</p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>这几条假设在临床研究中分别对应什么？</strong>① <em>一致性</em>对应"干预定义明确、不存在版本变异"——例如"使用某药"必须指同一种剂量与疗程；② <em>无混杂性</em>要求所有同时影响治疗决策与预后的基线混杂因素都被测量并纳入 <span class="math inline">\(X_i\)</span>，这与流行病学中"可忽略性/无未测量混杂"是同一个要求，在观察性研究中无法用数据检验，只能靠临床知识与敏感性分析支撑；③ <em>非信息性删失</em>正是临床研究里"失访是否与预后相关"的担忧——若病情重的患者更容易失访，该假设即被破坏；④ <em>正性</em>要求每种特征的患者都有机会被分到治疗组或对照组，否则 <span class="math inline">\(\tau(x)\)</span> 在该 <span class="math inline">\(x\)</span> 处无从识别。</p>
+  <p><strong>重叠性（overlap）务必画图检查：</strong>在观察性研究中应常规绘制两组倾向得分 <span class="math inline">\(e(x)\)</span> 的分布（overlap 图），并考虑对极端倾向得分做截断（trimming）。重叠性差时，任何 CATE 估计本质上都在做外推，个体化结论不可信。</p>
+</div>
+
+<h2 id="s-learner">S-learner</h2>
+
+<p><em>S-learner</em> 是实践中最"简单"的 meta-learner：它把基线协变量 <span class="math inline">\(X_i\)</span> 与治疗变量 <span class="math inline">\(W_i\)</span> 一起作为输入，用任意方法学习<strong>一个</strong>风险模型，即 <span class="math display">\[u([x, w]) = \mathbb{E}[Y_i|\,X_i=x, W_i=w],\]</span> 随后 S-learner 用拟合好的模型，把治疗组与对照组受试者的插补响应（imputed responses）之差作为 CATE 的估计，即 <span class="math display">\[\hat{\tau}(x) = \hat{\mu}([x, 1]) - \hat{\mu}([x, 0]).\]</span> 注意，S-learner 把治疗分配 <span class="math inline">\(W_i\)</span> 当作"又一个普通协变量"来处理 <span class="citation">(Hill 2011; Hahn, Murray, and Carvalho 2020)</span>。</p>
+
+<p>数据生成过程：生存时间由比例风险（proportional hazard, PH）模型抽取，是协变量 <span class="math inline">\(X_1\)</span>、<span class="math inline">\(X_2\)</span> 与治疗 <span class="math inline">\(W\)</span> 的函数。</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">123</span><span class="op">)</span></span>
+<span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">1000</span></span>
+<span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fl">5</span></span>
+<span><span class="va">Y.max</span> <span class="op">&lt;-</span> <span class="fl">2</span></span>
+<span><span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span> <span class="op">*</span> <span class="va">p</span><span class="op">)</span>, <span class="va">n</span>, <span class="va">p</span><span class="op">)</span></span>
+<span><span class="va">W</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="va">n</span>, <span class="fl">1</span>, <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="va">numeratorT</span> <span class="op">&lt;-</span> <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="cn">T</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">numeratorT</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">X</span><span class="op">[</span> ,<span class="fl">1</span><span class="op">]</span> <span class="op">+</span> <span class="op">(</span><span class="op">-</span><span class="fl">0.5</span> <span class="op">-</span> <span class="va">X</span><span class="op">[</span> ,<span class="fl">2</span><span class="op">]</span><span class="op">)</span> <span class="op">*</span> <span class="va">W</span><span class="op">)</span><span class="op">)</span> <span class="op">^</span> <span class="fl">2</span></span>
+<span><span class="va">failure.time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmin</a></span><span class="op">(</span><span class="cn">T</span>, <span class="va">Y.max</span><span class="op">)</span></span>
+<span><span class="va">numeratorC</span> <span class="op">&lt;-</span> <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">censor.time</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">numeratorC</span> <span class="op">/</span> <span class="op">(</span><span class="fl">4</span> <span class="op">^</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span> <span class="op">^</span> <span class="op">(</span><span class="fl">1</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmin</a></span><span class="op">(</span><span class="va">failure.time</span>, <span class="va">censor.time</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">D</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">failure.time</span> <span class="op">&lt;=</span> <span class="va">censor.time</span><span class="op">)</span></span>
+<span><span class="va">n.test</span> <span class="op">&lt;-</span> <span class="fl">1000</span></span>
+<span><span class="va">X.test</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n.test</span> <span class="op">*</span> <span class="va">p</span><span class="op">)</span>, <span class="va">n.test</span>, <span class="va">p</span><span class="op">)</span></span></code></pre></div>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>上面这段模拟代码在做什么？</strong>它生成 <span class="math inline">\(n=1000\)</span> 例"患者"、<span class="math inline">\(p=5\)</span> 个标准正态协变量，治疗 <span class="math inline">\(W\)</span> 以 0.5 的概率随机分配（因此倾向得分 <span class="math inline">\(e=0.5\)</span>，且无混杂）。生存时间由 PH 模型反演得到：线性预测子为 <span class="math inline">\(X_1 + (-0.5 - X_2)\cdot W\)</span>，意味着只有 <span class="math inline">\(X_1\)</span>、<span class="math inline">\(X_2\)</span> 进入模型，且治疗效应随 <span class="math inline">\(X_2\)</span> 变化——这就是我们要估计的异质性；其余 3 个协变量是纯噪声。</p>
+  <p><code>Y.max &lt;- 2</code> 引入<strong>行政性删失</strong>（研究最长随访 2 个时间单位），<code>censor.time</code> 生成随机删失时间，<code>Y = pmin(failure.time, censor.time)</code> 是观测到的随访时间，<code>D</code> 是事件指示（<code>D = 1</code> 表示观察到事件，<code>D = 0</code> 表示被删失）。注意这里的 <code>Y</code> 是<strong>时间</strong>，而不是后面 CATE 定义里的二分类"存活超过 <span class="math inline">\(t_0\)</span>"——后者由函数在内部构造。</p>
+</div>
+
+<p>在模拟的测试数据上生成真实的 CATE：</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">t0</span> <span class="op">&lt;-</span> <span class="fl">0.2</span></span>
+<span><span class="va">true.cate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="va">n</span><span class="op">)</span></span>
+<span><span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="va">n</span><span class="op">)</span> <span class="op">{</span></span>
+<span>          <span class="va">cox.ft0</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">10000</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">X.test</span><span class="op">[</span><span class="va">i</span>,<span class="fl">1</span><span class="op">]</span> <span class="op">+</span> <span class="op">(</span><span class="op">-</span><span class="fl">0.5</span> <span class="op">-</span> <span class="va">X.test</span><span class="op">[</span><span class="va">i</span>,<span class="fl">2</span><span class="op">]</span><span class="op">)</span> <span class="op">*</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span></span>
+<span>          <span class="va">cox.ft1</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">10000</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">X.test</span><span class="op">[</span><span class="va">i</span>,<span class="fl">1</span><span class="op">]</span> <span class="op">+</span> <span class="op">(</span><span class="op">-</span><span class="fl">0.5</span> <span class="op">-</span> <span class="va">X.test</span><span class="op">[</span><span class="va">i</span>,<span class="fl">2</span><span class="op">]</span><span class="op">)</span> <span class="op">*</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span></span>
+<span>          <span class="va">true.cate</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmin</a></span><span class="op">(</span><span class="va">cox.ft1</span>, <span class="va">Y.max</span><span class="op">)</span> <span class="op">&gt;</span> <span class="va">t0</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmin</a></span><span class="op">(</span><span class="va">cox.ft0</span>, <span class="va">Y.max</span><span class="op">)</span> <span class="op">&gt;</span> <span class="va">t0</span><span class="op">)</span></span>
+<span>          <span class="op">}</span></span></code></pre></div>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>为什么需要这段"真实 CATE"代码？</strong>因果推断的模拟研究中，真值必须靠蒙特卡洛（Monte Carlo）积分获得：对每位测试集患者 <span class="math inline">\(i\)</span>，分别按 <span class="math inline">\(W=0\)</span> 与 <span class="math inline">\(W=1\)</span> 下的 PH 模型各模拟 10000 个生存时间，取"活过 <span class="math inline">\(t_0=0.2\)</span>"的比例之差，即 <span class="math inline">\(\tau(X_i)=P[T_i(1)&gt;t_0]-P[T_i(0)&gt;t_0]\)</span>。真实临床数据中没有这个真值，所以模拟是唯一能比较各种 meta-learner 准确度的场合。</p>
+</div>
+
+<p>当 <span class="math inline">\(\hat{\mu}\)</span> 用 Lasso Cox PH 模型学习（通过 R 包 <em>glmnet</em> 实现 <span class="citation">(Friedman et al. 2022)</span>），关注时点为 <span class="math inline">\(t_0=0.2\)</span> 时：</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">surv.sl.lasso.fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://som-shahlab.github.io/survlearners/../reference/surv_sl_lasso.html">surv_sl_lasso</a></span><span class="op">(</span><span class="va">X</span>, <span class="va">Y</span>, <span class="va">W</span>, <span class="va">D</span>, <span class="va">t0</span><span class="op">)</span></span>
+<span><span class="va">cate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.sl.lasso.fit</span><span class="op">)</span></span>
+<span><span class="va">cate.test</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.sl.lasso.fit</span>, <span class="va">X.test</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 绘制 S-learner（Lasso）估计的 CATE 与真实 CATE 的散点图</span></span>
+<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>cate.test <span class="op">=</span> <span class="va">cate.test</span>, true.cate <span class="op">=</span> <span class="va">true.cate</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">df</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">cate.test</span>, y <span class="op">=</span> <span class="va">true.cate</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">xlab</a></span><span class="op">(</span><span class="st">"Estimated CATE by S-learner with Lasso"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ylab</a></span><span class="op">(</span><span class="st">"True CATE"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">xlim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.8</span>, <span class="fl">0.8</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">ylim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.8</span>, <span class="fl">0.8</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_abline</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">1</span>, color <span class="op">=</span> <span class="st">"grey"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="https://som-shahlab.github.io/survlearners/metalearners_files/figure-html/unnamed-chunk-4-1.png" width="700" alt="S-learner（Lasso）估计的 CATE 与真实 CATE 的散点图"></p>
+<p class="caption">图 1：S-learner 配合 Lasso Cox 模型，估计 CATE（横轴）与真实 CATE（纵轴）的散点图，灰色直线为 <span class="math inline">\(y=x\)</span> 参考线。</p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>这些散点图该怎么看？</strong>横轴是模型对测试集 1000 名"新患者"估计的 CATE，纵轴是蒙特卡洛算出的真实 CATE，灰色对角线是 <span class="math inline">\(y=x\)</span> 理想参考线。点越紧贴对角线，估计越准确。</p>
+  <p>要特别留意两种典型形态：① 点云整体比参考线更"平"（斜率明显小于 1），说明估计值被向 0 <strong>收缩（shrinkage）</strong>，这是 Lasso、森林等惩罚类方法的常见表现，会低估真实的效应异质性；② 点云呈"竖着的一团"（估计值几乎不变而真值变化很大），说明模型根本没学到异质性，例如 S-learner 的预测模型忽略了治疗变量或治疗×协变量交互项。</p>
+  <p>此外，本例的真实 CATE 只依赖 <span class="math inline">\(X_1, X_2\)</span>，其余 3 个协变量是噪声，因此 Lasso 这类能做变量选择的方法在这个模拟中拥有先天优势——读图时要记住这是"对 Lasso 友好"的场景。</p>
+</div>
+
+<p>当 <span class="math inline">\(\hat{\mu}\)</span> 用随机生存森林学习（通过 R 包 <em>grf</em> 实现 <span class="citation">(Tibshirani et al. 2022)</span>）时：</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">t0</span> <span class="op">&lt;-</span> <span class="fl">0.2</span></span>
+<span><span class="va">surv.sl.grf.fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://som-shahlab.github.io/survlearners/../reference/surv_sl_grf.html">surv_sl_grf</a></span><span class="op">(</span><span class="va">X</span>, <span class="va">Y</span>, <span class="va">W</span>, <span class="va">D</span>, <span class="va">t0</span><span class="op">)</span></span>
+<span><span class="va">cate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.sl.grf.fit</span><span class="op">)</span></span>
+<span><span class="va">cate.test</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.sl.grf.fit</span>, <span class="va">X.test</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 绘制 S-learner（随机生存森林）估计的 CATE 与真实 CATE 的散点图</span></span>
+<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>cate.test <span class="op">=</span> <span class="va">cate.test</span>, true.cate <span class="op">=</span> <span class="va">true.cate</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">df</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">cate.test</span>, y <span class="op">=</span> <span class="va">true.cate</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">xlab</a></span><span class="op">(</span><span class="st">"Estimated CATE by S-learner with Random Survival Forest"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ylab</a></span><span class="op">(</span><span class="st">"True CATE"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">xlim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.8</span>, <span class="fl">0.8</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">ylim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.8</span>, <span class="fl">0.8</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_abline</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">1</span>, color <span class="op">=</span> <span class="st">"grey"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="https://som-shahlab.github.io/survlearners/metalearners_files/figure-html/unnamed-chunk-5-1.png" width="700" alt="S-learner（随机生存森林）估计的 CATE 与真实 CATE 的散点图"></p>
+<p class="caption">图 2：S-learner 配合随机生存森林，估计 CATE（横轴）与真实 CATE（纵轴）的散点图。</p>
+
+<h2 id="t-learner">T-learner</h2>
+
+<p><em>T-learner</em> 是另一种被广泛使用的 meta-learner：它以基线协变量 <span class="math inline">\(X_i\)</span> 为输入，对治疗组与对照组<strong>分别</strong>拟合<strong>两个</strong>风险模型，即 <span class="math display">\[u_{(w)}(x) = \mathbb{P}[T_i(w) &gt; t_0|\,X_i=x],\]</span> 也就是说，<span class="math inline">\(u_{(1)}(x)\)</span> 只用治疗组受试者的数据训练，而 <span class="math inline">\(u_{(0)}(x)\)</span> 只用对照组受试者的数据拟合。随后 T-learner 应用这两个拟合模型，把治疗组与对照组的插补响应之差作为 CATE 的估计，即 <span class="math display">\[\hat{\tau}(x) = \hat{\mu}_{(1)}(x) - \hat{\mu}_{(0)}(x).\]</span> 下面给出配合 Cox-Lasso 的 T-learner：</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">surv.tl.lasso.fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://som-shahlab.github.io/survlearners/../reference/surv_tl_lasso.html">surv_tl_lasso</a></span><span class="op">(</span><span class="va">X</span>, <span class="va">Y</span>, <span class="va">W</span>, <span class="va">D</span>, <span class="va">t0</span><span class="op">)</span></span>
+<span><span class="va">cate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.tl.lasso.fit</span><span class="op">)</span></span>
+<span><span class="va">cate.test</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.tl.lasso.fit</span>, <span class="va">X.test</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 绘制 T-learner（Lasso）估计的 CATE 与真实 CATE 的散点图</span></span>
+<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>cate.test <span class="op">=</span> <span class="va">cate.test</span>, true.cate <span class="op">=</span> <span class="va">true.cate</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">df</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">cate.test</span>, y <span class="op">=</span> <span class="va">true.cate</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">xlab</a></span><span class="op">(</span><span class="st">"Estimated CATE by T-learner with Lasso"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ylab</a></span><span class="op">(</span><span class="st">"True CATE"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">xlim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.8</span>, <span class="fl">0.8</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">ylim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.8</span>, <span class="fl">0.8</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_abline</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">1</span>, color <span class="op">=</span> <span class="st">"grey"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="https://som-shahlab.github.io/survlearners/metalearners_files/figure-html/unnamed-chunk-6-1.png" width="700" alt="T-learner（Lasso）估计的 CATE 与真实 CATE 的散点图"></p>
+<p class="caption">图 3：T-learner 配合 Lasso Cox 模型，估计 CATE（横轴）与真实 CATE（纵轴）的散点图。</p>
+
+<p>配合随机生存森林的 T-learner：</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">surv.tl.grf.fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://som-shahlab.github.io/survlearners/../reference/surv_tl_grf.html">surv_tl_grf</a></span><span class="op">(</span><span class="va">X</span>, <span class="va">Y</span>, <span class="va">W</span>, <span class="va">D</span>, <span class="va">t0</span><span class="op">)</span></span>
+<span><span class="va">cate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.tl.grf.fit</span><span class="op">)</span></span>
+<span><span class="va">cate.test</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.tl.grf.fit</span>, <span class="va">X.test</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 绘制 T-learner（随机生存森林）估计的 CATE 与真实 CATE 的散点图</span></span>
+<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>cate.test <span class="op">=</span> <span class="va">cate.test</span>, true.cate <span class="op">=</span> <span class="va">true.cate</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">df</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">cate.test</span>, y <span class="op">=</span> <span class="va">true.cate</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">xlab</a></span><span class="op">(</span><span class="st">"Estimated CATE by T-learner with Random Survival Forest"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ylab</a></span><span class="op">(</span><span class="st">"True CATE"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">xlim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.8</span>, <span class="fl">0.8</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">ylim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.8</span>, <span class="fl">0.8</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_abline</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">1</span>, color <span class="op">=</span> <span class="st">"grey"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="https://som-shahlab.github.io/survlearners/metalearners_files/figure-html/unnamed-chunk-7-1.png" width="700" alt="T-learner（随机生存森林）估计的 CATE 与真实 CATE 的散点图"></p>
+<p class="caption">图 4：T-learner 配合随机生存森林，估计 CATE（横轴）与真实 CATE（纵轴）的散点图。</p>
+
+<p>S-learner 通过把"治疗×协变量"交互项纳入风险模型来估计处理异质性，而 T-learner 通过按治疗分层建立风险模型来估计处理异质性。这两种 meta-learner 的一个优点是：向生存结局的推广非常直接——只要使用能处理右删失的风险模型即可。它们的缺点是：1）两者都需要足够多的治疗组与对照组受试者，才能保证风险模型可靠；2）它们都不直接估计 CATE 函数，因此无法对 CATE 函数本身施加正则化，也无法纳入已知的 CATE 结构；3）由于风险函数可能很复杂，它们可能得到过于复杂的 CATE 模型；4）由于 <span class="math inline">\(\hat{u}_{(1)}(x)\)</span> 与 <span class="math inline">\(\hat{u}_{(0)}(x)\)</span> 的基函数不一致，T-learner 可能遭受<strong>正则化诱导的偏倚</strong>（regularization-induced bias）。</p>
+
+<p>为了通过把 <span class="math inline">\(Y_i^{*}= Y_i(1) - Y_i(0)\)</span> 作为 <span class="math inline">\(X_i\)</span> 的函数做预测建模来<strong>直接</strong>学习 CATE 函数，我们面临两个挑战：第一，由于删失，对被删失的个体 <span class="math inline">\(i\)</span> 我们观测不到 <span class="math inline">\(Y_i\)</span>，只能观测到 <span class="math inline">\((U_i, \Delta_i)\)</span>；第二，由于因果推断的根本问题，我们最多只能观测到一个潜在结局（每个 <span class="math inline">\(i\)</span> 要么被治疗要么未被治疗），即 <span class="math inline">\(Y_i = Y_i(W_i)\)</span>。然而事实表明，M-、X- 和 R-learner 能够处理这个"缺失数据"问题，从而实现对 CATE 的直接建模。</p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>S-learner 与 T-learner 该怎么取舍？</strong>S-learner 只拟合一个模型、把治疗当作普通协变量，实现最简单，样本利用率也最高；但只有当模型本身容纳了"治疗×协变量"交互时才能学到异质性——若预测模型倾向于忽略 <span class="math inline">\(W\)</span>（例如协变量很多而 <span class="math inline">\(W\)</span> 的预测力弱），估计出的 CATE 会被压向 0。</p>
+  <p>T-learner 分两组各建一个模型，能更灵活地捕捉组间差异；但每个模型只用一半样本，治疗组/对照组人数悬殊时，较弱那一侧的模型会很不稳定；而且两个模型的惩罚项（如 Lasso 各自选中的变量）不一致时，两个预测之差会带来额外的正则化偏倚。</p>
+  <p>两者的共同局限是：CATE 只是两个预测的副产品，<strong>无法对 CATE 本身施加约束</strong>（例如"效应应该稀疏"、"效应应随年龄单调"这类先验结构都无法加入），也难以给出 CATE 的有效推断。这正是 M/X/R-learner 出现的动机。</p>
+</div>
+
+<h2 id="censoring-adjustments">删失校正</h2>
+
+<p>这个"缺失数据"或"右删失"问题可以用<strong>逆概率删失加权（Inverse Probability Censoring Weights, IPCW）</strong>来处理 <span class="citation">(Kohler, Máthé, and Pintér 2002; Van der Laan and Robins 2003)</span>。具体来说，我们构造一个只含<strong>完整病例</strong>（complete cases）的数据集，完整病例定义为：在 <span class="math inline">\(t_0\)</span> 之前发生事件的受试者，或者随访到 <span class="math inline">\(t_0\)</span> 仍未发生事件的受试者，即 <span class="math inline">\(\mathcal{I}_{\text{comp}} = \{i \in \mathcal{I} : \Delta_i=1 \text{ or } U_i \geq t_0\}\)</span> 且 <span class="math inline">\(\mathcal{O}_{\text{comp}} = \{(X_i, W_i, U_i, \Delta_i): i \in \mathcal{I}\}\)</span>。接下来，我们按如下方式估计删失时间的生存函数： <span class="math display">\[ S^C(u, x, w) = \mathbb{P}[C_i \geq u \mid X_i=x, W_i=w]\]</span> 基于 <span class="math inline">\(\hat{S}^C(\cdot)\)</span>，我们用 <span class="math inline">\(\hat{K}_i\)</span>（即"未被删失概率的倒数"的估计）对每个受试者 <span class="math inline">\(i \in \mathcal{I}_{\text{comp}}\)</span> 重新加权，即 <span class="math display">\[\hat{K}_i = 1\Big/\hat{S}^C\left(\min\{U_i, t_0\}, X_i, W_i\right).\]</span> IPCW 校正消除了删失偏倚，但当研究中的删失率很高、且多数删失事件发生在 <span class="math inline">\(t_0\)</span> 之前时，它可能效率低下且不稳定；它对删失模型的误设也比较敏感。在这种情况下，可以考虑类似 <span class="citation">Robins, Rotnitzky, and Zhao (1994)</span> 的增广逆概率加权（augmented inverse-propensity weighting）估计量那样的<strong>双重稳健</strong>校正。这里不展开细节，感兴趣的读者请参阅 <span class="citation">Tsiatis (2006)</span>。</p>
+
+<p>对于这三种学习器（M、X、R），survlearners 提供两种估计删失权重的方式：Kaplan-Meier（KM）估计量或随机生存森林。KM 估计量适用于<strong>完全独立删失</strong>的情形，即 <span class="math inline">\(C_i \perp \!\!\! \perp \{T_i, X_i, W_i\}\)</span>；否则应当用随机生存森林来刻画 <span class="math inline">\(C_i\)</span> 与其他变量之间的依赖关系。此外，survlearners 用袋外（out-of-bag）方式（例如交叉拟合 cross-fitting）来估计 <span class="math inline">\(\hat{K}_i\)</span>，以避免过度拟合 <span class="citation">(Chernozhukov et al. 2018)</span>。</p>
+
+<p>假如我们能获得满足 <span class="math inline">\(\mathbb E[Y_i^* \mid X_i=x] = \tau(x)\; \text{  or  }\; \mathbb E[Y_i^* \mid X_i=x]\)</span> 的<strong>神谕得分</strong>（oracle scores）<span class="math inline">\(Y_i^{*}\)</span>（针对未删失样本 <span class="math inline">\(i \in \mathcal{I}_{\text{comp}}\)</span>）以及权重 <span class="math inline">\(\hat{K}_i\)</span>，那么我们就可以通过加权预测建模来估计 CATE：<span class="math inline">\(\hat{\tau}(\cdot) = \mathcal{M}(Y^{*} \sim X; \; _{\text{comp}}, \hat{K})\)</span>，其中 <span class="math inline">\(\mathcal{M}\)</span> 表示任意模型。在下面的小节中，我们描述每种 meta-learner 如何解决这样一个挑战：即使在没有删失的情况下，由于因果推断的根本困难，神谕得分 <span class="math inline">\(Y_i^{*}\)</span> 也是不可得的。</p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>IPCW 的直觉是什么？</strong>它与流行病学里熟悉的逆概率加权（IPW）完全同构。一个在 <span class="math inline">\(t_0\)</span> 之前被删失的患者，我们无法确定他的 <span class="math inline">\(Y_i\)</span>；但如果我们知道"与他特征相同的人"有多大概率能随访到 <span class="math inline">\(t_0\)</span>（即删失生存函数 <span class="math inline">\(S^C\)</span>），就可以用 <span class="math inline">\(1/S^C\)</span> 作为权重，让这位被保留下来的患者"代表"若干个被删失的同类人。这样，保留下来的完整病例经过加权后就能近似代表原始全人群。</p>
+  <p>代价是：删失率高、或多数删失发生在 <span class="math inline">\(t_0\)</span> 之前时，权重会变得很大，估计方差上升、结果不稳（与倾向得分接近 0 时 IPW 爆炸是同一个道理）。<strong>实践建议：</strong>务必报告删失比例、关注时点 <span class="math inline">\(t_0\)</span> 处仍在风险集的人数，以及权重的分布（极值、最大值占比）；必要时对权重做截断（stabilized/truncated weights），或改用双重稳健校正。</p>
+</div>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>用 KM 还是随机生存森林？为什么一定要"交叉拟合"？</strong>KM 估计量假定删失与 <span class="math inline">\(T_i, X_i, W_i\)</span> 完全独立——这在纯行政性删失（研究到点结束、所有人还在随访）时成立；但临床研究中失访往往与预后相关（例如病情重者更易脱落），此时应让权重随协变量变化，用随机生存森林对 <span class="math inline">\(C_i\)</span> 关于 <span class="math inline">\((X_i, W_i)\)</span> 建模。</p>
+  <p>所谓<strong>交叉拟合（cross-fitting）</strong>/袋外估计，是指估计第 <span class="math inline">\(i\)</span> 个人的权重与干扰参数时，不使用第 <span class="math inline">\(i\)</span> 个人自己的数据（例如把样本分成 K 折，用其余 K−1 折拟合后再预测本折）。这样做可以避免机器学习模型"记住"本样本造成的过度拟合，是双重/去偏机器学习（double/debiased machine learning）的核心步骤，也是 CATE 估计能够具有 <span class="math inline">\(\sqrt{n}\)</span> 一致性与可用置信区间的关键前提。</p>
+</div>
+
+<h2 id="m-learner">M-learner</h2>
+
+<p><em>修正结局法（modified outcome method, M-learner）</em> <span class="citation">(Signorovitch 2007; Tian et al. 2014; Athey and Imbens 2016)</span> 利用上述洞察，基于 <span class="citation">Horvitz and Thompson (1952)</span> 变换 / 逆概率加权（inverse propensity weighting, IPW）构造如下得分： <span class="math display">\[Y^{*,M}_i = Y_i\left(\frac{W_i}{e} - \frac{1-W_i}{1-e}\right),\;\;\; \mathbb E[Y^{*,M}_i \mid X_i=x] = \tau(x),\]</span> 随后 M-learner 按如下方式进行： <span class="math display">\[\hat{\tau}(x)= \mathcal{M}(Y^{*,M} \sim X;\; \mathcal{O}_{\text{comp}}, \hat{K})\]</span> 下面给出配合 Cox-Lasso 的 M-learner：</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">surv.fl.lasso.fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://som-shahlab.github.io/survlearners/../reference/surv_fl_lasso.html">surv_fl_lasso</a></span><span class="op">(</span><span class="va">X</span>, <span class="va">Y</span>, <span class="va">W</span>, <span class="va">D</span>, <span class="va">t0</span>, W.hat <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="va">cate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.fl.lasso.fit</span><span class="op">)</span></span>
+<span><span class="va">cate.test</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.fl.lasso.fit</span>, <span class="va">X.test</span><span class="op">)</span></span></code></pre></div>
+
+<p>配合随机生存森林的 M-learner：</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">surv.fl.grf.fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://som-shahlab.github.io/survlearners/../reference/surv_fl_grf.html">surv_fl_grf</a></span><span class="op">(</span><span class="va">X</span>, <span class="va">Y</span>, <span class="va">W</span>, <span class="va">D</span>, <span class="va">t0</span>, W.hat <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="va">cate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.fl.grf.fit</span><span class="op">)</span></span>
+<span><span class="va">cate.test</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.fl.grf.fit</span>, <span class="va">X.test</span><span class="op">)</span></span></code></pre></div>
+
+<p>M-learner 的一个缺点是方差较大（例如当 <span class="math inline">\(e \approx 0\)</span> 时，治疗组受试者的得分 <span class="math inline">\(Y_{i}^{*,M}\)</span> 会急剧放大）。相比之下，X-learner 与 R-learner 同样直接估计 CATE，但通过在得分的定义中纳入估计的风险模型而获得了较低的方差。</p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>M-learner 的方差从何而来？</strong>伪结局 <span class="math inline">\(Y^{*,M}_i = Y_i\big(W_i/e - (1-W_i)/(1-e)\big)\)</span> 本质上是 Horvitz-Thompson 变换：把观察到的那一个潜在结局按"被分到该组的概率的倒数"放大，使其条件期望恰好等于 <span class="math inline">\(\tau(x)\)</span>。它的好处是构造极简、且完全不依赖结局模型。</p>
+  <p>但当倾向得分 <span class="math inline">\(e\)</span> 接近 0（治疗组极罕见）时，<span class="math inline">\(1/e\)</span> 极大，治疗组的伪结局数值爆炸，估计方差随之飙升——这正是流行病学中"极端权重"问题的翻版。因此在治疗组/对照组比例严重失衡时，应优先考虑把风险模型纳入得分定义的 X-learner 与 R-learner（它们相当于对伪结局做了"中心化"，从而削掉这部分方差）。</p>
+</div>
+
+<h2 id="x-learner">X-learner</h2>
+
+<p><em>X-learner</em> <span class="citation">(Künzel et al. 2019)</span> 以一种"交叉"（crossing）的方式，分别为治疗组与对照组受试者构造得分： <span class="math display">\[Y_i^{*,X,1} = Y_i(1) - \mu_{(0)}(X_i), \;\; Y_i^{*,X,0} = \mu_{(1)}(X_i) - Y_i(0), \]</span> 其中 <span class="math inline">\(\mu_{(w)}(x) = \mathbb E[Y_i(w) \mid X_i=x]\)</span> 在第一阶段按 T-learner 的方式估计。有了 <span class="math inline">\(\hat{\mu}_{(0)}(X_i)\)</span> 与 <span class="math inline">\(Y_i^{*,X,1}\)</span>，X-learner 在第二阶段把 CATE 估计为 <span class="math display">\[\hat{\tau}_{(1)}(\cdot) = \mathcal{M}(Y - \hat{\mu}_{(0)}(X) \sim X;\; \mathcal{O}_1 \cap \mathcal{O}_{\text{comp}}, \hat{K}),\]</span> 类似地，我们可以估计 <span class="math inline">\(\hat{\tau}_{(0)}(\cdot) = \mathcal{M}(\hat{\mu}_{(0)}(X) \sim X;\; \mathcal{O}_0 \cap \mathcal{O}_{\text{comp}}, \hat{K})\)</span>。在最后一个阶段，X-learner 按如下方式合并两个 CATE 估计： <span class="math display">\[\hat{\tau}(x) = (1-e)\cdot\hat{\tau}_{(1)}(x) + e\cdot\hat{\tau}_{(0)}(x).\]</span> 这里的直觉是：治疗组人数越少，我们就越应该提高 <span class="math inline">\(\hat{\tau}_{(1)}(x)\)</span> 的权重；治疗组人数越多，就越应该提高 <span class="math inline">\(\hat{\tau}_{(0)}(x)\)</span> 的权重。</p>
+
+<p>配合 Cox-Lasso 的 X-learner：</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">surv.xl.lasso.fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://som-shahlab.github.io/survlearners/../reference/surv_xl_lasso.html">surv_xl_lasso</a></span><span class="op">(</span><span class="va">X</span>, <span class="va">Y</span>, <span class="va">W</span>, <span class="va">D</span>, <span class="va">t0</span>, W.hat <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="va">cate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.xl.lasso.fit</span><span class="op">)</span></span>
+<span><span class="va">cate.test</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.xl.lasso.fit</span>, <span class="va">X.test</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 绘制 X-learner（Lasso）估计的 CATE 与真实 CATE 的散点图</span></span>
+<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>cate.test <span class="op">=</span> <span class="va">cate.test</span>, true.cate <span class="op">=</span> <span class="va">true.cate</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">df</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">cate.test</span>, y <span class="op">=</span> <span class="va">true.cate</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">xlab</a></span><span class="op">(</span><span class="st">"Estimated CATE by X-learner with Lasso"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ylab</a></span><span class="op">(</span><span class="st">"True CATE"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">xlim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.8</span>, <span class="fl">0.8</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">ylim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.8</span>, <span class="fl">0.8</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_abline</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">1</span>, color <span class="op">=</span> <span class="st">"grey"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="https://som-shahlab.github.io/survlearners/metalearners_files/figure-html/unnamed-chunk-10-1.png" width="700" alt="X-learner（Lasso）估计的 CATE 与真实 CATE 的散点图"></p>
+<p class="caption">图 5：X-learner 配合 Lasso Cox 模型，估计 CATE（横轴）与真实 CATE（纵轴）的散点图。</p>
+
+<p>配合随机生存森林的 X-learner：</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">surv.xl.grf.fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://som-shahlab.github.io/survlearners/../reference/surv_xl_grf.html">surv_xl_grf</a></span><span class="op">(</span><span class="va">X</span>, <span class="va">Y</span>, <span class="va">W</span>, <span class="va">D</span>, <span class="va">t0</span>, W.hat <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="va">cate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.xl.grf.fit</span><span class="op">)</span></span>
+<span><span class="va">cate.test</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.xl.grf.fit</span>, <span class="va">X.test</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 绘制 X-learner（随机生存森林）估计的 CATE 与真实 CATE 的散点图</span></span>
+<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>cate.test <span class="op">=</span> <span class="va">cate.test</span>, true.cate <span class="op">=</span> <span class="va">true.cate</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">df</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">cate.test</span>, y <span class="op">=</span> <span class="va">true.cate</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">xlab</a></span><span class="op">(</span><span class="st">"Estimated CATE by X-learner with Random Survival Forest"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ylab</a></span><span class="op">(</span><span class="st">"True CATE"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">xlim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.8</span>, <span class="fl">0.8</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">ylim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.8</span>, <span class="fl">0.8</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_abline</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">1</span>, color <span class="op">=</span> <span class="st">"grey"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="https://som-shahlab.github.io/survlearners/metalearners_files/figure-html/unnamed-chunk-11-1.png" width="700" alt="X-learner（随机生存森林）估计的 CATE 与真实 CATE 的散点图"></p>
+<p class="caption">图 6：X-learner 配合随机生存森林，估计 CATE（横轴）与真实 CATE（纵轴）的散点图。</p>
+
+<p>配合随机生存森林与 Lasso 的 X-learner：</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">surv.xl.grf.lasso.fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://som-shahlab.github.io/survlearners/../reference/surv_xl_grf_lasso.html">surv_xl_grf_lasso</a></span><span class="op">(</span><span class="va">X</span>, <span class="va">Y</span>, <span class="va">W</span>, <span class="va">D</span>, <span class="va">t0</span>, W.hat <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="va">cate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.xl.grf.lasso.fit</span><span class="op">)</span></span>
+<span><span class="va">cate.test</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.xl.grf.lasso.fit</span>, <span class="va">X.test</span><span class="op">)</span></span></code></pre></div>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>X-learner 的"交叉"到底指什么？</strong>它先用 T-learner 的方式拟合两组风险模型 <span class="math inline">\(\hat\mu_{(0)}\)</span>、<span class="math inline">\(\hat\mu_{(1)}\)</span>，然后做交叉相减：对<strong>治疗组</strong>的每个人，用<strong>对照模型</strong>预测他若不接受治疗时的结局，取"实际结局 − 对照预测"作为他的个体效应；对<strong>对照组</strong>则反过来用治疗模型预测，取"治疗预测 − 实际结局"。</p>
+  <p>最后按 <span class="math inline">\((1-e)\)</span> 与 <span class="math inline">\(e\)</span> 加权合并两个 CATE 模型：<strong>哪一组的样本越少，就给由该组得到的估计更大权重</strong>（因为它更"珍贵"，也更贴近该组的实际信息）。所以在治疗组/对照组人数严重不平衡时，X-learner 通常明显优于 T-learner；在两组均衡时它退化为接近 T-learner 的表现。</p>
+  <p><code>surv_xl_grf_lasso</code> 这类"混合"实现也很实用：用随机生存森林估计干扰参数（结局模型/删失权重，需要灵活的非参数拟合），再用 Lasso 估计目标参数 CATE（需要稀疏、可解释），把两种机器学习方法的优势组合起来。</p>
+</div>
+
+<h2 id="r-learner">R-learner</h2>
+
+<p><em>R-learner</em> <span class="citation">(Nie and Wager 2021)</span> 是一种建立在对 <span class="math inline">\(W_i\)</span> 与 <span class="math inline">\(Y_i\)</span> 做<strong>残差化</strong>（residualization）来刻画 CATE 的思路之上的 meta-learner <span class="citation">(Robinson 1988)</span>，即 <span class="math inline">\(W_i - e\)</span> 与 <span class="math inline">\(Y_i - m(x)\)</span>，其中 <span class="math inline">\(m(x) = \mathbb E[Y_i \mid X_i=x]\)</span>。有两种方式描述 R-learner：<strong>基于损失</strong>的表示与<strong>加权</strong>表示。</p>
+
+<p>对基于损失的表示 <span class="citation">(Robins 2004)</span>，R-learner 通过最小化如下损失来估计 <span class="math inline">\(\tau(\cdot)\)</span>： <span class="math display">\[\tau(\cdot) \in \mathrm{argmin}_{\widetilde{\tau}(\cdot)} \left\{\mathbb{E}\left[\hat{K}_i\left(\{Y_i-\hat{m}(X_i)\}-\{W_i-e\}\widetilde{\tau}(X_i)\right)^2\right] \right\},\]</span> 其中 <span class="math inline">\(\hat{m}(\cdot) = e \hat{\mu}_{(1)}(\cdot) + (1-e)\hat{\mu}_{(0)}(\cdot)\)</span> 是袋外估计的结局干扰参数；<span class="math inline">\(\hat{\mu}_{(w)}(\cdot)\)</span> 按 T-learner 的方式估计，<span class="math inline">\(\hat{K}_i\)</span> 是如前所述的估计删失权重。</p>
+
+<p>为了给出加权表示，我们把上面的损失函数改写为加权最小二乘目标： <span class="math display">\[\tau(\cdot) \in \mathrm{argmin}_{\widetilde{\tau}(\cdot)} \left\{\mathbb{E}\left[\hat{K}_i(W_i-e)^2\left(\frac{Y_i-\hat{m}(X_i)}{W_i-e}-\widetilde{\tau}(X_i)\right)^2\right] \right\}, \]</span> 其中 <span class="math inline">\(Y^{*, R} = \frac{Y_i-\hat{m}(X_i)}{W_i-e}\)</span> 是 R-learner 构造出的得分。</p>
+
+<p>关于 R-learner，我们指出以下几点：</p>
+<ol style="list-style-type: decimal">
+<li><p>R-learner 对结局干扰参数的估计偏倚是稳健的：即使 <span class="math inline">\(\hat{m}(.)\)</span> 对 <span class="math inline">\(m(\cdot)\)</span> 的近似并不好，R-learner 也可能表现良好 <span class="citation">(Nie and Wager 2021)</span>。事实上，若 <span class="math inline">\(e = 0.5\)</span> 且我们把 <span class="math inline">\(\hat{m}(\cdot) \approx 0\)</span>（即便 <span class="math inline">\(m(\cdot) \neq 0\)</span>），R-learner 的预测会与 M-learner 的预测非常相似。另一方面，当 <span class="math inline">\(\hat{m}(\cdot) \approx m(\cdot)\)</span> 时，用 <span class="math inline">\(\hat{m}(X_i)\)</span> 做中心化有助于让估计比 M-learner 更稳定。</p></li>
+<li><p>对于以 <span class="math inline">\((W_i-e)^2\)</span> 为权重的加权最小二乘目标，在治疗分配不平衡的情形下，例如治疗组人数较少（<span class="math inline">\(e &lt; 0.5\)</span>）时，R-learner 会以因子 <span class="math inline">\((1-e)^2/e^2\)</span> 相对对照组提高治疗组的权重。R-learner 对治疗组的这种加权行为与前面展示的 X-learner 类似。事实上，在严重不平衡 <span class="math inline">\((e \approx 0)\)</span> 的情况下，R-learner 与 X-learner（当使用相同的预测模型时）的预测几乎完全一致 <span class="citation">(Nie and Wager 2021)</span>。</p></li>
+<li><p>当 R-learner 用 <span class="citation">Athey, Tibshirani, and Wager (2019)</span> 的广义随机森林框架实现时，<a href="https://github.com/grf-labs/grf" target="_blank" rel="noopener">grf</a> 包中有一个 <em>causal_forest</em> 函数可以直接对 <span class="math inline">\(\tau(x)\)</span> 建模。对每个 <span class="math inline">\(x\)</span>，因果森林通过拟合一个加权回归来估计 <span class="math inline">\(\hat{\tau}(x)\)</span>，该回归使用基于损失的目标，并带有围绕 <span class="math inline">\(x\)</span> 局部化、由树的分割集合所决定的额外数据自适应权重 <span class="citation">(Athey, Tibshirani, and Wager 2019)</span>。为了把它改造到生存结局上，我们提取完整病例，并通过 <em>sample.weights</em> 选项施加删失权重 <span class="math inline">\(\hat{K}_i\)</span>。</p></li>
+<li><p><span class="citation">Cui et al. (2022)</span> 的因果生存森林（Causal Survival Forest, CSF）是 R-learner 的一个特例，它用上面提到的双重稳健删失校正来处理右删失。</p></li>
+<li><p>上面两种目标都可以用标准软件配合对结局与协变量的不同变换来拟合。survlearners 中的实现采用的是加权目标。</p></li>
+</ol>
+
+<p>配合 Cox-Lasso 的 R-learner：</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">surv.rl.lasso.fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://som-shahlab.github.io/survlearners/../reference/surv_rl_lasso.html">surv_rl_lasso</a></span><span class="op">(</span><span class="va">X</span>, <span class="va">Y</span>, <span class="va">W</span>, <span class="va">D</span>, <span class="va">t0</span>, W.hat <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="va">cate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.rl.lasso.fit</span><span class="op">)</span></span>
+<span><span class="va">cate.test</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.rl.lasso.fit</span>, <span class="va">X.test</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 绘制 R-learner（Lasso）估计的 CATE 与真实 CATE 的散点图</span></span>
+<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>cate.test <span class="op">=</span> <span class="va">cate.test</span>, true.cate <span class="op">=</span> <span class="va">true.cate</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">df</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">cate.test</span>, y <span class="op">=</span> <span class="va">true.cate</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">xlab</a></span><span class="op">(</span><span class="st">"Estimated CATE by R-learner with Lasso"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ylab</a></span><span class="op">(</span><span class="st">"True CATE"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">xlim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.8</span>, <span class="fl">0.8</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">ylim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.8</span>, <span class="fl">0.8</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_abline</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">1</span>, color <span class="op">=</span> <span class="st">"grey"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="https://som-shahlab.github.io/survlearners/metalearners_files/figure-html/unnamed-chunk-13-1.png" width="700" alt="R-learner（Lasso）估计的 CATE 与真实 CATE 的散点图"></p>
+<p class="caption">图 7：R-learner 配合 Lasso，估计 CATE（横轴）与真实 CATE（纵轴）的散点图。</p>
+
+<p>配合随机生存森林（causal_forest）的 R-learner：</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">surv.rl.grf.fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://som-shahlab.github.io/survlearners/../reference/surv_rl_grf.html">surv_rl_grf</a></span><span class="op">(</span><span class="va">X</span>, <span class="va">Y</span>, <span class="va">W</span>, <span class="va">D</span>, <span class="va">t0</span>, W.hat <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="va">cate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.rl.grf.fit</span><span class="op">)</span></span>
+<span><span class="va">cate.test</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.rl.grf.fit</span>, <span class="va">X.test</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 绘制逆概率删失加权因果森林估计的 CATE 与真实 CATE 的散点图</span></span>
+<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>cate.test <span class="op">=</span> <span class="va">cate.test</span>, true.cate <span class="op">=</span> <span class="va">true.cate</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">df</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">cate.test</span>, y <span class="op">=</span> <span class="va">true.cate</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">xlab</a></span><span class="op">(</span><span class="st">"Estimated CATE by the Inverse-probability-censoring-weighted Causal Forest"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ylab</a></span><span class="op">(</span><span class="st">"True CATE"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">xlim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.8</span>, <span class="fl">0.8</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">ylim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.8</span>, <span class="fl">0.8</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_abline</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">1</span>, color <span class="op">=</span> <span class="st">"grey"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="https://som-shahlab.github.io/survlearners/metalearners_files/figure-html/unnamed-chunk-14-1.png" width="700" alt="逆概率删失加权因果森林估计的 CATE 与真实 CATE 的散点图"></p>
+<p class="caption">图 8：逆概率删失加权因果森林（IPCW causal forest）估计的 CATE（横轴）与真实 CATE（纵轴）的散点图。</p>
+
+<p>配合随机生存森林与 Lasso 的 R-learner：</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">surv.rl.grf.lasso.fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://som-shahlab.github.io/survlearners/../reference/surv_rl_grf_lasso.html">surv_rl_grf_lasso</a></span><span class="op">(</span><span class="va">X</span>, <span class="va">Y</span>, <span class="va">W</span>, <span class="va">D</span>, <span class="va">t0</span>, W.hat <span class="op">=</span> <span class="fl">0.5</span>, cen.fit <span class="op">=</span> <span class="st">"survival.forest"</span><span class="op">)</span></span>
+<span><span class="va">cate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.rl.grf.lasso.fit</span><span class="op">)</span></span>
+<span><span class="va">cate.test</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">surv.rl.grf.lasso.fit</span>, <span class="va">X.test</span><span class="op">)</span></span></code></pre></div>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>R-learner 的"残差化"为什么重要？</strong>R-learner 同时把治疗与结局都减去其条件期望：<span class="math inline">\(W_i-e(X_i)\)</span> 与 <span class="math inline">\(Y_i-\hat m(X_i)\)</span>，再对残差做回归。这一步称为 Robinson 变换，它使目标函数满足 <strong>Neyman 正交性</strong>：即使干扰参数（结局模型 <span class="math inline">\(\hat m\)</span>、倾向模型 <span class="math inline">\(\hat e\)</span>）估计得不够好，CATE 估计的误差也只是二阶小量。因此可以用收敛较慢但很灵活的机器学习模型，仍然得到 <span class="math inline">\(\sqrt{n}\)</span> 一致的 CATE 与可用的置信区间。</p>
+  <p>还有两个有用的极限情形：① 若 <span class="math inline">\(e=0.5\)</span> 且把 <span class="math inline">\(\hat m\)</span> 直接设为 0，R-learner 就退化为 M-learner——可见 M-learner 是 R-learner 不做中心化时的极端特例，这也解释了为什么 M-learner 方差更大；② 治疗组人数很少时，R-learner 自动以 <span class="math inline">\((1-e)^2/e^2\)</span> 放大治疗组权重，与 X-learner 的行为一致，因此在这一情形下两者预测几乎相同。</p>
+  <p>此外，grf 包中的 <code>causal_forest</code> 与 <code>causal_survival_forest</code>（后者基于 Cui 等 2022 的双重稳健删失校正）都属于 R-learner 家族；survlearners 的 <code>surv_rl_grf</code> 则是"提取完整病例 + 用 <code>sample.weights</code> 施加 IPCW 权重"的生存版实现。</p>
+</div>
+
+<p>至此，希望读者已经清楚了这五种 meta-learner 的主要思想，以及<em>如何</em>通过 survlearners 包把它们实现到生存结局上。既然有了这些用于估计处理异质性的高级统计工具，关键就在于知道<em>何时</em>该根据数据集的具体特征选用哪一种方法。感兴趣的读者请进一步参阅 <a href="https://som-shahlab.github.io/survlearners/articles/select_metalearners.html" target="_blank" rel="noopener">Meta-learner 的选择</a> 教程，其中概述了我们在多种数据生成过程下对这些 meta-learner 所做的基准比较研究，并给出在应用研究中选择 CATE 估计方法的一组实践建议与注意事项。</p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>应用研究中该怎么选？（原文配套基准研究给出的实践要点）</strong></p>
+  <p>① 样本量充足且治疗/对照比例不太失衡时，优先 <strong>R-learner 或 X-learner</strong>——它们直接对 CATE 建模、方差较小；② 治疗组人数很少时，X-learner 与 R-learner 会自动提高少数组的权重，通常优于 T-learner；③ 协变量维度高而 CATE 函数相对简单稀疏时，<strong>Lasso 类</strong>实现更优（可解释、能做变量选择）；④ 基线风险函数或 CATE 函数高度非线性时，<strong>随机生存森林/因果森林</strong>更好；⑤ 真实的效应异质性很弱时，各种方法都会向 0 收缩，此时不要急着解释个体化估计，应先用整体异质性检验（例如 best linear projection 的系数检验、CATE 排序后的组间效应检验）确认是否真的存在异质性。</p>
+  <p>需要重点检查的数据特征包括：删失比例与删失发生的时间分布、治疗组/对照组比例、倾向得分的重叠性、基线风险函数的复杂程度、以及协变量维度。此外，<code>W.hat</code> 参数传入的是倾向得分（RCT 中为已知的随机化概率，观察性研究中需先用协变量估计）；<code>cen.fit</code> 参数选择删失模型的估计方式（KM 或 <code>"survival.forest"</code>）。</p>
+</div>
+
+<h2 id="funding">资助</h2>
+<p>本工作由美国国家心肺血液研究所（National Heart, Lung, and Blood Institute, NHLBI）的 R01 HL144555 项目资助。</p>
+
+<h2 id="references">参考文献</h2>
+<div id="refs" class="references">
+<div id="ref-Athey2016">
+<p>Athey, Susan, and Guido Imbens. 2016. “Recursive Partitioning for Heterogeneous Causal Effects: Table 1.” <em>Proceedings of the National Academy of Sciences</em> 113 (July): 7353–60.</p>
+</div>
+<div id="ref-Athey2019">
+<p>Athey, Susan, Julie Tibshirani, and Stefan Wager. 2019. “Generalized Random Forests.” <em>The Annals of Statistics</em> 47 (2): 1148–78.</p>
+</div>
+<div id="ref-Breiman2001">
+<p>Breiman, L. 2001. “Random Forests.” <em>Machine Learning</em>, 45: 5–32.</p>
+</div>
+<div id="ref-Chernozhukov2018">
+<p>Chernozhukov, Victor, Denis Chetverikov, Mert Demirer, Esther Duflo, Christian Hansen, Whitney Newey, and James Robins. 2018. “Double/debiased machine learning for treatment and structural parameters.” <em>The Econometrics Journal</em> 21 (1): C1–C68.</p>
+</div>
+<div id="ref-cui2021estimating">
+<p>Cui, Yifan, Michael R Kosorok, Erik Sverdrup, Stefan Wager, and Ruoqing Zhu. 2022. “Estimating Heterogeneous Treatment Effects with Right-Censored Data via Causal Survival Forests.” <em>arXiv Preprint arXiv:2001.09887</em>.</p>
+</div>
+<div id="ref-glmnet">
+<p>Friedman, Jerome, Trevor Hastie, Rob Tibshirani, Balasubramanian Narasimhan, Kenneth Tay, Noah Simon, Junyang Qian, and James Yang. 2022. <em>Glmnet: Lasso and Elastic-Net Regularized Generalized Linear Models</em>. <a href="https://glmnet.stanford.edu" target="_blank" rel="noopener">https://glmnet.stanford.edu</a>.</p>
+</div>
+<div id="ref-goeman2010l1">
+<p>Goeman, Jelle J. 2010. “<span class="math inline">\(L_1\)</span> Penalized Estimation in the Cox Proportional Hazards Model.” <em>Biometrical Journal</em> 52 (1): 70–84.</p>
+</div>
+<div id="ref-hahn2020bayesian">
+<p>Hahn, P Richard, Jared S Murray, and Carlos M Carvalho. 2020. “Bayesian Regression Tree Models for Causal Inference: Regularization, Confounding, and Heterogeneous Effects (with Discussion).” <em>Bayesian Analysis</em> 15 (3): 965–1056.</p>
+</div>
+<div id="ref-Hill2011">
+<p>Hill, JL. 2011. “Bayesian Nonparametric Modeling for Causal Inference.” <em>Journal of Computational and Graphical Statistics</em> 20 (1): 217–40.</p>
+</div>
+<div id="ref-horvitz1952generalization">
+<p>Horvitz, Daniel G, and Donovan J Thompson. 1952. “A Generalization of Sampling Without Replacement from a Finite Universe.” <em>Journal of the American Statistical Association</em> 47 (260): 663–85.</p>
+</div>
+<div id="ref-ishwaran2008random">
+<p>Ishwaran, Hemant, Udaya B Kogalur, Eugene H Blackstone, and Michael S Lauer. 2008. “Random Survival Forests.” <em>The Annals of Applied Statistics</em> 2 (3): 841–60.</p>
+</div>
+<div id="ref-kohler2002prediction">
+<p>Kohler, Michael, Kinga Máthé, and Márta Pintér. 2002. “Prediction from Randomly Right Censored Data.” <em>Journal of Multivariate Analysis</em> 80 (1): 73–100.</p>
+</div>
+<div id="ref-Kunzel2019">
+<p>Künzel, Sören R, Jasjeet S Sekhon, Peter J Bickel, and Bin Yu. 2019. “Metalearners for Estimating Heterogeneous Treatment Effects Using Machine Learning.” <em>Proceedings of the National Academy of Sciences</em> 116 (10): 4156–65.</p>
+</div>
+<div id="ref-Neyman1923">
+<p>Neyman, J. 1923. “Sur Les Applications de La Th’eorie Des Probabilit’es Aux Experiences Agricoles: Essai Des Principes.” <em>Roczniki Nauk Rolniczych</em> 10 (January).</p>
+</div>
+<div id="ref-Nie2020">
+<p>Nie, Xinkun, and Stefan Wager. 2021. “Quasi-Oracle Estimation of Heterogeneous Treatment Effects.” <em>Biometrika</em> 108 (2): 299–319.</p>
+</div>
+<div id="ref-robins2004optimal">
+<p>Robins, James M. 2004. “Optimal Structural Nested Models for Optimal Sequential Decisions.” In <em>Proceedings of the Second Seattle Symposium in Biostatistics</em>, 189–326. Springer.</p>
+</div>
+<div id="ref-Robins1994">
+<p>Robins, James, A G Rotnitzky, and Lue Zhao. 1994. “Estimation of Regression Coefficients When Some Regressors Are Not Always Observed.” <em>Journal of the American Statistical Association</em> 89 (September): 846–66.</p>
+</div>
+<div id="ref-Robinson1988">
+<p>Robinson, Peter. 1988. “Root-<span class="math inline">\(N\)</span>-Consistent Semiparametric Regression.” <em>Econometrica</em> 56 (February): 931–54.</p>
+</div>
+<div id="ref-ROSENBAUM1983">
+<p>Rosenbaum, Paul, and Donald Rubin. 1983. “The Central Role of the Propensity Score in Observational Studies for Causal Effects.” <em>Biometrika</em> 70 (April): 41–55.</p>
+</div>
+<div id="ref-Rubin1974">
+<p>Rubin, Donald B. 1974. “Estimating Causal Effects of Treatments in Randomized and Nonrandomized Studies.” <em>Journal of Educational Psychology</em> 66 (5): 688.</p>
+</div>
+<div id="ref-Signorovitch2007">
+<p>Signorovitch, James. 2007. “Identifying Informative Biological Markers in High-Dimensional Genomic Data and Clinical Trials.” PhD thesis, Harvard University.</p>
+</div>
+<div id="ref-Tian2014">
+<p>Tian, Lu, Ash Alizadeh, Andrew Gentles, and Robert Tibshirani. 2014. “A Simple Method for Estimating Interactions Between a Treatment and a Large Number of Covariates.” <em>Journal of the American Statistical Association</em> 109.</p>
+</div>
+<div id="ref-grf">
+<p>Tibshirani, Julie, Susan Athey, Erik Sverdrup, and Stefan Wager. 2022. <em>Grf: Generalized Random Forests</em>. <a href="https://github.com/grf-labs/grf" target="_blank" rel="noopener">https://github.com/grf-labs/grf</a>.</p>
+</div>
+<div id="ref-tibshirani1997lasso">
+<p>Tibshirani, Robert. 1997. “The Lasso Method for Variable Selection in the Cox Model.” <em>Statistics in Medicine</em> 16 (4): 385–95.</p>
+</div>
+<div id="ref-tsiatis2006semiparametric">
+<p>Tsiatis, Anastasios A. 2006. “Semiparametric Theory and Missing Data.”</p>
+</div>
+<div id="ref-Laan2003">
+<p>Van der Laan, Mark J, and James M Robins. 2003. <em>Unified Methods for Censored Longitudinal Data and Causality</em>. Vol. 5. Springer.</p>
+</div>
+</div>
+
+  </div>
+  <div class="foot">
+    <p><a href="index.html">&larr; 返回 survlearners 中文译本总览</a> ｜ <a href="../index.html">返回 share 总览</a></p>
+    <p>原文出处：<a href="https://som-shahlab.github.io/survlearners/" target="_blank" rel="noopener">som-shahlab.github.io/survlearners</a>（R 包 survlearners 官方站点）｜作者：斯坦福医学院 SOM ShahLab（Xu Y., Ignatiadis N., Sverdrup E., Fleming S., Wager S., Shah N. 等）</p>
+    <p>方法论文出处：Xu Y., Ignatiadis N., Sverdrup E., Fleming S., Wager S., Shah N. (2022). <em>Handbook of Matching and Weighting Adjustments for Causal Inference</em>，章节 “Treatment Heterogeneity with Survival Outcomes”，Chapman &amp; Hall/CRC Press（<a href="https://arxiv.org/abs/2207.07758" target="_blank" rel="noopener">arXiv:2207.07758</a>）；R-learner：Nie X. &amp; Wager S. (2021). “Quasi-oracle estimation of heterogeneous treatment effects.” <em>Biometrika</em> 108(2):299–319（<a href="https://academic.oup.com/biomet/article/108/2/299/5911092" target="_blank" rel="noopener">链接</a>）；meta-learner 综述：Künzel S.R. et al. (2019). <em>PNAS</em> 116(10):4156–4165。</p>
+    <p>许可：GPL-3（<a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GNU General Public License v3.0</a>）。本页为个人学习用途的非官方中文译本，引用请以英文原文为准。</p>
+  </div>
+</div>
+<script src="search.js"></script>
+</body>
+</html>
