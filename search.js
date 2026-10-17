@@ -29,7 +29,7 @@ function search(q){var ts=terms(q);if(!ts.length||!idx)return [];
   var hits=[];
   for(var i=0;i<idx.length;i++){var r=idx[i];
     if(ts.every(function(t){return r.key.indexOf(t)>=0;})){
-      hits.push({rec:r,score:1000,snippet:snip(r.paras[0]||'',ts,LEN)});continue;}
+      hits.push({rec:r,score:1000,snippet:snip(r.paras[0]||r.section||r.chapter||'',ts,LEN)});continue;}
     for(var j=0;j<r.paras.length;j++){var low=r.paras[j].toLowerCase(),ok=true,sc=0;
       for(var k=0;k<ts.length;k++){var p=low.indexOf(ts[k]);if(p<0){ok=false;break;}
         sc+=10-Math.min(9,Math.floor(p/400));}
