@@ -1,0 +1,397 @@
+
+    
+
+    
+    
+<div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">grf</span>)</pre></div>
+<p>This vignette gives a brief overview of strategies to evaluate CATE
+estimators via <em>Rank-Weighted Average Treatment Effects</em>
+(<em>RATEs</em>) that avoids a single training and evaluation split.
+We’re demonstrating the use of causal forest to detect heterogeneity via
+the RATE when using observational or experimental data with a binary
+treatment assignment and describe two proposals: a <em>sequential fold
+estimation</em> procedure and a heuristic for one-sided tests based on
+<em>out-of-bag estimates</em>.</p>
+<div id="cross-fold-estimation-of-rate-metrics" class="section level2">
+<h2 class="hasAnchor">
+<a href="#cross-fold-estimation-of-rate-metrics" class="anchor"></a>Cross-fold estimation of RATE metrics</h2>
+<p>As covered in <a href="https://grf-labs.github.io/grf/articles/rate.html">this
+vignette</a>, RATE metrics can be used as a test for the presence of
+treatment heterogeneity. A common use case is to use a training set to
+obtain estimates of the conditional average treatment effect (CATE) and
+then evaluate these on a held-out test set using the RATE. Concretely,
+on a <em>training</em> set we can obtain some estimated CATE function
+<span class="math inline">\(\hat \tau(\cdot)\)</span>, then on a
+<em>test</em> we can obtain an estimate of the RATE, then form a test
+for whether we detect heterogeneity via:</p>
+<p><span class="math inline">\(H_0\)</span>: RATE <span class="math inline">\(=0\)</span> (No heterogeneity detected by <span class="math inline">\(\hat \tau(\cdot)\)</span>)</p>
+<p><span class="math inline">\(H_A\)</span>: RATE <span class="math inline">\(\neq 0\)</span>.</p>
+<p>RATE metrics satisfy a central-limit theorem and motivate a simple
+<span class="math inline">\(t\)</span>-test of this hypothesis using</p>
+<p><span class="math display">\[
+t = \frac{\widehat{RATE}}{\sqrt{Var(\widehat{RATE})}}.
+\]</span></p>
+<p>Using a confidence level <span class="math inline">\(\alpha\)</span>
+of 5%, we reject <span class="math inline">\(H_0\)</span> if the <span class="math inline">\(p\)</span>-value <span class="math inline">\(2\Phi(-|t|)\)</span> is less than 5%.</p>
+<p>A drawback of this approach is that we are only utilizing a subset of
+our data to train a CATE estimator. In regimes with small sample sizes
+and hard-to-detect heterogeneity, this can be inconvenient. One
+appealing alternative could be to use cross-fold estimation, where we
+divide the data into <span class="math inline">\(K\)</span> folds and
+then alternate which subset we use for training a CATE estimator and
+which subset we use to estimate the RATE. The figure below illustrates
+the case when using <span class="math inline">\(K=5\)</span> folds: fit
+a CATE estimator on the blue sample, and evaluate the RATE on the red
+sample.</p>
+<p><img src="https://grf-labs.github.io/grf/articles/rate_cv_files/figure-html/unnamed-chunk-2-1.png" alt="" width="700"></p>
+<p>This strategy would give us 5 RATE estimates along with 5 <span class="math inline">\(t\)</span>-values, and the hope would be that in
+aggregating these we are increasing our ability (power) to detect
+heterogeneity. On their own, each of these <span class="math inline">\(t\)</span>-values serves as a valid test. The
+<strong>problem</strong> with aggregating them is that they are
+<strong>not independent</strong>, as the overlapping fold construction
+induces correlation.</p>
+<p>We can see this play out in a simple simulation exercise. Below we
+define a simple function that splits the data into 5 folds, forms a RATE
+estimate and <span class="math inline">\(t\)</span>-value on each fold,
+and then compute a <span class="math inline">\(p\)</span>-value by
+aggregating the test statistics.</p>
+<div class="sourceCode" id="cb2"><pre class="r"><span class="co"># Estimate RATE on K random folds to get K t-statistics, then return a p-value</span>
+<span class="co"># for H0 using the sum of these t-values.</span>
+<span class="no">rate_cv_naive</span> <span class="kw">=</span> <span class="kw">function</span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>, <span class="no">num.folds</span> <span class="kw">=</span> <span class="fl">5</span>) {
+  <span class="no">fold.id</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="fl">1</span>:<span class="no">num.folds</span>, <span class="kw">length</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(<span class="no">X</span>)))
+  <span class="no">samples.by.fold</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html">split</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_along</a></span>(<span class="no">fold.id</span>), <span class="no">fold.id</span>)
+
+  <span class="no">t.statistics</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>()
+
+  <span class="co"># Form AIPW scores for estimating RATE</span>
+  <span class="no">nuisance.forest</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+  <span class="no">DR.scores</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/get_scores.html">get_scores</a></span>(<span class="no">nuisance.forest</span>)
+
+  <span class="kw">for</span> (<span class="no">k</span> <span class="kw">in</span> <span class="fl">1</span>:<span class="no">num.folds</span>) {
+    <span class="no">train</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html">unlist</a></span>(<span class="no">samples.by.fold</span>[-<span class="no">k</span>])
+    <span class="no">test</span> <span class="kw">=</span> <span class="no">samples.by.fold</span><span class="kw">[[</span><span class="no">k</span>]]
+
+    <span class="no">cate.forest</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[<span class="no">train</span>, ], <span class="no">Y</span>[<span class="no">train</span>], <span class="no">W</span>[<span class="no">train</span>])
+
+    <span class="no">cate.hat.test</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">cate.forest</span>, <span class="no">X</span>[<span class="no">test</span>, ])$<span class="no">predictions</span>
+
+    <span class="no">rate.fold</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.fit.html">rank_average_treatment_effect.fit</a></span>(<span class="no">DR.scores</span>[<span class="no">test</span>], <span class="no">cate.hat.test</span>)
+    <span class="no">t.statistics</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="no">t.statistics</span>, <span class="no">rate.fold</span>$<span class="no">estimate</span> / <span class="no">rate.fold</span>$<span class="no">std.err</span>)
+  }
+
+  <span class="no">p.value.naive</span> <span class="kw">=</span> <span class="fl">2</span> * <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">pnorm</a></span>(-<span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span>(<span class="no">t.statistics</span>) / <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span>(<span class="no">num.folds</span>)))
+
+  <span class="no">p.value.naive</span>
+}</pre></div>
+<p>Next, we simulate synthetic data with no treatment heterogeneity, and
+form a Monte Carlo estimate of our naive procedure’s rejection
+probability, using a 5% confidence level:</p>
+<div class="sourceCode" id="cb3"><pre class="r"><span class="no">res</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/lapply.html">replicate</a></span>(<span class="fl">500</span>, {
+  <span class="no">n</span> <span class="kw">=</span> <span class="fl">1500</span>
+  <span class="no">p</span> <span class="kw">=</span> <span class="fl">5</span>
+  <span class="no">X</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+  <span class="no">W</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="fl">0.5</span>)
+  <span class="no">Y</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="no">X</span>[, <span class="fl">3</span>], <span class="fl">0</span>) + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+  <span class="no">pval.naive</span> <span class="kw">=</span> <span class="fu">rate_cv_naive</span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+
+  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(
+    <span class="kw">reject</span> <span class="kw">=</span> <span class="no">pval.naive</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>
+  )
+}))
+<span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span>(<span class="st">"Rejection rate:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">res</span>) * <span class="fl">100</span>, <span class="st">"%"</span>)
+<span class="co">#&gt; [1] "Rejection rate: 16.8 %"</span></pre></div>
+<p>At a 5% level, any test with a rejection rate above 5% is an invalid
+test.</p>
+</div>
+<div id="sequential-cross-fold-estimation" class="section level2">
+<h2 class="hasAnchor">
+<a href="#sequential-cross-fold-estimation" class="anchor"></a>Sequential cross-fold estimation</h2>
+<p>It turns out, however, that there exists a simple algorithmic fix
+that can address the shortcomings of naive cross-fold validation. This
+approach, which we call <strong>sequential</strong> cross-fold
+estimation, breaks up the correlation between RATE metrics across folds
+by only using training folds in sequential order. As illustrated in the
+figure below, this strategy will give us <span class="math inline">\(K -
+1\)</span> separate <span class="math inline">\(t\)</span>-values.</p>
+<p><img src="https://grf-labs.github.io/grf/articles/rate_cv_files/figure-html/unnamed-chunk-5-1.png" alt="" width="700"></p>
+<p>This construction is going to make our <span class="math inline">\(t\)</span>-values satisfy a martingale property
+and allow for valid aggregation (Luedtke &amp; van der Laan (2016), and
+Wager (2024)). The steps are:</p>
+<ol style="list-style-type: decimal">
+<li><p>Randomly split the data into <span class="math inline">\(k=1,\ldots,K\)</span> evenly sized folds.</p></li>
+<li>
+<p>For each fold <span class="math inline">\(k=2,\ldots,K\)</span>:</p>
+<p>Obtain an estimated CATE function using <span class="math inline">\(\color{blue}{\text{training}}\)</span> data from
+folds <span class="math inline">\(1,\ldots,k-1\)</span>.</p>
+<p>Form a RATE estimate using data from the <span class="math inline">\(k\)</span>-th <span class="math inline">\(\color{red}{\text{test}}\)</span> fold and compute
+a <span class="math inline">\(t\)</span>-statistic.</p>
+</li>
+<li><p>Aggregate the <span class="math inline">\(K-1\)</span> different
+<span class="math inline">\(t\)</span>-statistics and use this as a
+final test statistic.</p></li>
+</ol>
+<p>This procedure is coded in the simple function below.</p>
+<div class="sourceCode" id="cb4"><pre class="r"><span class="co"># Estimate RATE on K-1 random sequential folds to get K-1 t-statistics, then return a p-value</span>
+<span class="co"># for H0 using the sum of these t-values</span>
+<span class="no">rate_sequential</span> <span class="kw">=</span> <span class="kw">function</span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>, <span class="no">num.folds</span> <span class="kw">=</span> <span class="fl">5</span>) {
+  <span class="no">fold.id</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="fl">1</span>:<span class="no">num.folds</span>, <span class="kw">length</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(<span class="no">X</span>)))
+  <span class="no">samples.by.fold</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html">split</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_along</a></span>(<span class="no">fold.id</span>), <span class="no">fold.id</span>)
+
+  <span class="no">t.statistics</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>()
+
+  <span class="co"># Form AIPW scores for estimating RATE</span>
+  <span class="no">nuisance.forest</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+  <span class="no">DR.scores</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/get_scores.html">get_scores</a></span>(<span class="no">nuisance.forest</span>)
+
+  <span class="kw">for</span> (<span class="no">k</span> <span class="kw">in</span> <span class="fl">2</span>:<span class="no">num.folds</span>) {
+    <span class="no">train</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html">unlist</a></span>(<span class="no">samples.by.fold</span>[<span class="fl">1</span>:(<span class="no">k</span> - <span class="fl">1</span>)])
+    <span class="no">test</span> <span class="kw">=</span> <span class="no">samples.by.fold</span><span class="kw">[[</span><span class="no">k</span>]]
+
+    <span class="no">cate.forest</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[<span class="no">train</span>, ], <span class="no">Y</span>[<span class="no">train</span>], <span class="no">W</span>[<span class="no">train</span>])
+
+    <span class="no">cate.hat.test</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">cate.forest</span>, <span class="no">X</span>[<span class="no">test</span>, ])$<span class="no">predictions</span>
+
+    <span class="no">rate.fold</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.fit.html">rank_average_treatment_effect.fit</a></span>(<span class="no">DR.scores</span>[<span class="no">test</span>], <span class="no">cate.hat.test</span>)
+    <span class="no">t.statistics</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="no">t.statistics</span>, <span class="no">rate.fold</span>$<span class="no">estimate</span> / <span class="no">rate.fold</span>$<span class="no">std.err</span>)
+  }
+
+  <span class="no">p.value</span> <span class="kw">=</span> <span class="fl">2</span> * <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">pnorm</a></span>(-<span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span>(<span class="no">t.statistics</span>) / <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span>(<span class="no">num.folds</span> - <span class="fl">1</span>)))
+
+  <span class="no">p.value</span>
+}</pre></div>
+<p>If we repeat the check on data with no heterogeneity we can see this
+construction gives us the correct rejection rate (within the error
+tolerance of our Monte Carlo repetitions):</p>
+<div class="sourceCode" id="cb5"><pre class="r"><span class="no">res</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/lapply.html">replicate</a></span>(<span class="fl">500</span>, {
+  <span class="no">n</span> <span class="kw">=</span> <span class="fl">1500</span>
+  <span class="no">p</span> <span class="kw">=</span> <span class="fl">5</span>
+  <span class="no">X</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+  <span class="no">W</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="fl">0.5</span>)
+  <span class="no">Y</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="no">X</span>[, <span class="fl">3</span>], <span class="fl">0</span>) + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+  <span class="no">pval.sequential</span> <span class="kw">=</span> <span class="fu">rate_sequential</span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+
+  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(
+    <span class="kw">reject.sequential</span> <span class="kw">=</span> <span class="no">pval.sequential</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>
+  )
+}))
+<span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span>(<span class="st">"Rejection rate:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">res</span>) * <span class="fl">100</span>, <span class="st">"%"</span>)
+<span class="co">#&gt; [1] "Rejection rate: 5.4 %"</span></pre></div>
+<p>Now that we have a valid test for treatment heterogeneity that uses
+several folds, let’s try it out on a simulated example and examine how
+it performs in detecting treatment effect heterogeneity. The baseline we
+are comparing with is sample splitting, which is proven to be valid in
+the RATE paper, but which has potentially lower power since we are only
+using a fraction of our data for validation.</p>
+<p>Below we generate data from synthetic observational data (Setup A in
+Nie &amp; Wager (2021)) where treatment effect heterogeneity is hard to
+detect. Remember, in this case, we want our test to reject <span class="math inline">\(H_0\)</span> of no heterogeneity.</p>
+<div class="sourceCode" id="cb6"><pre class="r"><span class="no">res</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/lapply.html">replicate</a></span>(<span class="fl">500</span>, {
+  <span class="co"># Simulate synthetic data with "weak" treatment heterogeneity</span>
+  <span class="no">n</span> <span class="kw">=</span> <span class="fl">2500</span>
+  <span class="no">p</span> <span class="kw">=</span> <span class="fl">5</span>
+  <span class="no">data</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/generate_causal_data.html">generate_causal_data</a></span>(<span class="no">n</span>, <span class="no">p</span>, <span class="kw">sigma.tau</span> <span class="kw">=</span> <span class="fl">0.15</span>, <span class="kw">sigma.noise</span> <span class="kw">=</span> <span class="fl">1</span>, <span class="kw">dgp</span> <span class="kw">=</span> <span class="st">"nw1"</span>)
+  <span class="no">X</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">X</span>
+  <span class="no">Y</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">Y</span>
+  <span class="no">W</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">W</span>
+
+  <span class="no">pval.sequential</span> <span class="kw">=</span> <span class="fu">rate_sequential</span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+
+  <span class="co"># Compare with a single train/test split</span>
+  <span class="no">train</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span>(<span class="no">n</span>, <span class="no">n</span> / <span class="fl">2</span>)
+  <span class="no">test</span> <span class="kw">=</span> -<span class="no">train</span>
+  <span class="no">cf.train</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[<span class="no">train</span>,], <span class="no">Y</span>[<span class="no">train</span>], <span class="no">W</span>[<span class="no">train</span>])
+  <span class="no">cf.test</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[<span class="no">test</span>,], <span class="no">Y</span>[<span class="no">test</span>], <span class="no">W</span>[<span class="no">test</span>])
+  <span class="no">rate</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.html">rank_average_treatment_effect</a></span>(<span class="no">cf.test</span>, <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">cf.train</span>, <span class="no">X</span>[<span class="no">test</span>, ])$<span class="no">predictions</span>)
+  <span class="no">tstat.split</span> <span class="kw">=</span> <span class="no">rate</span>$<span class="no">estimate</span> / <span class="no">rate</span>$<span class="no">std.err</span>
+  <span class="no">pval.split</span> <span class="kw">=</span> <span class="fl">2</span> * <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">pnorm</a></span>(-<span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span>(<span class="no">tstat.split</span>))
+
+  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(
+    <span class="kw">reject.sequential</span> <span class="kw">=</span> <span class="no">pval.sequential</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>,
+    <span class="kw">reject.split</span> <span class="kw">=</span> <span class="no">pval.split</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>
+  )
+}))
+<span class="fu"><a href="https://rdrr.io/r/base/colSums.html">colMeans</a></span>(<span class="no">res</span>) * <span class="fl">100</span>
+<span class="co">#&gt; reject.sequential    reject.split</span>
+<span class="co">#&gt; 56.6                 47.0</span></pre></div>
+<p>Reassuringly, in this example, cross-fold estimation is able to
+improve power to detect treatment heterogeneity over our baseline.</p>
+</div>
+<div id="heuristic-out-of-bag-estimation-with-one-sided-tests" class="section level2">
+<h2 class="hasAnchor">
+<a href="#heuristic-out-of-bag-estimation-with-one-sided-tests" class="anchor"></a>Heuristic: out-of-bag estimation with one-sided tests</h2>
+<p>The fundamental challenge with estimating CATEs and evaluating the
+presence of heterogeneity using the same data is overfitting: we’re
+simply constrained by the fact that we can’t simply estimate and
+evaluate something using the same data set. We saw that naive cross-fold
+estimation did not overcome this challenge due to between-fold
+correlations (that biases our estimate downwards). A <em>heuristic</em>
+to salvage this naive aggregation is to use <strong>one-sided</strong>
+<span class="math inline">\(p\)</span>-values. If we are willing to
+commit to a one-sided test, for example, RATE <span class="math inline">\(&gt;0\)</span>, this can serve as a useful
+strategy.</p>
+<p>Random forests, however, have a more computationally efficient
+alternative to simple cross-fold estimation. The forest-native version
+of leave-one-out estimation is <em>out-of-bag</em> (OOB) estimation. For
+a given unit <span class="math inline">\(i\)</span>, these are estimates
+that are formed using all the trees in the random forest grown on
+subsamples that does not include the <span class="math inline">\(i\)</span>-th unit. OOB-estimated RATEs paired
+with one-sided tests can serve as a useful heuristic when we want to use
+all our data to fit and evaluate heterogeneity.</p>
+<p>In the example below we compare a two-sided test for RATE <span class="math inline">\(\neq 0\)</span> with a one-sided test for RATE
+<span class="math inline">\(&gt;0\)</span> at a 5% level.</p>
+<div class="sourceCode" id="cb7"><pre class="r"><span class="no">res</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/lapply.html">replicate</a></span>(<span class="fl">500</span>, {
+  <span class="no">n</span> <span class="kw">=</span> <span class="fl">1500</span>
+  <span class="no">p</span> <span class="kw">=</span> <span class="fl">5</span>
+  <span class="no">X</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+  <span class="no">W</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="fl">0.5</span>)
+  <span class="no">Y</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="no">X</span>[, <span class="fl">3</span>], <span class="fl">0</span>) + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+  <span class="no">c.forest</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+  <span class="no">tau.hat.oob</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">c.forest</span>)$<span class="no">predictions</span>
+  <span class="no">rate.oob</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.html">rank_average_treatment_effect</a></span>(<span class="no">c.forest</span>, <span class="no">tau.hat.oob</span>)
+
+  <span class="no">t.stat.oob</span> <span class="kw">=</span> <span class="no">rate.oob</span>$<span class="no">estimate</span> / <span class="no">rate.oob</span>$<span class="no">std.err</span>
+  <span class="co"># Compute a two-sided p-value Pr(&gt;|t|)</span>
+  <span class="no">p.val</span> <span class="kw">=</span> <span class="fl">2</span> * <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">pnorm</a></span>(-<span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span>(<span class="no">t.stat.oob</span>))
+  <span class="co"># Compute a one-sided p-value Pr(&gt;t)</span>
+  <span class="no">p.val.onesided</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">pnorm</a></span>(<span class="no">t.stat.oob</span>, <span class="kw">lower.tail</span> <span class="kw">=</span> <span class="fl">FALSE</span>)
+
+  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(
+    <span class="kw">reject.oob</span> <span class="kw">=</span> <span class="no">p.val</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>,
+    <span class="kw">reject.oob.onesided</span> <span class="kw">=</span> <span class="no">p.val.onesided</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>
+  )
+}))
+<span class="fu"><a href="https://rdrr.io/r/base/colSums.html">colMeans</a></span>(<span class="no">res</span>) * <span class="fl">100</span>
+<span class="co">#&gt; reject.oob reject.oob.onesided</span>
+<span class="co">#&gt; 30.4                 4.0</span></pre></div>
+<p>We see that the one-sided test gives us a correct rejection rate of a
+null effect.</p>
+<p>If we repeat the simple power exercise from above, we see that we
+achieve power essentially the same as sequential aggregation.</p>
+<div class="sourceCode" id="cb8"><pre class="r"><span class="no">res</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/lapply.html">replicate</a></span>(<span class="fl">500</span>, {
+  <span class="co"># Simulate synthetic data with "weak" treatment heterogeneity</span>
+  <span class="no">n</span> <span class="kw">=</span> <span class="fl">2500</span>
+  <span class="no">p</span> <span class="kw">=</span> <span class="fl">5</span>
+  <span class="no">data</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/generate_causal_data.html">generate_causal_data</a></span>(<span class="no">n</span>, <span class="no">p</span>, <span class="kw">sigma.tau</span> <span class="kw">=</span> <span class="fl">0.15</span>, <span class="kw">sigma.noise</span> <span class="kw">=</span> <span class="fl">1</span>, <span class="kw">dgp</span> <span class="kw">=</span> <span class="st">"nw1"</span>)
+  <span class="no">X</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">X</span>
+  <span class="no">Y</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">Y</span>
+  <span class="no">W</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">W</span>
+
+  <span class="no">c.forest</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+  <span class="no">tau.hat.oob</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">c.forest</span>)$<span class="no">predictions</span>
+  <span class="no">rate.oob</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.html">rank_average_treatment_effect</a></span>(<span class="no">c.forest</span>, <span class="no">tau.hat.oob</span>)
+  <span class="no">t.stat.oob</span> <span class="kw">=</span> <span class="no">rate.oob</span>$<span class="no">estimate</span> / <span class="no">rate.oob</span>$<span class="no">std.err</span>
+  <span class="co"># Compute a one-sided p-value Pr(&gt;t)</span>
+  <span class="no">p.val.onesided</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">pnorm</a></span>(<span class="no">t.stat.oob</span>, <span class="kw">lower.tail</span> <span class="kw">=</span> <span class="fl">FALSE</span>)
+
+  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(
+    <span class="kw">reject.oob.onesided</span> <span class="kw">=</span> <span class="no">p.val.onesided</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>
+  )
+}))
+<span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">res</span>) * <span class="fl">100</span>
+<span class="co">#&gt; [1] 54.0</span></pre></div>
+</div>
+<div id="references" class="section level2">
+<h2 class="hasAnchor">
+<a href="#references" class="anchor"></a>References</h2>
+<p>Chernozhukov, Victor, Mert Demirer, Esther Duflo, and Ivan
+Fernandez-Val. Generic machine learning inference on heterogeneous
+treatment effects in randomized experiments, with an application to
+immunization in India. <em>Econometrica, forthcoming</em>.</p>
+<p>Luedtke, Alexander R., and Mark J. van der Laan. Statistical
+inference for the mean outcome under a possibly non-unique optimal
+treatment strategy. <em>Annals of Statistics 44(2), 2016</em>.</p>
+<p>Nie, Xinkun, and Stefan Wager. Quasi-oracle estimation of
+heterogeneous treatment effects. <em>Biometrika 108(2), 2021</em>.</p>
+<p>Wager, Stefan. Sequential Validation of Treatment Heterogeneity.
+<em>arXiv preprint arXiv:2405.05534</em> (<a href="https://arxiv.org/abs/2405.05534">arxiv</a>)</p>
+</div>
+<div id="appendix-median-aggregation-of-p-values" class="section level2">
+<h2 class="hasAnchor">
+<a href="#appendix-median-aggregation-of-p-values" class="anchor"></a>Appendix: Median aggregation of p-values</h2>
+<p>One possible solution to salvage <code>rate_cv_naive</code> is to
+keep the traditional <span class="math inline">\(K\)</span>-fold
+construction, but change the way we aggregate <span class="math inline">\(t\)</span>-statistics for each fold. This is the
+strategy Chernozhukov et al. (2024) pursue. If instead of computing a
+<span class="math inline">\(p\)</span>-value based on aggregated <span class="math inline">\(t\)</span>-statistics, we take a median of <span class="math inline">\(p\)</span>-values based on each <span class="math inline">\(t\)</span>-statistic, we get a valid test.</p>
+<div class="sourceCode" id="cb9"><pre class="r"><span class="co"># This function does the same thing as `rate_naive`, except it returns</span>
+<span class="co"># the median p-value.</span>
+<span class="no">rate_cv_median</span> <span class="kw">=</span> <span class="kw">function</span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>, <span class="no">num.folds</span> <span class="kw">=</span> <span class="fl">5</span>) {
+  <span class="no">fold.id</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="fl">1</span>:<span class="no">num.folds</span>, <span class="kw">length</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(<span class="no">X</span>)))
+  <span class="no">samples.by.fold</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html">split</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_along</a></span>(<span class="no">fold.id</span>), <span class="no">fold.id</span>)
+
+  <span class="no">t.statistics</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>()
+
+  <span class="no">nuisance.forest</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+  <span class="no">DR.scores</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/get_scores.html">get_scores</a></span>(<span class="no">nuisance.forest</span>)
+
+  <span class="kw">for</span> (<span class="no">k</span> <span class="kw">in</span> <span class="fl">1</span>:<span class="no">num.folds</span>) {
+    <span class="no">train</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html">unlist</a></span>(<span class="no">samples.by.fold</span>[-<span class="no">k</span>])
+    <span class="no">test</span> <span class="kw">=</span> <span class="no">samples.by.fold</span><span class="kw">[[</span><span class="no">k</span>]]
+
+    <span class="no">cate.forest</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[<span class="no">train</span>, ], <span class="no">Y</span>[<span class="no">train</span>], <span class="no">W</span>[<span class="no">train</span>])
+
+    <span class="no">cate.hat.test</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">cate.forest</span>, <span class="no">X</span>[<span class="no">test</span>, ])$<span class="no">predictions</span>
+
+    <span class="no">rate.fold</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.fit.html">rank_average_treatment_effect.fit</a></span>(<span class="no">DR.scores</span>[<span class="no">test</span>], <span class="no">cate.hat.test</span>)
+    <span class="no">t.statistics</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="no">t.statistics</span>, <span class="no">rate.fold</span>$<span class="no">estimate</span> / <span class="no">rate.fold</span>$<span class="no">std.err</span>)
+  }
+
+  <span class="no">p.value.median</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/median.html">median</a></span>(<span class="fl">2</span> * <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">pnorm</a></span>(-<span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span>(<span class="no">t.statistics</span>)))
+
+  <span class="no">p.value.median</span>
+}</pre></div>
+<p>This construction gives us a valid rejection rate using a 5%
+confidence value, but is quite conservative:</p>
+<div class="sourceCode" id="cb10"><pre class="r"><span class="no">res</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/lapply.html">replicate</a></span>(<span class="fl">500</span>, {
+  <span class="no">n</span> <span class="kw">=</span> <span class="fl">1500</span>
+  <span class="no">p</span> <span class="kw">=</span> <span class="fl">5</span>
+  <span class="no">X</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+  <span class="no">W</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="fl">0.5</span>)
+  <span class="no">Y</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="no">X</span>[, <span class="fl">3</span>], <span class="fl">0</span>) + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+  <span class="no">rate.cv.median</span> <span class="kw">=</span> <span class="fu">rate_cv_median</span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+
+  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(
+    <span class="kw">reject.median</span> <span class="kw">=</span> <span class="no">rate.cv.median</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>
+  )
+}))
+<span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span>(<span class="st">"Rejection rate:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">res</span>) * <span class="fl">100</span>, <span class="st">"%"</span>)
+<span class="co">#&gt; [1] "Rejection rate: 0.2 %"</span></pre></div>
+<p>If we repeat the power simulation from above, this algorithm does
+unfortunately not yield higher power than sample splitting. A drawback
+of this approach is that if all the <span class="math inline">\(t\)</span>-statistics are positive, but not
+significant on their own, then <code>rate_sequential</code> can take
+this into account, while <code>rate_cv_median</code> cannot.</p>
+<div class="sourceCode" id="cb11"><pre class="r"><span class="no">res</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/lapply.html">replicate</a></span>(<span class="fl">500</span>, {
+  <span class="co"># Simulate synthetic data with "weak" treatment heterogeneity</span>
+  <span class="no">n</span> <span class="kw">=</span> <span class="fl">2500</span>
+  <span class="no">p</span> <span class="kw">=</span> <span class="fl">5</span>
+  <span class="no">data</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/generate_causal_data.html">generate_causal_data</a></span>(<span class="no">n</span>, <span class="no">p</span>, <span class="kw">sigma.tau</span> <span class="kw">=</span> <span class="fl">0.15</span>, <span class="kw">sigma.noise</span> <span class="kw">=</span> <span class="fl">1</span>, <span class="kw">dgp</span> <span class="kw">=</span> <span class="st">"nw1"</span>)
+  <span class="no">X</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">X</span>
+  <span class="no">Y</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">Y</span>
+  <span class="no">W</span> <span class="kw">=</span> <span class="no">data</span>$<span class="no">W</span>
+
+  <span class="no">pval.median</span> <span class="kw">=</span> <span class="fu">rate_cv_median</span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)
+
+  <span class="co"># Compare with sample splitting</span>
+  <span class="no">train</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span>(<span class="no">n</span>, <span class="no">n</span> / <span class="fl">2</span>)
+  <span class="no">test</span> <span class="kw">=</span> -<span class="no">train</span>
+  <span class="no">cf.train</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[<span class="no">train</span>,], <span class="no">Y</span>[<span class="no">train</span>], <span class="no">W</span>[<span class="no">train</span>])
+  <span class="no">cf.test</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[<span class="no">test</span>,], <span class="no">Y</span>[<span class="no">test</span>], <span class="no">W</span>[<span class="no">test</span>])
+  <span class="no">rate</span> <span class="kw">=</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/rank_average_treatment_effect.html">rank_average_treatment_effect</a></span>(<span class="no">cf.test</span>, <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">cf.train</span>, <span class="no">X</span>[<span class="no">test</span>, ])$<span class="no">predictions</span>)
+  <span class="no">tstat.split</span> <span class="kw">=</span> <span class="no">rate</span>$<span class="no">estimate</span> / <span class="no">rate</span>$<span class="no">std.err</span>
+  <span class="no">pval.split</span> <span class="kw">=</span> <span class="fl">2</span> * <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">pnorm</a></span>(-<span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span>(<span class="no">tstat.split</span>))
+
+  <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(
+    <span class="kw">reject.median</span> <span class="kw">=</span> <span class="no">pval.median</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>,
+    <span class="kw">reject.split</span> <span class="kw">=</span> <span class="no">pval.split</span> <span class="kw">&lt;=</span> <span class="fl">0.05</span>
+  )
+}))
+<span class="fu"><a href="https://rdrr.io/r/base/colSums.html">colMeans</a></span>(<span class="no">res</span>) * <span class="fl">100</span>
+<span class="co">#&gt; reject.median  reject.split</span>
+<span class="co">#&gt; 14.6          47.8</span></pre></div>
+</div>
+  
