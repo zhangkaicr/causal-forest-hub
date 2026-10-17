@@ -1,0 +1,107 @@
+
+    
+
+    
+    
+<div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">grf</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">ggplot2</span>)</pre></div>
+<div id="assessing-overlap" class="section level2">
+<h2 class="hasAnchor">
+<a href="#assessing-overlap" class="anchor"></a>Assessing overlap</h2>
+<p>Two common diagnostics to evaluate if the identifying assumptions
+behind grf hold is a propensity score histogram and covariance balance
+plot.</p>
+<div class="sourceCode" id="cb2"><pre class="r"><span class="no">n</span> <span class="kw">&lt;-</span> <span class="fl">2000</span>
+<span class="no">p</span> <span class="kw">&lt;-</span> <span class="fl">10</span>
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(<span class="no">X</span>) <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/make.names.html">make.names</a></span>(<span class="fl">1</span>:<span class="no">p</span>)
+
+<span class="no">W</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="fl">0.4</span> + <span class="fl">0.2</span> * (<span class="no">X</span>[, <span class="fl">1</span>] <span class="kw">&gt;</span> <span class="fl">0</span>))
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmax</a></span>(<span class="no">X</span>[, <span class="fl">1</span>], <span class="fl">0</span>) * <span class="no">W</span> + <span class="no">X</span>[, <span class="fl">2</span>] + <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="no">X</span>[, <span class="fl">3</span>], <span class="fl">0</span>) + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+<span class="no">cf</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>, <span class="no">Y</span>, <span class="no">W</span>)</pre></div>
+<p>The overlap assumption requires a positive probability of treatment
+for each <span class="math inline">\(X_i\)</span>. We should not be able
+to deterministically decide the treatment status of an individual based
+on its covariates, meaning none of the estimated propensity scores
+should be close to one or zero. One can check this with a histogram:</p>
+<div class="sourceCode" id="cb3"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/graphics/hist.html">hist</a></span>(<span class="no">e.hat</span> <span class="kw">&lt;-</span> <span class="no">cf</span>$<span class="no">W.hat</span>)</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/diagnostics_files/figure-html/unnamed-chunk-3-1.png" alt="" width="700"></p>
+<p>One can also check that the covariates are balanced across the
+treated and control group by plotting the inverse-propensity weighted
+histograms of all samples, overlaid here for each feature (done with <a href="https://ggplot2.tidyverse.org/index.html">ggplot2</a> which
+supports weighted histograms):</p>
+<div class="sourceCode" id="cb4"><pre class="r"><span class="no">IPW</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html">ifelse</a></span>(<span class="no">W</span> <span class="kw">==</span> <span class="fl">1</span>, <span class="fl">1</span> / <span class="no">e.hat</span>, <span class="fl">1</span> / (<span class="fl">1</span> - <span class="no">e.hat</span>))
+
+<span class="no">plot.df</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span>(<span class="kw">value</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html">as.vector</a></span>(<span class="no">X</span>),
+                      <span class="kw">variable</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(<span class="no">X</span>)[<span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span>(<span class="fl">1</span>:<span class="no">p</span>, <span class="kw">each</span> <span class="kw">=</span> <span class="no">n</span>)],
+                      <span class="kw">W</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">as.factor</a></span>(<span class="no">W</span>),
+                      <span class="kw">IPW</span> <span class="kw">=</span> <span class="no">IPW</span>)
+
+<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span>(<span class="no">plot.df</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span>(<span class="kw">x</span> <span class="kw">=</span> <span class="no">value</span>, <span class="kw">weight</span> <span class="kw">=</span> <span class="no">IPW</span>, <span class="kw">fill</span> <span class="kw">=</span> <span class="no">W</span>)) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_histogram.html">geom_histogram</a></span>(<span class="kw">alpha</span> <span class="kw">=</span> <span class="fl">0.5</span>, <span class="kw">position</span> <span class="kw">=</span> <span class="st">"identity"</span>, <span class="kw">bins</span> <span class="kw">=</span> <span class="fl">30</span>) +
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html">facet_wrap</a></span>( ~ <span class="no">variable</span>, <span class="kw">ncol</span> <span class="kw">=</span> <span class="fl">2</span>)</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/diagnostics_files/figure-html/unnamed-chunk-4-1.png" alt="" width="700"></p>
+</div>
+<div id="assessing-fit" class="section level2">
+<h2 class="hasAnchor">
+<a href="#assessing-fit" class="anchor"></a>Assessing fit</h2>
+<p>The forest summary function <a href="https://grf-labs.github.io/grf/reference/test_calibration.html">test_calibration</a>
+can be used to asses a forest’s goodness of fit. A coefficient of 1 for
+<code>mean.forest.prediction</code> suggests that the mean forest
+prediction is correct and a coefficient of 1 for
+<code>differential.forest.prediction</code> suggests that the forest has
+captured heterogeneity in the underlying signal.</p>
+<div class="sourceCode" id="cb5"><pre class="r"><span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/test_calibration.html">test_calibration</a></span>(<span class="no">cf</span>)
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Best linear fit using forest predictions (on held-out data)</span>
+<span class="co">#&gt; as well as the mean forest prediction as regressors, along</span>
+<span class="co">#&gt; with one-sided heteroskedasticity-robust (HC3) SEs:</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt;                                Estimate Std. Error t value    Pr(&gt;t)    </span>
+<span class="co">#&gt; mean.forest.prediction          1.01570    0.13296  7.6393 1.683e-14 ***</span>
+<span class="co">#&gt; differential.forest.prediction  1.19482    0.10324 11.5734 &lt; 2.2e-16 ***</span>
+<span class="co">#&gt; ---</span>
+<span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></pre></div>
+<p>This exercise and function is motivated by earlier developments in
+the econometrics literature. A more intuitive exercise is to look at
+subgroup ATEs where the subgroups are formed according to low or high
+CATE predictions (Athey &amp; Wager, 2019). While this approach may give
+some qualitative insight into heterogeneity, the grouping is naive,
+because the doubly robust scores used to determine subgroups are not
+independent of the scores used to estimate those group ATEs.</p>
+<p>The <a href="https://grf-labs.github.io/grf/reference/rank_average_treatment_effect.html">RATE</a>
+function automates this exercise over all possible subgroups using the
+quantiles of the CATE predictions. If we use separate data to fit CATE
+models and estimate RATE metrics, we obtain a test statistic with
+expectation zero under no heterogeneity, which can be used to construct
+confidence intervals for the presence of treatment effect heterogeneity.
+For more details on this preferred approach, please see <a href="https://grf-labs.github.io/grf/articles/rate.html">this
+vignette</a>.</p>
+<p>Athey et al. (2017) suggests a bias measure to gauge how much work
+the propensity and outcome models have to do to get an unbiased
+estimate, relative to looking at a simple difference-in-means: <span class="math inline">\(bias(x) = (e(x) - p) \times (p(\mu(0, x) - \mu_0)
++ (1 - p) (\mu(1, x) - \mu_1)\)</span>.</p>
+<div class="sourceCode" id="cb6"><pre class="r"><span class="no">tau.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">cf</span>)$<span class="no">predictions</span>
+
+<span class="no">p</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">W</span>)
+<span class="no">Y.hat.0</span> <span class="kw">&lt;-</span> <span class="no">cf</span>$<span class="no">Y.hat</span> - <span class="no">e.hat</span> * <span class="no">tau.hat</span>
+<span class="no">Y.hat.1</span> <span class="kw">&lt;-</span> <span class="no">cf</span>$<span class="no">Y.hat</span> + (<span class="fl">1</span> - <span class="no">e.hat</span>) * <span class="no">tau.hat</span>
+
+<span class="no">bias</span> <span class="kw">&lt;-</span> (<span class="no">e.hat</span> - <span class="no">p</span>) * (<span class="no">p</span> * (<span class="no">Y.hat.0</span> - <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">Y.hat.0</span>))  + (<span class="fl">1</span> - <span class="no">p</span>) * (<span class="no">Y.hat.1</span> - <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">Y.hat.1</span>)))</pre></div>
+<p>Scaled by the standard deviation of the outcome:</p>
+<div class="sourceCode" id="cb7"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/graphics/hist.html">hist</a></span>(<span class="no">bias</span> / <span class="fu"><a href="https://rdrr.io/r/stats/sd.html">sd</a></span>(<span class="no">Y</span>))</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/diagnostics_files/figure-html/unnamed-chunk-7-1.png" alt="" width="700"></p>
+<p>See Athey et al. (2017) section D for more details.</p>
+</div>
+<div id="references" class="section level2">
+<h2 class="hasAnchor">
+<a href="#references" class="anchor"></a>References</h2>
+<p>Athey, Susan and Stefan Wager. Estimating Treatment Effects with
+Causal Forests: An Application. <em>Observational Studies</em>, 5, 2019.
+(<a href="https://arxiv.org/abs/1902.07409">arxiv</a>)</p>
+<p>Athey, Susan, Guido Imbens, Thai Pham, and Stefan Wager. Estimating
+average treatment effects: Supplementary analyses and remaining
+challenges. <em>American Economic Review</em>, 107(5), May 2017:
+278-281. (<a href="https://arxiv.org/abs/1702.01250">arxiv</a>)</p>
+</div>
+  
