@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme-default="light">
+<head>
+<script>
+(function(){
+  var KEY="share-theme", d=document.documentElement;
+  try{var saved=localStorage.getItem(KEY);}catch(e){var saved=null;}
+  d.setAttribute("data-theme", saved || d.getAttribute("data-theme-default") || "light");
+  document.addEventListener("DOMContentLoaded",function(){
+    var b=document.getElementById("theme-toggle"); if(!b) return;
+    function sync(){
+      var dark=d.getAttribute("data-theme")==="dark";
+      b.setAttribute("aria-pressed", dark?"true":"false");
+      b.setAttribute("title", dark?"切换到亮色主题 (Alt+T)":"切换到暗色主题 (Alt+T)");
+    }
+    b.addEventListener("click",function(){
+      var nxt=d.getAttribute("data-theme")==="dark"?"light":"dark";
+      d.setAttribute("data-theme",nxt);
+      try{localStorage.setItem(KEY,nxt);}catch(e){}
+      sync();
+    });
+    document.addEventListener("keydown",function(e){
+      if(e.altKey&&(e.key==="t"||e.key==="T")) b.click();
+    });
+    sync();
+  });
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《evalITR：评估个体化治疗规则（ITR）》 · evalITR 中文教程</title>
+<style>
+:root{
+  --bg:#f7f7f5; --card:#ffffff; --text:#2c2c2a; --muted:#6b6a65;
+  --line:#e3e2dd; --accent:#1f8a70; --accent-soft:#e6f4f0; --tag:#f1efe8;
+  --code-bg:#f4f3ef; --code-line:#e7e5df; --code-text:#2c2c2a;
+  --note-bg:#eef6ff; --note-line:#bcd6f5; --note-text:#1f3a5f;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  line-height:1.8; margin:0;
+}
+.wrap{max-width:840px;margin:0 auto;padding:32px 22px 80px}
+.topbar{margin-bottom:26px}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;
+  font-size:14px;font-weight:600}
+.back:hover{text-decoration:underline}
+h1{font-size:30px;font-weight:700;letter-spacing:-.3px;margin:6px 0 4px;line-height:1.3}
+.sub{color:var(--muted);font-size:14px;margin-bottom:8px}
+.sub a{color:var(--accent)}
+.lead{font-size:16px;color:var(--text);margin:14px 0 22px;border-left:3px solid var(--accent);
+  padding:4px 0 4px 16px;background:var(--accent-soft);border-radius:0 8px 8px 0}
+.content h2{font-size:22px;font-weight:700;margin:38px 0 12px;padding-bottom:6px;
+  border-bottom:1px solid var(--line)}
+.content h3{font-size:18px;font-weight:700;margin:26px 0 10px}
+.content h4{font-size:16px;font-weight:700;margin:20px 0 8px}
+.content p{margin:12px 0}
+.content ul,.content ol{margin:12px 0;padding-left:26px}
+.content li{margin:6px 0}
+.content a{color:var(--accent);text-decoration:none}
+.content a:hover{text-decoration:underline}
+.content img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;
+  margin:14px 0;background:#fff;display:block}
+.content table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+.content th,.content td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+.content th{background:var(--accent-soft);font-weight:600}
+.content tr:nth-child(even) td{background:var(--card)}
+.content blockquote{margin:16px 0;padding:12px 16px;border-left:3px solid var(--line);
+  color:var(--muted);background:var(--card);border-radius:0 8px 8px 0}
+.content code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13.5px;background:var(--code-bg);padding:2px 5px;border-radius:4px;color:var(--code-text)}
+pre{background:var(--code-bg);border:1px solid var(--code-line);border-radius:10px;
+  padding:16px 18px;overflow-x:auto;margin:16px 0;line-height:1.6}
+pre code{background:none;padding:0;font-size:13.5px;color:var(--code-text)}
+.content .sourceCode{margin:16px 0}
+/* downlit token coloring (light) */
+.content .co{color:#6a737d}
+.content .st{color:#032f62}
+.content .fu{color:#4078f2}
+.content .cf{color:#d73a49}
+.content .kw{color:#a626a4}
+.content .fl,.content .cn{color:#b9520f}
+.content .op{color:#444}
+/* 背景与解释 callout */
+.note{margin:18px 0;padding:14px 18px;border:1px solid var(--note-line);
+  background:var(--note-bg);border-radius:10px;color:var(--note-text)}
+.note .nt{display:inline-block;font-weight:700;font-size:13px;letter-spacing:.04em;
+  margin-bottom:6px;color:var(--accent)}
+.note p{margin:6px 0}
+.note code{background:rgba(255,255,255,.6)}
+.foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--muted)}
+.foot a{color:var(--accent)}
+
+:root[data-theme="dark"]{
+  --bg:#0f1116; --card:#181b22; --text:#e4e6ea; --muted:#98a0ac;
+  --line:#2a2f3a; --accent:#34d399; --accent-soft:#10241d; --tag:#1e222b;
+  --code-bg:#0b0d12; --code-line:#1d2129; --code-text:#d7dae0;
+  --note-bg:#15233b; --note-line:#274168; --note-text:#bcd6f5;
+}
+:root[data-theme="dark"] .content th{background:var(--accent-soft)}
+:root[data-theme="dark"] .content tr:nth-child(even) td{background:#14171e}
+:root[data-theme="dark"] .content img{background:#0b0d12}
+:root[data-theme="dark"] .content .co{color:#7f8b9a}
+:root[data-theme="dark"] .content .st{color:#9ecbff}
+:root[data-theme="dark"] .content .fu{color:#82aaff}
+:root[data-theme="dark"] .content .cf{color:#f07178}
+:root[data-theme="dark"] .content .kw{color:#c792ea}
+:root[data-theme="dark"] .content .fl,.content .cn{color:#f78c6c}
+
+.tt{
+  position:fixed; top:16px; right:16px; z-index:9999; width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center; border-radius:50%;
+  cursor:pointer; color:var(--text); background:var(--card);
+  border:1px solid var(--line);
+  box-shadow:0 2px 10px rgba(0,0,0,.24); transition:transform .15s, border-color .15s, background .15s;
+}
+.tt:hover{transform:translateY(-1px); border-color:var(--accent)}
+.tt:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tt svg{display:none}
+[data-theme="dark"] .ico-sun{display:block}
+[data-theme="dark"] .ico-moon{display:none}
+[data-theme="light"] .ico-sun{display:none}
+[data-theme="light"] .ico-moon{display:block}
+@media(max-width:640px){.tt{top:10px; right:10px; width:36px; height:36px}}
+@media print{.tt{display:none}}
+</style>
+<style>
+/* ---- 全局搜索 ---- */
+.sbox{position:relative;display:inline-flex;align-items:center;margin-left:10px}
+.sbox input{background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);color:inherit;
+ border-radius:6px;padding:4px 9px 4px 25px;font-size:13px;width:170px;font-family:inherit;outline:none}
+.sbox input:focus{border-color:#4ea1ff;width:220px}
+.sbox .si{position:absolute;left:8px;font-size:12px;opacity:.6;pointer-events:none}
+.spanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:440px;max-width:88vw;
+ max-height:64vh;overflow-y:auto;z-index:900;background:var(--panel,#262c34);
+ border:1px solid var(--border,#3a4350);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.spanel.open{display:block}
+.spanel .sh{padding:7px 10px;font-size:12px;opacity:.7;border-bottom:1px solid var(--border,#3a4350);margin-bottom:4px}
+.spanel .sempty{font-size:12px;opacity:.65;padding:16px 10px;text-align:center}
+.sres{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:inherit}
+.sres:hover,.sres.sel{background:var(--panel2,#2e3540)}
+.sres .c{font-size:11px;opacity:.65;margin-bottom:1px}
+.sres .s{font-size:12px;color:#4ea1ff;margin-bottom:2px}
+.sres .t{font-size:13px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sres mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+.srch-main{margin:22px 0}
+.srch-main input{width:100%;background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);
+ color:inherit;border-radius:8px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none}
+.srch-main input:focus{border-color:#4ea1ff}
+.srch-meta{font-size:13px;opacity:.7;margin:12px 0 6px}
+.srch-list{list-style:none;margin:0;padding:0}
+.srch-list .sres{border:1px solid var(--border,#3a4350);margin:7px 0;padding:9px 11px}
+.srch-list .sres:hover{border-color:#4ea1ff}
+@media (max-width:640px){.sbox input{width:110px}.sbox input:focus{width:150px}.spanel{width:86vw}}
+</style><!--search.css-marker-->
+<style>
+/* ===== 因果森林知识库 · 统一导航 ===== */
+.cfh-nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:10px;
+ padding:8px 16px;background:var(--bg,#181b22);border-bottom:1px solid var(--line,#2a2f3a);
+ font-size:13.5px;flex-wrap:wrap}
+.cfh-nav .cfh-home{font-weight:600;color:var(--text,#e4e6ea);text-decoration:none;font-size:14px;
+ display:flex;align-items:center;gap:6px}
+.cfh-nav .cfh-home:hover{color:var(--accent,#7aa2f7)}
+.cfh-nav .cfh-crumb{color:var(--muted,#98a0ac);font-size:12.5px}
+.cfh-nav .cfh-crumb a{color:var(--accent,#7aa2f7);text-decoration:none}
+.cfh-nav .cfh-sp{flex:1}
+.cfh-nav select{background:var(--card,#181b22);color:var(--text,#e4e6ea);
+ border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:4px 8px;font-size:12.5px;
+ font-family:inherit;outline:none;cursor:pointer;max-width:230px}
+.cfh-nav select:hover{border-color:var(--accent,#7aa2f7)}
+.cfh-nav a.cfh-sbtn{color:var(--text,#e4e6ea);text-decoration:none;border:1px solid var(--line,#2a2f3a);
+ border-radius:6px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.cfh-nav a.cfh-sbtn:hover{border-color:var(--accent,#7aa2f7);color:var(--accent,#7aa2f7)}
+@media (max-width:700px){.cfh-nav .cfh-crumb{display:none}.cfh-nav select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="cfh-nav">
+<a class="cfh-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="cfh-crumb">/ <a href="index.html">evalITR 规则评估</a> / overview</span>
+<span class="cfh-sp"></span>
+<select onchange="if(this.value)location.href=this.value" aria-label="切换库">
+<option value="grf-cn/index.html">grf 广义随机森林</option>
+<option value="policytree-cn/index.html">policytree 策略树</option>
+<option value="surefq/surefq.html">SURE / QRF 充分表示</option>
+<option value="tidyhte-cn/index.html">tidyhte 优雅的 HTE</option>
+<option value="metalearner-cn/index.html">Meta-Learner 元学习器</option>
+<option value="model4you-cn/index.html">model4you 个体化治疗</option>
+<option value="evalITR-cn/index.html" selected>evalITR 规则评估</option>
+<option value="rj-dlc-cn/index.html">DeepLearningCausal</option>
+<option value="survlearners-cn/index.html">survlearners 生存 HTE</option>
+<option value="bocf-cn/index.html">BOCF 基线观测结转</option>
+<option value="hte-course/index.html">HTE 公开课讲义</option>
+<option value="causal-tools-cn/index.html">因果推断三件工具</option>
+<option value="imputeTS-cn/index.html">imputeTS 缺失填补</option>
+</select>
+<a class="cfh-sbtn" href="search.html">&#128269; 搜索本页</a>
+</div>
+<button id="theme-toggle" class="tt" type="button" aria-label="切换明暗主题" title="切换明暗主题 (Alt+T)">
+  <svg class="ico-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7"/></svg>
+  <svg class="ico-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.2 8.2 0 1 0 10.5 10.5z"/></svg>
+</button>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">&larr; evalITR 教程总览</a><span class="sbox"><span class="si">&#128269;</span>
+<input type="search" id="s-q" placeholder="搜索本站…（按 /）" autocomplete="off" aria-label="搜索本站">
+<span class="spanel" id="s-panel"></span></span>
+  </div>
+  <h1>《evalITR：评估个体化治疗规则（ITR）》</h1>
+  <p class="sub">原文：<a href="https://michaellli.github.io/evalITR/" target="_blank" rel="noopener">Evaluating Individualized Treatment Rules</a>（英文）&nbsp;·&nbsp;evalITR 官方文档中文译本</p>
+
+  <div class="content">
+<div class="section level2">
+<h2 id="evalitr-cran_status_badge-cran-downloads">evalITR <a href="https://cran.r-project.org/package=evalITR" class="external-link"><img src="https://www.r-pkg.org/badges/version/evalITR" alt="CRAN_Status_Badge"></a> <img src="https://cranlogs.r-pkg.org/badges/grand-total/evalITR" alt="CRAN downloads"><a class="anchor" aria-label="anchor" href="#evalitr-cran-status-badge-cran-downloads"></a>
+</h2>
+<!-- badges: start -->
+<!-- badges: end -->
+<p><img src="https://michaellli.github.io/evalITR/reference/figures/README-manual.png"><!-- --></p>
+<p>R 包 evalITR 提供了一系列统计方法，用于在随机化数据下估计与评估个体化治疗规则（Individualized Treatment Rule, ITR）。包中提供的指标包括：（1）总体平均处方效应 <code>PAPE</code>；（2）带预算约束的总体平均处方效应 <code>PAPEp</code>；（3）带预算约束的总体平均处方效应差异 <code>PAPDp</code>；（4）处方效应曲线下面积 <code>AUPEC</code>；（5）分组平均处理效应 <code>GATEs</code>。上述设计所用方法的细节，可参见 <a href="https://arxiv.org/abs/1905.05389" class="external-link">Imai and Li (2023)</a> 与 <a href="https://arxiv.org/abs/2203.14511" class="external-link">Imai and Li</a> 两篇论文。</p>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p>传统上，评估一种治疗（如某药物或干预手段）时，我们常关注<strong>平均处理效应（Average Treatment Effect, ATE）</strong>——也就是「给所有人都用同样的方案」时平均能带来多少获益。但病人千人千面，对张三有效的方案未必对李四有效。</p>
+<p>个体化治疗规则（ITR）研究的正是：根据每个人自身的协变量（如年龄、基线指标、基因型等），给出「该不该给这个人用这个治疗」的个体化决策。换言之，ITR 试图回答「对谁治、对谁不治」，目标是让<strong>总体</strong>获益最大化，而不是追求一个「一刀切」的平均效果。在精准医学（precision medicine）语境下，这正是从「群体平均」走向「因人而异」的核心思路。</p>
+</div>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p>评估一条个体化规则，比估计一个总体的平均效应要难得多，难点在于<strong>过拟合</strong>：如果在同一批数据上既学出规则又评价规则，规则会「记住」这些样本的偶然噪声，评估结果就会过于乐观，在新病人身上未必成立。</p>
+<p>因此 evalITR 强调<strong>样本分割（sample splitting）</strong>与<strong>交叉验证（cross-validation）</strong>：把数据分成训练集和验证集，用一部分数据来学习规则，用另一部分（样本外数据）来无偏地评估它。这样得到的指标（如 PAPE、AUPEC）才近似反映这套规则在未来真实人群中的表现，也就是它的<strong>泛化能力</strong>。</p>
+</div>
+
+<p>文档与网站：<a href="https://michaellli.github.io/evalITR/" class="external-link uri">https://michaellli.github.io/evalITR/</a></p>
+
+<div class="note"><span class="nt">背景与解释</span>
+<p>evalITR 给出的几个核心指标，可以这样通俗理解：</p>
+<p><code>PAPE</code>（总体平均处方效应）衡量「如果按这套规则给病人分配治疗，相比不采用任何规则，总体平均能多获益多少」；带 <code>p</code> 的 <code>PAPEp</code> / <code>PAPDp</code> 则在「预算有限、只能覆盖一部分人」的约束下计算相应的处方效应或效应差异，对应临床资源受限的真实场景；<code>AUPEC</code>（处方效应曲线下面积）类似 uplift / Qini 曲线的面积，面积越大，代表规则在「由高到低优先治疗」时的整体排序质量越好；<code>GATEs</code>（分组平均处理效应）把人群按协变量分组，看看不同亚组的处理效应有何差异——比传统的「亚组分析」更系统地刻画了效应异质性。</p>
+</div>
+</div>
+  </div>
+
+  <div class="foot">
+    <p>本页为 <a href="https://michaellli.github.io/evalITR/" target="_blank" rel="noopener">evalITR 包官方文档</a> 的中文译本，原文版权归原作者（Michael Li 等）所有，依据开源许可翻译并注明出处，仅供学习交流。R 代码保持原样，译文新增的「背景与解释」框为译者补充。evalITR 源代码：<a href="https://github.com/MichaelLLi/evalITR" target="_blank" rel="noopener">github.com/MichaelLLi/evalITR</a>。</p>
+  </div>
+</div>
+<script src="search.js"></script>
+</body>
+</html>
