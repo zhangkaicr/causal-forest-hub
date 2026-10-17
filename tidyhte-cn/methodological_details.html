@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme-default="light">
+<head>
+<script>
+(function(){
+  var KEY="share-theme", d=document.documentElement;
+  try{var saved=localStorage.getItem(KEY);}catch(e){var saved=null;}
+  d.setAttribute("data-theme", saved || d.getAttribute("data-theme-default") || "light");
+  document.addEventListener("DOMContentLoaded",function(){
+    var b=document.getElementById("theme-toggle"); if(!b) return;
+    function sync(){
+      var dark=d.getAttribute("data-theme")==="dark";
+      b.setAttribute("aria-pressed", dark?"true":"false");
+      b.setAttribute("title", dark?"切换到亮色主题 (Alt+T)":"切换到暗色主题 (Alt+T)");
+    }
+    b.addEventListener("click",function(){
+      var nxt=d.getAttribute("data-theme")==="dark"?"light":"dark";
+      d.setAttribute("data-theme",nxt);
+      try{localStorage.setItem(KEY,nxt);}catch(e){}
+      sync();
+    });
+    document.addEventListener("keydown",function(e){
+      if(e.altKey&&(e.key==="t"||e.key==="T")) b.click();
+    });
+    sync();
+  });
+})();
+</script>
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},
+options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方法细节 · tidyhte 中文译本</title>
+<style>
+:root{
+  --bg:#f7f7f5; --card:#ffffff; --text:#2c2c2a; --muted:#6b6a65;
+  --line:#e3e2dd; --accent:#534ab7; --accent-soft:#eeedfe; --tag:#f1efe8;
+  --code-bg:#f4f3ef; --code-line:#e7e5df; --code-text:#2c2c2a;
+  --note-bg:#eef6ff; --note-line:#bcd6f5; --note-text:#1f3a5f;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;line-height:1.8;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding:32px 22px 80px}
+.topbar{margin-bottom:26px}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;font-size:14px;font-weight:600}
+.back:hover{text-decoration:underline}
+h1{font-size:30px;font-weight:700;letter-spacing:-.3px;margin:6px 0 4px;line-height:1.3}
+.sub{color:var(--muted);font-size:14px;margin-bottom:8px}
+.sub a{color:var(--accent)}
+.lead{font-size:16px;color:var(--text);margin:14px 0 22px;border-left:3px solid var(--accent);padding:4px 0 4px 16px;background:var(--accent-soft);border-radius:0 8px 8px 0}
+.content h2{font-size:22px;font-weight:700;margin:38px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.content h3{font-size:18px;font-weight:700;margin:26px 0 10px}
+.content p{margin:12px 0}
+.content ul,.content ol{margin:12px 0;padding-left:26px}
+.content li{margin:6px 0}
+.content a{color:var(--accent);text-decoration:none}
+.content a:hover{text-decoration:underline}
+.content img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;margin:14px 0;background:#fff;display:block}
+.note{margin:18px 0;padding:14px 18px;border:1px solid var(--note-line);background:var(--note-bg);border-radius:10px;color:var(--note-text)}
+.note .nt{display:inline-block;font-weight:700;font-size:13px;letter-spacing:.04em;margin-bottom:6px;color:var(--accent)}
+.note p{margin:6px 0}
+.rulebox{margin:18px 0;padding:14px 18px;border-radius:10px;background:#5ADDD7;color:#0c2c2a}
+.rulebox h3{margin:0 0 6px;color:#0c2c2a}
+.rulebox p{margin:0;font-weight:400;color:#0c2c2a}
+.toc{margin:22px 0;padding:16px 20px;border:1px solid var(--line);background:var(--card);border-radius:10px}
+.toc .ttl{font-weight:700;font-size:14px;color:var(--muted);margin-bottom:8px;letter-spacing:.04em}
+.toc ol{margin:0;padding-left:22px;columns:2;column-gap:28px}
+.toc li{margin:4px 0;font-size:14.5px}
+.toc a{color:var(--text)}
+.foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.foot a{color:var(--accent)}
+.csl-entry{margin:8px 0;font-size:13.5px;line-height:1.6;padding-left:14px;text-indent:-14px}
+:root[data-theme="dark"]{--bg:#0f1116;--card:#181b22;--text:#e4e6ea;--muted:#98a0ac;--line:#2a2f3a;--accent:#7aa2f7;--accent-soft:#16203a;--tag:#1e222b;--code-bg:#0b0d12;--code-line:#1d2129;--code-text:#d7dae0;--note-bg:#15233b;--note-line:#274168;--note-text:#bcd6f5}
+:root[data-theme="dark"] .content img{background:#0b0d12}
+:root[data-theme="dark"] .rulebox{background:#1c5b56;color:#d6f5f1}
+:root[data-theme="dark"] .toc{background:var(--card)}
+.tt{position:fixed;top:16px;right:16px;z-index:9999;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;color:var(--text);background:var(--card);border:1px solid var(--line);box-shadow:0 2px 10px rgba(0,0,0,.24)}
+.tt:hover{transform:translateY(-1px);border-color:var(--accent)}
+.tt svg{display:none}
+[data-theme="dark"] .ico-sun{display:block}
+[data-theme="dark"] .ico-moon{display:none}
+[data-theme="light"] .ico-sun{display:none}
+[data-theme="light"] .ico-moon{display:block}
+@media(max-width:640px){.tt{top:10px;right:10px;width:36px;height:36px}}
+@media print{.tt{display:none}}
+</style>
+<style>
+/* ---- 全局搜索 ---- */
+.sbox{position:relative;display:inline-flex;align-items:center;margin-left:10px}
+.sbox input{background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);color:inherit;
+ border-radius:6px;padding:4px 9px 4px 25px;font-size:13px;width:170px;font-family:inherit;outline:none}
+.sbox input:focus{border-color:#4ea1ff;width:220px}
+.sbox .si{position:absolute;left:8px;font-size:12px;opacity:.6;pointer-events:none}
+.spanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:440px;max-width:88vw;
+ max-height:64vh;overflow-y:auto;z-index:900;background:var(--panel,#262c34);
+ border:1px solid var(--border,#3a4350);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.spanel.open{display:block}
+.spanel .sh{padding:7px 10px;font-size:12px;opacity:.7;border-bottom:1px solid var(--border,#3a4350);margin-bottom:4px}
+.spanel .sempty{font-size:12px;opacity:.65;padding:16px 10px;text-align:center}
+.sres{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:inherit}
+.sres:hover,.sres.sel{background:var(--panel2,#2e3540)}
+.sres .c{font-size:11px;opacity:.65;margin-bottom:1px}
+.sres .s{font-size:12px;color:#4ea1ff;margin-bottom:2px}
+.sres .t{font-size:13px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sres mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+.srch-main{margin:22px 0}
+.srch-main input{width:100%;background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);
+ color:inherit;border-radius:8px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none}
+.srch-main input:focus{border-color:#4ea1ff}
+.srch-meta{font-size:13px;opacity:.7;margin:12px 0 6px}
+.srch-list{list-style:none;margin:0;padding:0}
+.srch-list .sres{border:1px solid var(--border,#3a4350);margin:7px 0;padding:9px 11px}
+.srch-list .sres:hover{border-color:#4ea1ff}
+@media (max-width:640px){.sbox input{width:110px}.sbox input:focus{width:150px}.spanel{width:86vw}}
+</style><!--search.css-marker-->
+<style>
+/* ===== 因果森林知识库 · 统一导航 ===== */
+.cfh-nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:10px;
+ padding:8px 16px;background:var(--bg,#181b22);border-bottom:1px solid var(--line,#2a2f3a);
+ font-size:13.5px;flex-wrap:wrap}
+.cfh-nav .cfh-home{font-weight:600;color:var(--text,#e4e6ea);text-decoration:none;font-size:14px;
+ display:flex;align-items:center;gap:6px}
+.cfh-nav .cfh-home:hover{color:var(--accent,#7aa2f7)}
+.cfh-nav .cfh-crumb{color:var(--muted,#98a0ac);font-size:12.5px}
+.cfh-nav .cfh-crumb a{color:var(--accent,#7aa2f7);text-decoration:none}
+.cfh-nav .cfh-sp{flex:1}
+.cfh-nav select{background:var(--card,#181b22);color:var(--text,#e4e6ea);
+ border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:4px 8px;font-size:12.5px;
+ font-family:inherit;outline:none;cursor:pointer;max-width:230px}
+.cfh-nav select:hover{border-color:var(--accent,#7aa2f7)}
+.cfh-nav a.cfh-sbtn{color:var(--text,#e4e6ea);text-decoration:none;border:1px solid var(--line,#2a2f3a);
+ border-radius:6px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.cfh-nav a.cfh-sbtn:hover{border-color:var(--accent,#7aa2f7);color:var(--accent,#7aa2f7)}
+@media (max-width:700px){.cfh-nav .cfh-crumb{display:none}.cfh-nav select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="cfh-nav">
+<a class="cfh-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="cfh-crumb">/ <a href="index.html">tidyhte 优雅的 HTE</a> / methodological_details</span>
+<span class="cfh-sp"></span>
+<select onchange="if(this.value)location.href=this.value" aria-label="切换库">
+<option value="grf-cn/index.html">grf 广义随机森林</option>
+<option value="policytree-cn/index.html">policytree 策略树</option>
+<option value="surefq/surefq.html">SURE / QRF 充分表示</option>
+<option value="tidyhte-cn/index.html" selected>tidyhte 优雅的 HTE</option>
+<option value="metalearner-cn/index.html">Meta-Learner 元学习器</option>
+<option value="model4you-cn/index.html">model4you 个体化治疗</option>
+<option value="evalITR-cn/index.html">evalITR 规则评估</option>
+<option value="rj-dlc-cn/index.html">DeepLearningCausal</option>
+<option value="survlearners-cn/index.html">survlearners 生存 HTE</option>
+<option value="bocf-cn/index.html">BOCF 基线观测结转</option>
+<option value="hte-course/index.html">HTE 公开课讲义</option>
+<option value="causal-tools-cn/index.html">因果推断三件工具</option>
+<option value="imputeTS-cn/index.html">imputeTS 缺失填补</option>
+</select>
+<a class="cfh-sbtn" href="search.html">&#128269; 搜索本页</a>
+</div>
+<button id="theme-toggle" class="tt" type="button" aria-label="切换明暗主题" title="切换明暗主题 (Alt+T)">
+  <svg class="ico-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7"/></svg>
+  <svg class="ico-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.2 8.2 0 1 0 10.5 10.5z"/></svg>
+</button>
+<div class="wrap">
+  <div class="topbar"><a class="back" href="../index.html">&larr; 返回 share 总览</a></div>
+  <h1>方法细节</h1>
+  <p class="sub">原文：<a href="https://ddimmery.github.io/tidyhte/articles/methodological_details.html">ddimmery.github.io/tidyhte/articles/methodological_details.html</a> · 作者：Drew Dimmery（<a href="mailto:cran@ddimmery.com">cran@ddimmery.com</a>）、Edward Kennedy（<a href="mailto:edward@stat.cmu.edu">edward@stat.cmu.edu</a>） · 原文日期：2025 年 10 月 9 日 · 源码：<a href="https://github.com/ddimmery/tidyhte/blob/main/vignettes/methodological_details.Rmd">vignettes/methodological_details.Rmd</a> · 许可：MIT License · 本页为个人学习用途的非官方中文译本，引用请以英文原文为准</p>
+  <div class="content">
+
+<p class="lead">这是 <code>tidyhte</code> 三篇文档中<strong>最核心的一篇</strong>。它不教你「点哪个按钮」，而是解释「为什么可以这样算」：识别假设是什么、DR-Learner 三步算法各自在做什么、交叉验证折如何构造、伪结局从何而来、以及最终报告的 MCATE / VIMP / 诊断在数学上分别是什么。想读懂另外两篇教程里的每一张图，请回到这一篇。</p>
+
+<div class="toc">
+  <div class="ttl">目录</div>
+  <ol>
+    <li><a href="#abstract">摘要</a></li>
+    <li><a href="#summary">概述</a></li>
+    <li><a href="#preliminaries">预备知识</a></li>
+    <li><a href="#recipe-api">Recipe API</a></li>
+    <li><a href="#cross-validation">交叉验证</a></li>
+    <li><a href="#nuisance">干扰函数估计</a></li>
+    <li><a href="#pseudo-outcomes">伪结局构造</a></li>
+    <li><a href="#quantities-of-interest">目标量</a></li>
+    <li><a href="#replicating-analyses">复现分析</a></li>
+    <li><a href="#conclusion">结论</a></li>
+    <li><a href="#acknowledgements">致谢</a></li>
+    <li><a href="#references">参考文献</a></li>
+  </ol><span class="sbox"><span class="si">&#128269;</span>
+<input type="search" id="s-q" placeholder="搜索本站…（按 /）" autocomplete="off" aria-label="搜索本站">
+<span class="spanel" id="s-panel"></span></span>
+</div>
+
+<h2 id="abstract">摘要</h2>
+
+<p>在这篇文章中，我们介绍用于从<strong>观察性或实验性</strong>数据中估计异质性处理效应（HTE）的 <code>tidyhte</code> 包。该包实现了 Kennedy（2020）的方法，并通过 <strong>tidy 风格的用户接口</strong>将其呈现出来。支撑本包的设计原则是：</p>
+<ol>
+<li>API 应当 <strong>tidy-friendly</strong>（对 tidyverse 友好）；</li>
+<li>分析应当<strong>易于通过微小改动来复现</strong>；</li>
+<li>为干扰函数指定<strong>复杂集成</strong>应当直截了当；</li>
+<li><strong>合理的诊断</strong>应当易于获取。</li>
+</ol>
+<p>结果的绘图与格式化则留给最终使用者自行定制。</p>
+
+<h2 id="summary">概述</h2>
+
+<p>本文档详述 <code>tidyhte</code> 如何构造异质性处理效应的估计。它将展示本包的诸多特性，并讨论支撑这些特性的数学原理。</p>
+<p>在简要介绍 Kennedy（2020）的 HTE 估计方法之后，行文结构大体遵循 <code>tidyhte</code> 的估计 API：首先讨论<strong>交叉验证折</strong>的构造，然后介绍<strong>干扰函数估计</strong>，接着进行 Kennedy（2020）提出的「<strong>伪结局</strong>」构造，最后演示几类<strong>目标量（Quantities of Interest）</strong>的计算——也就是最终使用者真正想要的统计量。</p>
+
+<h2 id="preliminaries">预备知识</h2>
+
+<h3 id="problem-setting">问题设定</h3>
+
+<p>我们的数据由三元组 <span class="math inline">\(Z_i = (X_i, A_i, Y_i)\)</span> 定义，其中 <span class="math inline">\(X \in \mathbb{R}^d\)</span>、<span class="math inline">\(Y \in \mathbb{R}\)</span>、<span class="math inline">\(A \in \{0, 1\}\)</span>。定义如下<strong>干扰函数（nuisance function）</strong>：</p>
+<p><span class="math display">\[
+\pi(x) \equiv \mathbb{P}(A = 1 \mid X = x) \\
+\mu_a(x) \equiv \mathbb{E}(Y \mid X = x, A = a)
+\]</span></p>
+<p>异质性处理效应定义为处理组与对照组条件期望之差，即 <span class="math inline">\({\tau(x) \equiv \mu_1(x) - \mu_0(x)}\)</span>。全文将始终维持以下假设：</p>
+<ol>
+<li><strong>一致性（Consistency）</strong>：<span class="math inline">\(Y_i = Y_i(A_i)\)</span></li>
+<li><strong>无未测量混杂（No Unmeasured Confounding）</strong>：<span class="math inline">\(A \perp (Y(1), Y(0)) \mid X\)</span></li>
+<li><strong>正值性（Positivity）</strong>：<span class="math inline">\(\epsilon \leq \pi \leq 1 - \epsilon\)</span>，以概率 <span class="math inline">\(1\)</span> 成立</li>
+</ol>
+<p>在这些假设之下，<span class="math inline">\(\tau(x) = \mathbb{E}[Y(1) - Y(0) \mid X = x]\)</span>。</p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>这三条假设在流行病学里分别对应什么？</strong></p>
+  <p><strong>① 一致性</strong> <span class="math inline">\(Y_i=Y_i(A_i)\)</span>：你观测到的结局，就是这个病人实际接受的那种治疗所对应的潜在结局。它通常与 SUTVA（stable unit treatment value assumption）一起被提及：要求个体的结局不受<em>其他个体</em>接受何种处理的影响（无干扰），且「处理」本身是定义明确的单一版本。在传染病疫苗试验、群-randomized 试验、或存在同伴效应的场景中，无干扰假设会被违反——此时需要专门的整群／溢出效应方法。</p>
+  <p><strong>② 无未测量混杂</strong> <span class="math inline">\(A\perp(Y(1),Y(0))\mid X\)</span>：这是观察性研究中最关键、也最脆弱的一条。它要求在观测到的协变量 <span class="math inline">\(X\)</span> 之后，医生「给不给这个药」的决定与病人的潜在结局无关。它等价于流行病学中说的「<strong>可忽略性（ignorability）</strong>／<strong>可交换性（exchangeability）</strong>／<strong>无残余混杂</strong>」。<strong>它无法用数据检验</strong>——你可以检验协变量<em>平衡</em>，但平衡只保证<em>已测量</em>的混杂被处理掉了。因此务必用有向无环图（DAG）梳理混杂路径，并做敏感性分析（如 E-value）评估未测量混杂需要多强才能解释掉你的结论。</p>
+  <p><strong>③ 正值性</strong> <span class="math inline">\(\epsilon\le\pi(x)\le1-\epsilon\)</span>：每一种协变量组合的病人，都有实质性的机会被分到治疗组或对照组。违反正值性在临床上极其常见：例如某靶向药只用于晚期患者，那么早期患者的 <span class="math inline">\(\pi(x)\approx0\)</span>；此时对早期患者的疗效估计依赖外推，极其不稳定。<strong>实操建议</strong>：画倾向得分的分布直方图／镜像直方图，检查两组是否重叠；对 <span class="math inline">\(\hat\pi\)</span> 极端（如 &lt; 0.05 或 &gt; 0.95）的个体，考虑修剪（trimming）或明确限定目标人群（如「临床 equipoise 人群」）。</p>
+</div>
+
+<p>在本文余下部分，我们将使用一个基于 Horst、Hill 与 Gorman（2020）的 penguins（企鹅）数据集构建的<strong>半模拟</strong>示例。我们设想一项随机分配的营养干预，希望测量它对体重的因果效应。我们还有一个方差更小的测量指标：观察期内平均每日食物摄入量。Gentoo 企鹅会因这项干预平均增重，Adelie 企鹅则相反；Chinstrap 企鹅的平均体重变化为零。</p>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>penguins &lt;- within(penguins, {
+  id &lt;- 1:n
+  propensity_score &lt;- 0.5
+  treatment &lt;- rbinom(n, 1, propensity_score)
+  tau &lt;- 0.2 * (species == "Gentoo") - 0.2 * (species == "Adelie") + rnorm(n, sd = 0.05)
+  food_consumed_g &lt;- rnorm(n, 500, 5) * (1 + tau * treatment)
+  body_mass_g &lt;- body_mass_g * (1 + tau * treatment)
+})</code></pre>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>这段代码在做什么？</strong>它把真实的企鹅形态学数据（喙长、喙深、鳍长、体重、物种、岛屿、性别、年份）当作「协变量」，再<em>人为地</em>叠加一个随机分配的处理 <code>treatment</code>（随机化概率 0.5）与一个已知的真实效应 <code>tau</code>：Gentoo 企鹅 +20%，Adelie 企鹅 −20%，Chinstrap 企鹅 0%，另加一个 sd = 0.05 的个体噪声。</p>
+  <p>结局有两个：<code>food_consumed_g</code>（平均每日食物摄入克数，噪声小，因为 <code>rnorm(n, 500, 5)</code> 的变异系数只有 1%）与 <code>body_mass_g</code>（体重克数，噪声大，因为要用真实体重乘以效应）。这样的设计正好演示了方法部分要说明的一件事：<strong>结局的噪声水平直接决定效应估计的精度</strong>——同一个真实效应，在「低噪声结局」上会被清晰地检测出来，在「高噪声结局」上则可能淹没在置信带里。</p>
+  <p>因为是随机分配，倾向得分 <span class="math inline">\(\pi(x)=0.5\)</span> 是<em>已知</em>的（下文中用 <code>add_known_propensity_score()</code> 告知包），这为许多目标量带来无偏性。</p>
+</div>
+
+<h3 id="overview-of-method">方法概览</h3>
+
+<p>我们首先介绍下面的「DR-Learner」算法：</p>
+<p><strong>DR-learner 算法</strong>由三个主要步骤构成：</p>
+<ol>
+<li><strong>给定</strong>：在别处训练好的干扰函数估计 <span class="math inline">\(\left(\hat{\pi}, \hat{\mu}_0, \hat{\mu}_1\right)\)</span>；</li>
+<li><strong>构造「伪结局」（pseudo-outcome）</strong>：该量是对已给干扰函数估计量做一个变换：
+<p><span class="math display">\[
+\hat{\psi}(Z) = \frac{A - \hat{\pi}(X)}{\hat{\pi}(X)(1 - \hat{\pi}(X))} \left( Y - \hat{\mu}_{A}(X) \right) + \hat{\mu}_{1}(X) - \hat{\mu}_{0}(X)
+\]</span></p>
+</li>
+<li><strong>第二阶段回归</strong>：对变换后的伪结局构造一个平滑模型：
+<p><span class="math display">\[
+\hat{\tau}_{dr}(x) = \hat{\mathbb{E}}[\hat{\psi}(Z) \mid X = x]
+\]</span></p>
+</li>
+</ol>
+<p>该算法的写法假定干扰函数的估计是在<em>另外的数据</em>上训练的，因此可以被视为固定的。最简单的实现方式就是<strong>样本分割（sample-splitting）</strong>程序，之后再把各次分割的结果取平均。</p>
+<p>关键性的结果——Kennedy（2020）的<strong>定理 2</strong>——表明：第二阶段回归的误差，将与「真实个体处理效应对协变量 <span class="math inline">\(X\)</span> 做<em>神谕（oracle）回归</em>」的误差相匹配，相差的因子取决于两个干扰函数估计误差的<strong>乘积</strong>（即 <span class="math inline">\(\pi\)</span> 的误差与 <span class="math inline">\(\mu\)</span> 的误差之积）。</p>
+<p>当第二阶段回归较为简单时——例如在由 <span class="math inline">\(X\)</span> 定义的单元格内取亚组均值——DR-Learner 会像 AIPW 估计量那样继承其<strong>无偏性与有效性</strong>（Robins、Rotnitzky 与 Zhao，1995；Van der Laan、Laan 与 Robins，2003；Tsiatis，2006；Tsiatis 等，2008；Chernozhukov 等，2018）。</p>
+<p>Kennedy（2020）的逼近结果应用于对这个<em>变换后结局</em>的回归，为目标量的估计提供了很大的灵活性。我们将利用这一事实，允许像「在个体因果效应本身上估计」那样去估计各种各样的模型：例如，变量重要性度量就建立在「各种第二阶段回归都将是准确的」这一假设之上。</p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>伪结局（pseudo-outcome）到底是什么？为什么它这么重要？</strong></p>
+  <p>个体处理效应 <span class="math inline">\(Y(1)-Y(0)\)</span> 永远无法被观测——这就是因果推断的根本问题（Holland 称之为「the fundamental problem of causal inference」）。传统的回归思路是绕开它：拟合 <span class="math inline">\(\mu_1-\mu_0\)</span>。而伪结局的思路是<strong>直面它</strong>：为每个个体构造一个数 <span class="math inline">\(\hat\psi(Z_i)\)</span>，使得它在给定 <span class="math inline">\(X\)</span> 时的条件期望<em>近似等于</em>真实的 CATE：</p>
+  <p><span class="math inline">\(\mathbb{E}[\hat\psi(Z)\mid X=x]\approx\tau(x)\)</span></p>
+  <p>于是「估计 CATE 函数」就变成了一个<em>普通的回归问题</em>：把 <span class="math inline">\(\hat\psi\)</span> 当成结局，对 <span class="math inline">\(X\)</span> 做回归即可。所有现成的回归工具——线性模型、随机森林、核平滑、变量重要性——都可以直接用上。这就是为什么 tidyhte 能对「永远看不见的个体疗效」做变量重要性分析。</p>
+  <p><strong>公式结构解读。</strong>右边第二项 <span class="math inline">\(\hat\mu_1(X)-\hat\mu_0(X)\)</span> 是「结果回归之差」，也就是 T-learner 的插件估计，它平滑但可能有偏；第一项 <span class="math inline">\(\frac{A-\hat\pi(X)}{\hat\pi(X)(1-\hat\pi(X))}(Y-\hat\mu_A(X))\)</span> 是「逆概率加权残差」，无偏但方差大。把两者相加，就得到了 AIPW 估计量（Robins 等，1995）——它兼具无偏性与效率。这也是「<strong>双重稳健</strong>」名字的由来：只要结果模型与倾向得分模型中<em>任意一个</em>正确，估计就一致。</p>
+  <p><strong>定理 2 的「乘积」结构为什么是决定性的？</strong>它保证二阶回归的误差 ≈ 神谕回归误差 + <span class="math inline">\(O(\lVert\hat\pi-\pi\rVert\cdot\lVert\hat\mu-\mu\rVert)\)</span>。由于是<em>乘积</em>，只要两个模型各自以 <span class="math inline">\(n^{-1/4}\)</span> 的速度收敛，乘积就是 <span class="math inline">\(n^{-1/2}\)</span>——比参数速率还快，不会拖累推断。这正是「可以用机器学习估计干扰函数，却仍然得到 <span class="math inline">\(\sqrt n\)</span>-一致的效应估计与有效置信区间」的理论基础。</p>
+  <p><strong>但这一切都建立在交叉拟合之上。</strong>如果不做样本分割、直接用同一批数据训练 <span class="math inline">\(\hat\pi,\hat\mu\)</span> 再做二阶回归，机器学习模型的过拟合会与残差产生依赖，「乘积项」不再可忽略，置信区间就会失效。下一节的 <code>make_splits()</code> 与再下一节的交叉验证，正是为此而设。</p>
+</div>
+
+<h3 id="principles">设计原则</h3>
+
+<p><code>tidyhte</code> 包的基本思想是：把 HTE 分析<strong>拆解成几个彼此独立的部分</strong>，然后按需把它们组合起来。第一步是定义一个<strong>配置对象（或称「配方」recipe）</strong>，在高层次上描述 HTE 估计应当如何进行。在估计阶段，再指出具体关注的变量。这种设计使得以极低的开销重复<em>非常相似</em>的分析成为可能。这在以下情形中很有用：使用者希望在<em>多个结局</em>上探索异质性，或者存在多个特别关注的<em>处理对比</em>。这些分析往往具有共同特征——例如，用于干扰函数估计的集成中会包含相似的模型类别。</p>
+<p>同样重要的是，所提供的方法支持对以下<strong>常见数据结构</strong>的使用：</p>
+
+<h4 style="font-size:16px;font-weight:700;margin:22px 0 8px;color:var(--text)" id="sec-聚类数据-clustered-data">聚类数据（Clustered data）</h4>
+
+<p>真实世界数据的一个常见特征是：<strong>处理可能是聚类的</strong>。换言之，如果一个单位接受了处理，那么可能存在其他单位也因而更可能接受处理。这类设计的一个典型例子是：以村落或乡镇为单位分配处理，但测量发生在个体层面。正如 Abadie 等（2023）所讨论的，这种设计意味着<strong>标准误应当按处理被分配的层级进行聚类调整</strong>。<code>tidyhte</code> 包把聚类作为一等公民（first class citizen）来支持，所有由此产生的估计都会基于这种聚类得到恰当的统计不确定性估计。在实践中，最终使用者只需在构造交叉验证折（<code>make_splits()</code>）时指定个体单位标识，此后所有分析都会自动加以考虑。</p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>这在医学研究里就是「整群随机试验（cluster-randomized trial）」。</strong>当干预是在<em>群组层面</em>分配的（按医院、按村、按班级、按社区），同一群组内个体的结局与处理状态相关，若仍按个体计算标准误，会严重<em>低估</em>不确定性（因为有效样本量其实接近群组数而非个体数）。</p>
+  <p>tidyhte 的做法对你来说很省事：只要在 <code>make_splits(unit_id, ...)</code> 里给出<em>群组/个体</em>标识，后续所有估计的标准误都会按该层级聚类。这也顺便解决了另一个隐患——<strong>同一个体的多行数据会被分到同一个交叉验证折中</strong>，避免了「训练集里已经见过这个人」的信息泄漏。对纵向／重复测量数据（一个人多次随访），这一点同样重要：请务必把个体 ID 传进去。</p>
+  <p>提醒：聚类调整的标准误需要<em>足够多的群组</em>（经验法则：至少 30–40 个群）才可靠；群组很少时，应考虑小样本校正或随机化推断。</p>
+</div>
+
+<h4 style="font-size:16px;font-weight:700;margin:22px 0 8px;color:var(--text)" id="sec-人群权重-population-weights">人群权重（Population weights）</h4>
+
+<p>实践中使用的设计还有一个常见特征：它们来自的样本，并不能完美代表其所抽取的更大人群。解决这一问题最常见的办法，是使用<strong>权重</strong>让样本更接近人群。<code>tidyhte</code> 同样支持这一点：只需在估计模型时指定权重（<code>produce_plugin_estimates()</code>），后续分析就会恰当地把权重纳入考虑。</p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>对应流行病学中的「标准化」与「抽样权重」。</strong>当你的样本是<em>非概率抽样</em>或存在<em>选择性参与</em>（例如志愿者队列、单中心数据、失访），直接外推到目标人群会有偏。此时的标准做法是：先用权重把样本「校准」回目标人群（如分层后按人口构成加权、或基于倾向参与概率加权），再估计效应。</p>
+  <p>tidyhte 里这对应 <strong>PATE（人群平均处理效应）</strong>与 <strong>SATE（样本平均处理效应）</strong> 的区分：不指定权重时报告的是 SATE；指定权重后，估计的则是加权后目标人群上的 PATE。在<a href="experimental_analysis.html">实验数据教程</a>的 ATE 一节里，我们用 <code>grepl("SATE|PATE", estimand)</code> 同时筛选这两者，但只出现了 SATE——正是因为没有提供权重。</p>
+  <p><strong>两个实务提醒</strong>：权重只影响<em>估计目标</em>（把结果外推到哪个人群），不能修复<em>识别</em>问题——若某类人群在样本中完全缺失（<span class="math inline">\(\pi\)</span> 或参与概率为 0），再怎么加权也无济于事。此外，权重方差过大会显著放大标准误，必要时请对权重做修剪（trimming / winsorizing）。</p>
+</div>
+
+<h2 id="recipe-api">Recipe API</h2>
+
+<p>为了逐步建立关于「HTE 应当如何估计」的定义，<code>tidyhte</code> 提供了一个 API 来渐进式地构建配置对象。<code>basic_config</code> 函数创建一个<strong>骨架式（bare-bones）配置</strong>，它只包含用于各干扰函数的线性模型以及若干诊断。</p>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>cfg &lt;- basic_config() %&gt;%
+  add_known_propensity_score("propensity_score") %&gt;%
+  add_outcome_model("SL.glmnet", alpha = c(0.0, 1.0)) %&gt;%
+  add_moderator("Stratified", species, island, sex, year) %&gt;%
+  add_moderator("KernelSmooth", bill_length_mm, bill_depth_mm, flipper_length_mm) %&gt;%
+  add_vimp(sample_splitting = FALSE)</code></pre>
+<p>由于研究对象是一项实验性干预，倾向得分是已知的。使用这个已知的倾向得分可以为许多目标量带来无偏性（尽管这可能会牺牲一部分效率）。在本例中，除了 SuperLearner 集成中<em>默认</em>包含的线性模型之外，我们还加入了一个弹性网络回归（Zou 与 Hastie，2005）。我们在 LASSO 与岭回归之间扫描一系列混合参数，把每一个由此产生的模型都投入集成。这意味着 SuperLearner 将执行<strong>模型选择与平均</strong>，以识别出最优的超参数取值（Van der Laan、Polley 与 Hubbard，2007）。此外，我们定义了所有感兴趣的调节变量，以及其结果应当如何被收集与展示。离散型调节变量只在其每个水平上取分层平均，而连续型调节变量则使用局部多项式回归（Fan 与 Gijbels，2018；Calonico、Cattaneo 与 Farrell，2019）。最后，我们加入了 Williamson 等（2021）的变量重要性度量。</p>
+<p>配置完成后，就可以把它附加到数据集上。</p>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>penguins &lt;- penguins %&gt;% attach_config(cfg)</code></pre>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>为什么要把「配置」与「数据」分开？</strong>这是本包最重要的设计决策，也是它对医学研究流程最友好的地方。配置（recipe）描述的是<em>方法学选择</em>——用哪些学习器、怎么交叉验证、报告哪些目标量、连续变量怎么做平滑；而「具体变量」（哪个是结局、哪个是处理、哪些是协变量）则留到运行时才指定。</p>
+  <p>这带来两个直接好处：<strong>① 一份方案，多处复用。</strong>「在 12 个结局上各跑一遍同样的 HTE 分析」只需要一个循环，方法学选择完全一致，不会出现「第 7 个结局忘了加 <code>SL.glmnet</code>」这类复制粘贴错误。<strong>② 便于预注册与审阅。</strong>配置对象可以单独保存、版本控制、附在统计分析计划（SAP）里，审稿人能够清楚看到你做了哪些方法学选择。</p>
+  <p><code>add_moderator("Stratified", ...)</code> 与 <code>add_moderator("KernelSmooth", ...)</code> 的区分值得记住：<strong>分类变量走「分层」</strong>（直接在该水平取平均，无平滑、无外推，因此稳健）；<strong>连续变量走「核平滑」</strong>（局部多项式回归，能显示效应随剂量/生物标志物连续变化的形状）。把连续变量当分类变量强行分组，会损失信息并引入任意的 cut-point；反过来对分类变量做平滑则没有意义。请按变量的测量尺度正确选择。</p>
+</div>
+
+<h2 id="cross-validation">交叉验证</h2>
+
+<p>按照本文所述流程开展异质性处理效应分析的<strong>第一步</strong>，是定义如何构造用于交叉验证的切分。<code>tidyhte</code> 的做法是使用<strong>分块（blocking）方法</strong>来构造切分，这比纯粹随机切分带来更低的方差。现有的切分生成方法通常会提供「基于二分类结局做分层」的选项，以确保即使结局非常稀疏，各切分中也都有结局的变异。例如，<code>SuperLearner::SuperLearner.CV.control</code> 就提供了这样一个选项。</p>
+<p><code>tidyhte</code> 中相应的函数是 <code>make_splits</code>。该函数接收一个数据框，并确定一组与所提供的<strong>单位标识符</strong>及<strong>切分数</strong>相符的切分。如果还向该函数提供了协变量，它就会把这些协变量纳入分块设计，使用 Higgins、Sävje 与 Sekhon（2016）的方法（由 <code>quickblock</code> 包实现）来构造随机切分。</p>
+<p>关于这种用于交叉验证分层（strata）的分块方式，有几点方法学上的说明。简而言之：所构造的块，其大小<em>至少</em>等于将要使用的切分数。构造这些块的目标是<strong>最小化块内单位之间的距离</strong>（距离基于所提供的协变量，采用欧氏距离）。当有多行共享同一个标识符时，分块是对该标识符内<em>协变量的平均值</em>进行的；随后，具有相同标识符的行会被分配到同一个切分中。关于块构造的精确细节可参见 Higgins 等（2016）。在每个块内部，会构造一个切分 ID 向量，其边际分布<em>尽可能接近</em>切分上的均匀分布（误差仅来自整数除法）。这组切分 ID 随后在块内被随机置换。</p>
+<p>与 tidy 语义一致，函数返回的是<em>原始</em>数据框，但额外增加了一列 <code>.split_id</code> 来表示这些新构造的切分，以及若干用于记账的属性（例如标识符的列名）。由于返回的对象与传入的对象是同一类型，因此可以很方便地用 dplyr 串联命令。</p>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>penguins &lt;- penguins %&gt;% make_splits(id, species, sex, flipper_length_mm, .num_splits = 3)</code></pre>
+<p style="font-size:13px;color:var(--muted);margin:16px 0 4px;font-weight:600">控制台输出（保留英文原文）</p>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>## `num_splits` must be even if VIMP is requested as a QoI. Rounding up.
+
+## Dropped 11 of 344 rows (3.2%) through listwise deletion.</code></pre>
+<p>请注意，<code>tidyhte</code> 通过<strong>成列删除（listwise deletion）</strong>优雅地处理缺失数据。目前尚不支持更先进的插补方法。</p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>那两行提示信息分别说了什么？</strong></p>
+  <p>第一行 <code>`num_splits` must be even if VIMP is requested as a QoI. Rounding up.</code>：你请求了 3 折切分，但 VIMP 的计算额外需要在<em>两半</em>样本上分别拟合「全模型」与「去掉某变量的模型」，因此切分数必须是偶数。包自动向上取整（3 → 4），并给出提示。<strong>这不是错误</strong>，只是告诉你实际使用的是 4 折。</p>
+  <p>第二行 <code>Dropped 11 of 344 rows (3.2%) through listwise deletion.</code>：企鹅数据中有 11 行（3.2%）在本次分析用到的变量上存在缺失，已被整行删除。</p>
+  <p><strong>关于缺失数据的三点医学研究提醒。</strong><strong>①</strong> 成列删除（完全病例分析，complete-case analysis）只在数据<strong>完全随机缺失（MCAR）</strong>时才是无偏的；若缺失与结局或处理相关（MAR/MNAR），3.2% 的删除也可能引入偏倚，且样本量越小、缺失比例越高，风险越大。<strong>②</strong> 本包当前<em>不</em>支持多重插补（MI）。若你的数据缺失比例较高，推荐的变通做法是在多重插补后的<em>每一个</em>数据集上独立跑一遍 tidyhte，再按 Rubin 规则合并效应估计与标准误——请注意诊断类输出（如 VIMP、RROC）的合并需要更谨慎。<strong>③</strong> 无论采用哪种方式，都请报告缺失的比例与模式，并比较纳入/排除缺失者的基线特征。</p>
+  <p><strong>为什么交叉验证要用「分块」而不是纯随机？</strong>纯随机切分会让各折之间在协变量分布上出现偶然的不平衡；当样本量不大或协变量分布偏斜时，某一折可能缺少重要的协变量组合，导致该折上训练的模型外推严重。分块（blocking）先把<em>相似</em>的个体聚成小块（按协变量的欧氏距离），再在块内随机分配折号，从而保证每一折都覆盖各类协变量 profile。这与实验设计中的<strong>区组随机化（blocked randomization）</strong>是同一个思想。</p>
+</div>
+
+<h2 id="nuisance">干扰函数估计</h2>
+
+<p>诸如倾向得分与结果回归这样的干扰函数估计，通常由 <strong>SuperLearner 库</strong>来处理。通过 <code>tidyhte</code> 的 API，指定一整套带有多样化超参数的模型被大大简化了。若要用 SuperLearner 的语法来指定一个交叉验证学习器，则需要多得多的样板代码：</p>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>learners &lt;- create.Learner(
+  "SL.glmnet",
+  tune = list(
+    alpha = c(0.05, 0.15, 0.2, 0.25, 0.5, 0.75)
+  ),
+  detailed_names = TRUE,
+  name_prefix = paste0("SLglmnet")
+)
+
+CV.SuperLearner(label, covariates, SL.library = learners$names)</code></pre>
+<p>相比之下，<code>tidyhte</code> 的 Recipe API 只需要下面这一行：</p>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>add_outcome_model(cfg, "SL.glmnet", alpha = c(0.0, 0.25, 0.5, 0.75, 1.0))</code></pre>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>penguins &lt;- penguins %&gt;% produce_plugin_estimates(
+  # 结局
+  food_consumed_g,
+  # 处理
+  treatment,
+  # 协变量
+  species, island, sex, year, bill_length_mm, bill_depth_mm, flipper_length_mm
+)</code></pre>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>两段代码的对比说明了什么？</strong>上方是原生 SuperLearner 的写法：先调用 <code>create.Learner()</code> 手动枚举超参数网格、为生成的模型命名、再取出 <code>learners$names</code> 传给 <code>CV.SuperLearner()</code>；下方 tidyhte 只需一行 <code>add_outcome_model(cfg, "SL.glmnet", alpha = c(0.0, 0.25, 0.5, 0.75, 1.0))</code>——超参数的笛卡尔积、命名、集成权重的学习，全部由包自动完成。</p>
+  <p>对医学研究者的实际意义：<strong>方法学复杂度被封装了，但你仍然拥有全部控制权。</strong>你依然需要决定「往集成里放哪些学习器」这个实质性选择，而不再是「怎么写样板代码」这种技术性负担。</p>
+  <p><strong>选择学习器的三条经验法则。</strong><strong>① 保证多样性。</strong>集成的价值来自候选模型的差异，只放三个高度相似的线性模型没有意义——至少要覆盖「简单参数模型 + 正则化模型 + 至少一个灵活的非线性模型」。<strong>② 样本量小（如 <span class="math inline">\(n&lt;200\)</span>）时保持克制。</strong>随机森林、梯度提升在小样本上很难稳定，交叉验证风险反而更高；此时线性模型加正则化通常更可靠。<strong>③ 结局噪声大时不要指望奇迹。</strong>若所有学习器的 CV 风险都接近「用均值预测」的基线，说明协变量对结局几乎没有预测力，此时效应估计的方差必然很大——这是数据的性质，不是模型的过错。</p>
+</div>
+
+<h2 id="pseudo-outcomes">伪结局构造</h2>
+
+<p>一旦干扰函数被估计出来，接下来的事情就只是把这些结果组合成恰当的伪结局。对于典型的 HTE 估计，我们所关心的伪结局就是 Kennedy（2020）所分析的那个：<strong>平均处理效应的未中心化影响函数</strong>（Robins、Rotnitzky 与 Zhao，1995）。</p>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>penguins &lt;- penguins %&gt;% construct_pseudo_outcomes(food_consumed_g, treatment)</code></pre>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>「未中心化影响函数（uncentered influence function）」这个名字值得拆开讲。</strong>在半参数理论中，一个估计量 <span class="math inline">\(\hat\theta\)</span> 的<em>影响函数</em> <span class="math inline">\(\varphi(Z)\)</span> 刻画的是：单个观测的微小扰动会对估计量造成多大影响。它有两条关键性质：<span class="math inline">\(\hat\theta - \theta = \frac{1}{n}\sum_i \varphi(Z_i) + o_p(n^{-1/2})\)</span>，且 <span class="math inline">\(\mathrm{Var}(\hat\theta)=\mathrm{Var}(\varphi)/n\)</span>。</p>
+  <p>也就是说，影响函数既是「估计量的一阶展开」，又是「方差的来源」。所谓「未中心化」，是指这里取的是 <span class="math inline">\(\varphi(Z_i)\)</span> 本身而不是 <span class="math inline">\(\varphi(Z_i)-\theta\)</span>；把它当作伪结局时，其条件期望正好是 CATE <span class="math inline">\(\tau(x)\)</span>，非常自然。</p>
+  <p>这一视角解释了 tidyhte 的一个关键优势：<strong>因为伪结局就是影响函数，对它做任何平滑得到的估计量，都可以直接从伪结局的方差导出标准误</strong>——这正是 <code>std_error</code> 那一列的计算依据。你不需要为每一种新的目标量（MCATE、分层效应、VIMP）单独推导一套方差公式，它们共享同一个影响函数基础。这也是为什么本包能「像在个体疗效上做回归一样」去估计各种目标量，却不牺牲推断的有效性。</p>
+</div>
+
+<h2 id="quantities-of-interest">目标量（Quantities of Interest）</h2>
+
+<p>最后就来到了分析中最激动人心的部分：效应被估计出来，并被放进图表中。</p>
+<p><code>tidyhte</code> 的设计选择是：<strong>把绘图留给最终使用者</strong>，而只返回一个包含所有被请求目标量的整洁 tibble。本包关注以下几类目标量：</p>
+<ul>
+<li><strong>边际条件平均处理效应（MCATEs）</strong>：即文献中标准的<strong>条件平均处理效应（CATEs）</strong>，其中除一个协变量外的所有协变量都被<em>边际化</em>掉，从而为单个协变量的一个水平提供一个平均效应。这与「部分」CATE（PCATE）形成对照，后者以某种方式「控制住」了其他变量。<strong>若不假设处理与协变量的联合随机化，PCATE 无法提供令人满意的因果解释。</strong></li>
+<li><strong>变量重要性（VIMP）</strong>：使用 Williamson 等（2021）的方法，<code>tidyhte</code> 计算每个调节变量对「异质性效应联合模型」均方误差总体下降的贡献。</li>
+<li><strong>诊断（Diagnostics）</strong>：为 <code>tidyhte</code> 估计过程中拟合的所有模型提供了种类繁多的诊断。它们既包括均方误差、AUC 这样的<em>单值摘要</em>，也包括完整的<em>受试者工作特征曲线</em>，以及 SuperLearner 集成中的<em>系数</em>。</li>
+</ul>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>results &lt;- penguins %&gt;%
+  estimate_QoI(species, island, sex, year, bill_length_mm, bill_depth_mm, flipper_length_mm)</code></pre>
+<p>得到的 tibble 形如：</p>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>results</code></pre>
+<p style="font-size:13px;color:var(--muted);margin:16px 0 4px;font-weight:600">控制台输出（保留英文原文）</p>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>## # A tibble: 333 × 6
+##    estimand term    value level     estimate std_error
+##    &lt;chr&gt;    &lt;chr&gt;   &lt;dbl&gt; &lt;chr&gt;        &lt;dbl&gt;     &lt;dbl&gt;
+##  1 MCATE    species    NA Adelie     -97.9        3.06
+##  2 MCATE    species    NA Gentoo     101.         3.87
+##  3 MCATE    species    NA Chinstrap   -7.70       5.37
+##  4 MCATE    island     NA Torgersen  -94.2        6.14
+##  5 MCATE    island     NA Biscoe      47.1        7.59
+##  6 MCATE    island     NA Dream      -49.7        5.54
+##  7 MCATE    sex        NA male        -7.35       7.77
+##  8 MCATE    sex        NA female      -9.85       7.27
+##  9 MCATE    year     2007 NA         -13.1        9.36
+## 10 MCATE    year     2008 NA           0.809      9.41
+## # ℹ 323 more rows</code></pre>
+<p><code>estimand</code> 列表示待估计的<strong>目标量类别</strong>，其取值包括 <code>MCATE</code>、<code>VIMP</code> 等。<code>term</code> 列表示结果中所指的协变量（如果相关的话）。例如，一个计算出来的 MCATE 指向某个特定协变量，就由这一列指示。<code>value</code> 与 <code>level</code> 两列表示某个 <code>term</code> 内部更细粒度的划分：前者代表<strong>数值型</strong>取值，后者代表<strong>分类型</strong>取值。举例来说，对于 MCATE，若协变量是离散的，那么计算该 MCATE 时所处的取值会放在 <code>level</code> 列；若协变量是连续的，则会放在 <code>value</code> 列。因此，这两列各自都是<strong>类型稳定（type-stable）</strong>的。最后两列 <code>estimate</code> 与 <code>std_error</code> 的含义不言自明；它们的具体计算方式取决于所请求的特定目标量。</p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>逐行读懂这张表，以及它揭示的因果结构。</strong>前 3 行是 <code>species</code>（物种）的分层 MCATE：Adelie 企鹅 −97.9、Gentoo 企鹅 +101、Chinstrap 企鹅 −7.70。这<strong>精确地还原了模拟时设定的真实效应</strong>——Gentoo +20%、Adelie −20%、Chinstrap 0%，且标准误（3–5）远小于效应量，说明估计非常精确。这要归功于 <code>food_consumed_g</code> 这个低噪声结局。</p>
+  <p>接下来的 <code>island</code>（岛屿）三行是一个<strong>极好的教学案例</strong>：Torgersen −94.2、Biscoe +47.1、Dream −49.7，看起来存在很强的「岛屿效应异质性」。但岛屿<em>并不</em>参与真实效应的生成！原因很简单：<strong>物种与岛屿高度相关</strong>（Torgersen 岛上几乎全是 Adelie，Biscoe 岛上 Gentoo 占比高）。由于 MCATE 只把<em>其他</em>变量边际化掉、不做条件化，这种混杂在边际效应中就会体现出来。</p>
+  <p><strong>这正是 MCATE 与 PCATE 之别的临床含义所在。</strong>MCATE 回答的是「在<em>实际人群</em>中，<em>岛屿 = Torgersen</em> 这一类患者的平均疗效是多少」——它包含了该变量与真实效应修饰因子之间的关联，因此是<em>可用于决策的</em>（「我面前的病人来自 Torgersen 岛，预期疗效如何？」）。而 PCATE 试图回答「在<em>固定其他变量不变</em>时，岛屿本身的效应是多少」——除非处理与协变量<strong>联合随机化</strong>（即我们可以想象同时干预「住哪个岛」），否则这个量没有因果解释。<strong>把 MCATE 误读为「这个变量<em>导致了</em>疗效差异」是 HTE 分析最常见的错误之一。</strong>要区分二者，请看 VIMP 与联合模型，而不是单个 MCATE。</p>
+  <p>再看 <code>sex</code> 两行：male −7.35、female −9.85，标准误分别高达 7.77 与 7.27——两个估计的置信区间都宽宽地覆盖 0，<strong>没有证据表明性别修饰了疗效</strong>。<code>year</code> 三行同理。请把注意力放在标准误与效应量的<em>相对大小</em>上，而不是点估计的绝对大小。</p>
+</div>
+
+<h3 id="plotting-mcates">绘制 MCATE</h3>
+
+<p>此后，用类似下面的代码来绘制结果就是一件很简单的事了：</p>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>filter(results, estimand == "MCATE", is.na(value)) %&gt;%
+  ggplot(aes(level, estimate)) +
+  geom_point() +
+  geom_linerange(aes(ymin = estimate - 1.96 * std_error, ymax = estimate + 1.96 * std_error)) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  coord_flip() +
+  facet_wrap(~term, scales = "free_y")</code></pre>
+<p><img src="https://ddimmery.github.io/tidyhte/articles/methodological_details_files/figure-html/discrete_mcate-1.png" alt="离散型调节变量的分层 MCATE：物种、岛屿、性别、年份，含 95% 置信区间"></p>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>filter(results, estimand == "MCATE", is.na(level)) %&gt;%
+  ggplot(aes(value, estimate)) +
+  geom_line() +
+  geom_ribbon(
+    aes(ymin = estimate - 1.96 * std_error, ymax = estimate + 1.96 * std_error),
+    alpha = 0.5
+  ) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_x_continuous("Covariate value") +
+  scale_y_continuous("CATE") +
+  coord_flip() +
+  facet_wrap(~term, scales = "free_y")</code></pre>
+<p><img src="https://ddimmery.github.io/tidyhte/articles/methodological_details_files/figure-html/cts_mcate-1.png" alt="连续型调节变量（喙长、喙深、鳍长）的 MCATE 曲线及 95% 置信带"></p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>这两段绘图代码的筛选条件 <code>is.na(value)</code> 与 <code>is.na(level)</code> 是理解结果结构的关键。</strong>回忆前文：<code>value</code> 装<em>数值型</em>细分位置（连续变量），<code>level</code> 装<em>分类型</em>细分位置（离散变量），两者互斥、其中之一必为 <code>NA</code>。因此 <code>filter(..., is.na(value))</code> 正好挑出所有<em>离散</em>变量的行（画点＋误差棒），<code>filter(..., is.na(level))</code> 正好挑出所有<em>连续</em>变量的行（画线＋阴影带）。这种「类型稳定」的设计让绘图筛选可以写得非常干净。</p>
+  <p><strong>读图的两个层次。</strong>第一张图（离散变量）里，<code>species</code> 分面的三个点明显分开、置信区间都不跨 0，是真实的效应异质性；<code>island</code> 分面虽然看起来也有差异，但要记住那是「物种」这个真实修饰因子通过混杂映射过来的边际效应；<code>sex</code> 与 <code>year</code> 分面的区间都跨过虚线（0），没有证据支持效应修饰。</p>
+  <p>第二张图（连续变量，喙长／喙深／鳍长）的三条曲线应被读作：<strong>效应随这些形态学指标的变化没有显示出清晰模式</strong>，置信带很宽且大致覆盖 0 附近。这与模拟设定一致——这些变量不参与效应生成。<code>facet_wrap(~term, scales = "free_y")</code> 让各分面使用独立的纵轴尺度，便于看清每个变量的形状，但<strong>也意味着你不能跨分面比较效应大小</strong>——若需要比较，请去掉 <code>scales = "free_y"</code>。</p>
+</div>
+
+<h3 id="plotting-diagnostics">绘制诊断图</h3>
+
+<p>同样地，绘制诊断信息也很容易：</p>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>filter(results, estimand == "SL risk") %&gt;%
+  ggplot(aes(reorder(term, estimate), estimate)) +
+  geom_point() +
+  geom_linerange(
+    aes(ymin = estimate - 1.96 * std_error, ymax = estimate + 1.96 * std_error),
+    alpha = 0.5
+  ) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_x_discrete("") +
+  scale_y_continuous("Risk") +
+  facet_wrap(~level) +
+  coord_flip()</code></pre>
+<p><img src="https://ddimmery.github.io/tidyhte/articles/methodological_details_files/figure-html/risk-1.png" alt="各子模型的交叉验证风险，按对照组结果模型、治疗组结果模型、效应曲面分面"></p>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>filter(results, estimand == "SL coefficient") %&gt;%
+  ggplot(aes(reorder(term, estimate), estimate)) +
+  geom_point() +
+  geom_linerange(
+    aes(ymin = estimate - 1.96 * std_error, ymax = estimate + 1.96 * std_error),
+    alpha = 0.5
+  ) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_x_discrete("") +
+  scale_y_continuous("Coefficient") +
+  facet_wrap(~level) +
+  coord_flip()</code></pre>
+<p><img src="https://ddimmery.github.io/tidyhte/articles/methodological_details_files/figure-html/coef-1.png" alt="SuperLearner 集成中各子模型的系数，按对照组结果模型、治疗组结果模型、效应曲面分面"></p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>怎么读这两张诊断图？</strong></p>
+  <p><strong>风险图（Risk）</strong>：横轴是各子模型的交叉验证风险（对连续结局即折外 MSE），<strong>越小越好</strong>；误差棒是 ±1.96 倍标准误。三个分面分别对应对照组结果模型、治疗组结果模型与效应曲面。看点是「集成是否真的优于（或至少不劣于）最好的单个学习器」——若最右侧（翻转后最上方）的学习器风险明显低于其他所有学习器，说明数据结构比较简单，某个学习器就能胜任。</p>
+  <p><strong>系数图（Coefficient）</strong>：横轴是 SuperLearner 集成中分配给各子模型的<strong>权重</strong>，非负且总和为 1。请把它与风险图对照着读：<strong>风险最低的学习器通常拿到最高的权重</strong>。若出现明显的「低风险却低权重」，多半是因为它与另一个学习器高度相关，贡献被吸收了。</p>
+  <p><strong>为什么诊断不是可选项？</strong>因为它们直接决定你对 MCATE 结论的信任程度。若「效应曲面」分面的风险很高，说明二阶回归对伪结局的拟合很差——此时你看到的 MCATE 曲线形状很可能主要是噪声；若某个学习器在集成中拿到了接近 1 的权重，说明其余候选模型都被交叉验证否定了，你的集成实际上退化成了单一模型，失去了集成带来的稳健性。<strong>建议做法</strong>：把这两张图与 MCATE、VIMP 图放在同一份附录里，作为分析可信度的证据一并报告。</p>
+</div>
+
+<h3 id="plotting-vimp">绘制变量重要性（VIMP）</h3>
+
+<p>最后，我们可以考察 Williamson 等（2021）的变量重要性度量在应用于伪结局联合模型时的表现：</p>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>filter(results, estimand == "VIMP") %&gt;%
+  ggplot(aes(reorder(term, estimate), estimate)) +
+  geom_point() +
+  geom_linerange(
+    aes(ymin = estimate - 1.96 * std_error, ymax = estimate + 1.96 * std_error),
+    alpha = 0.5
+  ) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_x_discrete("") +
+  scale_y_continuous("Reduction in R²") +
+  coord_flip()</code></pre>
+<p><img src="https://ddimmery.github.io/tidyhte/articles/methodological_details_files/figure-html/vimp-1.png" alt="变量重要性图：各协变量对效应联合模型 R² 下降的贡献"></p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>VIMP 在临床上该怎么解读？</strong>纵轴的「Reduction in <span class="math inline">\(R^2\)</span>」含义是：把某个协变量从效应联合模型中<em>剔除</em>后，模型的 <span class="math inline">\(R^2\)</span> 下降了多少。它衡量的是该变量对解释<strong>疗效差异</strong>（而非结局本身）的贡献。</p>
+  <p>在本例中你应该期待：<code>species</code>（物种）的 VIMP 遥遥领先且误差棒远离 0——因为它是唯一真正参与效应生成的变量；<code>island</code> 可能也有一定数值（因为它与 species 高度相关），但应当明显小于 species；<code>sex</code>、<code>year</code> 与三个形态学指标的 VIMP 应接近 0 且置信区间跨过虚线。</p>
+  <p><strong>这正是 VIMP 相对「逐个看 MCATE」的核心价值</strong>：MCATE 是<em>边际</em>量，混杂在协变量之间的关联会让它「看起来」有异质性；而 VIMP 基于<em>联合</em>模型，衡量的是「在<em>已经控制了其他所有变量</em>之后，这个变量还能额外解释多少效应变异」。因此把两者配合使用，就能把「真实的效应修饰因子」与「仅仅与效应修饰因子相关」的变量区分开——本例中 <code>island</code> 就是后者的典型。</p>
+  <p><strong>预测因子 vs 预后因子。</strong>医学文献中极易混淆的一对概念：<em>预后因子（prognostic factor）</em>预测结局本身，<em>预测因子（predictive factor）</em>预测疗效差异。VIMP 在本包中衡量的是<strong>后者</strong>。一个能强烈预测疾病风险的生物标志物，其 VIMP 完全可能接近 0——这不矛盾，它只是不修饰疗效而已。开发伴随诊断／精准用药策略时，你要找的是预测因子。</p>
+  <p><strong>三点注意事项。</strong><strong>①</strong> VIMP 是联合模型的指标，高度相关的变量会互相稀释重要性，因此「两个都不显著」不等于「两个都不重要」。<strong>②</strong> VIMP 附带标准误，请只在误差棒完全位于 0 右侧时才断言存在效应修饰。<strong>③</strong> VIMP 依赖「效应曲面模型拟合良好」这一前提，请务必先看上一节的诊断图确认。</p>
+</div>
+
+<h2 id="replicating-analyses">复现分析</h2>
+
+<p><code>tidyhte</code> 最大的好处之一，就是它能够<strong>重复相似的分析</strong>。</p>
+<p>举例来说，要把上面用过的同一套分析施加到另一个结局上，只需下列代码：</p>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>results_mass &lt;- penguins %&gt;% produce_plugin_estimates(
+  # 结局
+  body_mass_g,
+  # 处理
+  treatment,
+  # 协变量
+  species, island, sex, year, bill_length_mm, bill_depth_mm, flipper_length_mm
+) %&gt;%
+  construct_pseudo_outcomes(body_mass_g, treatment) %&gt;%
+  estimate_QoI(
+    species, island, sex, year, bill_length_mm, bill_depth_mm, flipper_length_mm
+  )</code></pre>
+<p>对这个结局而言，同样可以轻松地绘制出所有相同的量，并且结果可以方便地合并在一起。</p>
+<pre style="background:var(--code-bg);border:1px solid var(--code-line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--code-text);margin:14px 0"><code>results_all &lt;- bind_rows(
+  results %&gt;% mutate(outcome = "food_consumed_g"),
+  results_mass %&gt;% mutate(outcome = "body_mass_g")
+)</code></pre>
+<p>通过允许使用者灵活地组合 HTE 估计器，本包极大地减少了典型 HTE 分析所需的工作量——这类分析天然地涉及多个调节变量、多个模型与多个结局。</p>
+
+<div class="note">
+  <span class="nt">背景与解释</span>
+  <p><strong>这一段演示的是「换结局」，但请注意哪一步被重跑了。</strong><code>produce_plugin_estimates()</code> 与 <code>construct_pseudo_outcomes()</code> 都<em>必须</em>重跑（因为结局变了，结果模型与伪结局都变了），而 <code>make_splits()</code> <em>不需要</em>重跑——交叉验证折应当在不同结局之间保持一致，这样才能干净地比较各结局的结果，也节省计算时间。配置项（recipe）更是完全不需要改动。</p>
+  <p><strong>这一点对严谨的医学研究很重要</strong>：如果你对每个结局都重新随机切分交叉验证折，那么两个结局之间的任何比较都会混入「切分随机性」带来的差异。保持切分固定，结果才具有可比性与可复现性。配合 <code>set.seed()</code>，整份分析可以被完整重现。</p>
+  <p><strong>关于多结局的多重比较</strong>：本段展示的 <code>bind_rows()</code> 让你可以一次性画出所有结局的森林图，非常方便。但请记住，跑 <span class="math inline">\(K\)</span> 个结局就意味着做了 <span class="math inline">\(K\)</span> 倍的推断。若属验证性分析，请事先确定主要结局并采用恰当的多重比较校正（如 Bonferroni、Holm 或 FDR）；用于探索性假设生成时，务必在论文中明确标注其探索性质，并说明需要独立验证。</p>
+</div>
+
+<h2 id="conclusion">结论</h2>
+
+<p>本文介绍了 <code>tidyhte</code> 包背后的概念，并给出了该包如何使用的示例。总的来说，本包的编写方式足够通用，因此某些特性可以以相对较少的工作量被添加进来。例如，增加新的插件模型，只需要提供若干配置信息以及标准化的 train / predict 方法即可。为 CATE 提供新的汇总方式（用于绘图）也同样如此，处理方式大体相同。这使得方法学家可以相对容易地把他们偏好的拟合方法接入进来，从而扩展 <code>tidyhte</code> 的功能。</p>
+
+<h2 id="acknowledgements">致谢</h2>
+
+<p>我们诚挚感谢与「US 2020 Facebook and Instagram Election Project」的合作——它是 <code>tidyhte</code> 最初版本的试验场，尤其感谢 Meta 的 Pablo Barberá。本软件项目未获得任何资金支持。</p>
+
+<h2 id="references">参考文献</h2>
+
+<p>以下条目保留英文原文以便检索与引用；方括号中为文献题名的中译，仅供参考。</p>
+
+<div class="csl-entry">Abadie, Alberto, Susan Athey, Guido W Imbens, and Jeffrey M Wooldridge. 2023. “When Should You Adjust Standard Errors for Clustering?” <em>The Quarterly Journal of Economics</em> 138 (1): 1–35.【《何时应当针对聚类调整标准误？》<em>经济学季刊</em>】</div>
+
+<div class="csl-entry">Calonico, Sebastian, Matias D Cattaneo, and Max H Farrell. 2019. “Nprobust: Nonparametric Kernel-Based Estimation and Robust Bias-Corrected Inference.” arXiv Preprint arXiv:1906.00198.【《nprobust：基于核的非参数估计与稳健偏差校正推断》】</div>
+
+<div class="csl-entry">Chernozhukov, Victor, Denis Chetverikov, Mert Demirer, Esther Duflo, Christian Hansen, Whitney Newey, and James Robins. 2018. “Double/Debiased Machine Learning for Treatment and Structural Parameters.” <em>The Econometrics Journal</em> 21 (1): C1–68.【《用于处理效应与结构参数的双重／去偏机器学习》<em>计量经济学期刊</em>】</div>
+
+<div class="csl-entry">Fan, Jianqing, and Irene Gijbels. 2018. <em>Local Polynomial Modelling and Its Applications: Monographs on Statistics and Applied Probability 66</em>. Routledge.【《局部多项式建模及其应用》】</div>
+
+<div class="csl-entry">Higgins, Michael J, Fredrik Sävje, and Jasjeet S Sekhon. 2016. “Improving Massive Experiments with Threshold Blocking.” <em>Proceedings of the National Academy of Sciences</em> 113 (27): 7369–76.【《用阈值分块改进大规模实验》<em>美国国家科学院院刊</em>】</div>
+
+<div class="csl-entry">Horst, Allison M, Alison Presmanes Hill, and Kristen B Gorman. 2020. “Allisonhorst/Palmerpenguins: V0.1.0.” Zenodo. <a href="https://doi.org/10.5281/zenodo.3960218">https://doi.org/10.5281/zenodo.3960218</a>.【Palmer 企鹅数据集】</div>
+
+<div class="csl-entry">Kennedy, Edward H. 2020. “Optimal Doubly Robust Estimation of Heterogeneous Causal Effects.” arXiv Preprint arXiv:2004.14497.【《异质性因果效应的最优双重稳健估计》】</div>
+
+<div class="csl-entry">Robins, James M, Andrea Rotnitzky, and Lue Ping Zhao. 1995. “Analysis of Semiparametric Regression Models for Repeated Outcomes in the Presence of Missing Data.” <em>Journal of the American Statistical Association</em> 90 (429): 106–21.【《存在缺失数据时重复测量结局的半参数回归模型分析》<em>美国统计协会杂志</em>】</div>
+
+<div class="csl-entry">Tsiatis, Anastasios A. 2006. “Semiparametric Theory and Missing Data.”【《半参数理论与缺失数据》】</div>
+
+<div class="csl-entry">Tsiatis, Anastasios A, Marie Davidian, Min Zhang, and Xiaomin Lu. 2008. “Covariate Adjustment for Two-Sample Treatment Comparisons in Randomized Clinical Trials: A Principled yet Flexible Approach.” <em>Statistics in Medicine</em> 27 (23): 4658–77.【《随机临床试验中两样本处理比较的协变量调整：一种有原则且灵活的方法》<em>医学统计学</em>】</div>
+
+<div class="csl-entry">Van der Laan, Mark J, MJ Laan, and James M Robins. 2003. <em>Unified Methods for Censored Longitudinal Data and Causality</em>. Springer Science &amp; Business Media.【《删失纵向数据与因果推断的统一方法》】</div>
+
+<div class="csl-entry">Van der Laan, Mark J, Eric C Polley, and Alan E Hubbard. 2007. “Super Learner.” <em>Statistical Applications in Genetics and Molecular Biology</em> 6 (1).【《超级学习器》<em>遗传学与分子生物学的统计应用</em>】</div>
+
+<div class="csl-entry">Williamson, Brian D, Peter B Gilbert, Marco Carone, and Noah Simon. 2021. “Nonparametric Variable Importance Assessment Using Machine Learning Techniques.” <em>Biometrics</em> 77 (1): 9–22.【《使用机器学习技术的非参数变量重要性评估》<em>生物计量学</em>】</div>
+
+<div class="csl-entry">Zou, Hui, and Trevor Hastie. 2005. “Regularization and Variable Selection via the Elastic Net.” <em>Journal of the Royal Statistical Society Series B: Statistical Methodology</em> 67 (2): 301–20.【《通过弹性网络实现正则化与变量选择》<em>皇家统计学会杂志 B 辑</em>】</div>
+
+  </div>
+  <div class="foot">
+    <p>原文出处：<a href="https://ddimmery.github.io/tidyhte/articles/methodological_details.html">ddimmery.github.io/tidyhte/articles/methodological_details.html</a> · 作者：Drew Dimmery、Edward Kennedy · 方法论文：<a href="https://doi.org/10.1214/23-EJS2157">Kennedy EH (2023). "Towards optimal doubly robust estimation of heterogeneous causal effects". <em>Electronic Journal of Statistics</em>, doi:10.1214/23-EJS2157</a>（本页正文引用的是其预印本 Kennedy 2020, arXiv:2004.14497） · 许可：MIT License（<a href="https://github.com/ddimmery/tidyhte/blob/main/LICENSE">LICENSE</a>）</p>
+    <p>本页为个人学习用途的非官方中文译本，引用请以英文原文为准。</p>
+    <p><a href="index.html">&larr; 返回 tidyhte 中文译本总览</a> · <a href="../index.html">&larr; 返回 share 总览</a></p>
+  </div>
+</div>
+<script src="search.js"></script>
+</body>
+</html>
