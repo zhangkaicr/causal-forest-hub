@@ -1,0 +1,82 @@
+
+    
+
+    
+    
+<p>In this example, we will illustrate several ways of dealing with
+categorical variables when using grf.</p>
+<p>One of the approaches below relies on <code>grf</code>’s sister
+package <a href="https://github.com/grf-labs/sufrep"><code>sufrep</code></a>. Let’s
+install and load it first.</p>
+<div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">grf</span>)
+<span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span>(<span class="st">"https://github.com/grf-labs/sufrep/blob/master/sufrep_0.1.0.tar.gz?raw=true"</span>, <span class="kw">repos</span> <span class="kw">=</span> <span class="kw">NULL</span>, <span class="kw">type</span> <span class="kw">=</span> <span class="st">"source"</span>)
+<span class="co">#&gt; Installing package into '/tmp/RtmpKkQCZj/temp_libpath1cdf78711fe0'</span>
+<span class="co">#&gt; (as 'lib' is unspecified)</span>
+<span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">sufrep</span>)</pre></div>
+<p>Let’s pretend we would like to estimate mileage per gallon
+(<code>mpg</code>) from number of cylinders (<code>cyl</code>),
+quarter-mile time (<code>qsec</code>), and car brand name
+(<code>brand</code>, created below).</p>
+<div class="sourceCode" id="cb2"><pre class="r"><span class="co"># Create a categorical column with brand name</span>
+<span class="no">df</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html">within</a></span>(<span class="no">mtcars</span>, {
+  <span class="co"># E.g. 'Mazda RX4' --&gt; 'Mazda'</span>
+  <span class="no">brand</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/lapply.html">sapply</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/colnames.html">rownames</a></span>(<span class="no">mtcars</span>), <span class="kw">function</span>(<span class="no">x</span>) <span class="fu"><a href="https://rdrr.io/r/base/strsplit.html">strsplit</a></span>(<span class="no">x</span>, <span class="st">" "</span>)<span class="kw">[[</span><span class="fl">1</span>]][<span class="fl">1</span>]))
+})
+
+<span class="no">x</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"cyl"</span>, <span class="st">"qsec"</span>) <span class="co"># Continuous variables</span>
+<span class="no">g</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"brand"</span>)       <span class="co"># Categorical variable</span>
+
+<span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(<span class="no">df</span>[<span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="no">x</span>, <span class="no">g</span>)])
+<span class="co">#&gt;                   cyl  qsec   brand</span>
+<span class="co">#&gt; Mazda RX4           6 16.46   Mazda</span>
+<span class="co">#&gt; Mazda RX4 Wag       6 17.02   Mazda</span>
+<span class="co">#&gt; Datsun 710          4 18.61  Datsun</span>
+<span class="co">#&gt; Hornet 4 Drive      6 19.44  Hornet</span>
+<span class="co">#&gt; Hornet Sportabout   8 17.02  Hornet</span>
+<span class="co">#&gt; Valiant             6 20.22 Valiant</span></pre></div>
+<p>This code would raise an error, because data is not numerical.</p>
+<div class="sourceCode" id="cb3"><pre class="r"># rf &lt;- regression_forest(X=df[c(x, g)], Y=df$mpg)</pre></div>
+<p>We can consider three approaches here.</p>
+<ul>
+<li>Simply assign integers to each category (convert ‘AMC’ to 1,
+‘Cadillac’ to 2, etc.)</li>
+<li>One-hot encode the categories (as many binary columns as there are
+categories)</li>
+<li>Use a <em>sufficient representation</em> of the category. Here we
+will use the <code>means</code> method from the <a href="https://github.com/grf-labs/sufrep"><code>sufrep</code></a>
+package.</li>
+</ul>
+<p>The last method involves substituting the <code>brand</code> column
+by averages of the continuous columns <code>cyl</code> and
+<code>qsec</code>, grouped by category. If you are curious about why
+that works, or would like to know more about sufficient representations,
+please check out our <code>sufrep</code> paper (<a href="https://arxiv.org/abs/1908.09874v1">ArXiv</a>).</p>
+<div class="sourceCode" id="cb4"><pre class="r"><span class="co"># Solution 1: Transform variable into numbers</span>
+<span class="no">X1</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html">within</a></span>(<span class="no">df</span>[<span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="no">x</span>, <span class="no">g</span>)], <span class="no">brand</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span>(<span class="no">brand</span>))
+<span class="no">rf1</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/regression_forest.html">regression_forest</a></span>(<span class="no">X1</span>, <span class="no">df</span>$<span class="no">mpg</span>)
+
+
+<span class="co"># Solution 2: One-hot encoding</span>
+<span class="no">X2</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/model.matrix.html">model.matrix</a></span>(~ <span class="fl">0</span> + <span class="no">.</span>, <span class="no">df</span>[<span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="no">x</span>, <span class="no">g</span>)])
+<span class="no">rf2</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/regression_forest.html">regression_forest</a></span>(<span class="no">X2</span>, <span class="no">df</span>$<span class="no">mpg</span>)
+
+
+<span class="co"># Solution 3: 'Means' encoding using the 'sufrep' package</span>
+<span class="no">encoder</span> <span class="kw">&lt;-</span> <span class="fu">make_encoder</span>(<span class="no">df</span>[<span class="no">x</span>], <span class="no">df</span>$<span class="no">brand</span>, <span class="kw">method</span><span class="kw">=</span><span class="st">"means"</span>)
+<span class="no">X3</span> <span class="kw">&lt;-</span> <span class="fu">encoder</span>(<span class="no">df</span>[<span class="no">x</span>], <span class="no">df</span>$<span class="no">brand</span>)
+<span class="co">#&gt; [1] 22  2</span>
+<span class="no">rf3</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/regression_forest.html">regression_forest</a></span>(<span class="no">X3</span>, <span class="no">df</span>$<span class="no">mpg</span>)</pre></div>
+<p>Different approaches can yield different forest performance.</p>
+<div class="sourceCode" id="cb5"><pre class="r"><span class="no">mse1</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">rf1</span>$<span class="no">debiased.error</span>)
+<span class="no">mse2</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">rf2</span>$<span class="no">debiased.error</span>)
+<span class="no">mse3</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(<span class="no">rf3</span>$<span class="no">debiased.error</span>)
+
+<span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span>(<span class="st">"MSE when representing categorical variables as..."</span>)
+<span class="co">#&gt; [1] "MSE when representing categorical variables as..."</span>
+<span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span>(<span class="st">"Integers: "</span>, <span class="no">mse1</span>))
+<span class="co">#&gt; [1] "Integers: 15.2683399761995"</span>
+<span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span>(<span class="st">"One-hot vectors: "</span>, <span class="no">mse2</span>))
+<span class="co">#&gt; [1] "One-hot vectors: 14.6540876398824"</span>
+<span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span>(<span class="st">"'Means' encoding [sufrep]: "</span>, <span class="no">mse3</span>))
+<span class="co">#&gt; [1] "'Means' encoding [sufrep]: 13.9976238074058"</span></pre></div>
+  
