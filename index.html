@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>因果森林知识库 · 因果推断与异质处理效应中文文献库</title>
-<meta name="description" content="因果森林（causal forest）及其方法家族的中文文献库：grf、policytree、SURE/QRF 等 GRF Labs 官方工具译本，以及 tidyhte、metalearner、evalITR 等 R 方法库与 HTE 方法学专题。">
+<meta name="description" content="因果森林（causal forest）中文文献库：GRF Labs 官方工具 grf、policytree、SURE/QRF 的完整中文译本，含方法导论、诊断与策略学习。">
 <script>(function(){var s=localStorage.getItem("cfh-theme");if(s===null)s="dark";document.documentElement.setAttribute("data-theme",s);})();</script>
 <style>
 :root{--bg:#0f1116;--card:#181b22;--card2:#1c212a;--text:#e4e6ea;--muted:#98a0ac;--faint:#6f7783;
@@ -134,7 +134,7 @@ function search(q){var ts=terms(q);if(!ts.length||!idx)return [];
   var hits=[];
   for(var i=0;i<idx.length;i++){var r=idx[i];
     if(ts.every(function(t){return r.key.indexOf(t)>=0;})){
-      hits.push({rec:r,score:1000,snippet:snip(r.paras[0]||'',ts,LEN)});continue;}
+      hits.push({rec:r,score:1000,snippet:snip(r.paras[0]||r.section||r.chapter||'',ts,LEN)});continue;}
     for(var j=0;j<r.paras.length;j++){var low=r.paras[j].toLowerCase(),ok=true,sc=0;
       for(var k=0;k<ts.length;k++){var p=low.indexOf(ts[k]);if(p<0){ok=false;break;}
         sc+=10-Math.min(9,Math.floor(p/400));}
@@ -218,30 +218,30 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </div>
 <div class="wrap">
 <div class="hero">
-<span class="eyebrow">CAUSAL FOREST &amp; HTE 中文文献库</span>
+<span class="eyebrow">CAUSAL FOREST · GRF LABS 中文文献库</span>
 <h1>因果森林知识库</h1>
-<p class="tagline">以 GRF Labs 的广义随机森林为核心，收录因果森林、策略树、充分表示，以及 R 生态中处理异质性处理效应（HTE）的主流方法与教程。</p>
+<p class="tagline">GRF Labs 官方工具的完整中文译本——因果森林（grf）、策略树（policytree）与分类变量的充分表示（SURE / QRF）。</p>
 <p class="origin">原文来源：<a href="https://grf-labs.github.io/" target="_blank" rel="noopener">grf-labs.github.io</a> ·
 <a href="https://arxiv.org/abs/1908.09874" target="_blank" rel="noopener">arXiv:1908.09874</a> ·
 <a href="https://grf-labs.github.io/grf/" target="_blank" rel="noopener">grf 官方文档</a></p>
 <div class="search-hero">
 <span class="si">&#128269;</span>
-<input type="search" id="s-hero-q" placeholder="搜索全部 13 个库的内容，如 交叉验证、倾向得分、策略树…" autocomplete="off" aria-label="全局搜索">
+<input type="search" id="s-hero-q" placeholder="搜索全部内容，如 交叉验证、倾向得分、策略树…" autocomplete="off" aria-label="全局搜索">
 </div>
 </div>
 
 <div class="intro">
 <h2>这个库收录什么</h2>
 <p>因果推断近十余年最重要的进展之一，是把「平均处理效应（ATE）」推进到<b>「谁真正受益」（CATE）</b>的层面。GRF Labs 的工作给出了统计上最可靠的方案：先用倾向得分与矩条件构造<b>伪结果（pseudo-outcome）</b>，再用随机森林的渐近理论做局部加权估计——这就是<b>因果森林（causal forest）</b>。</p>
-<p>围绕这一核心，本库收录三层内容：<b>核心工具</b>（grf、policytree、SURE/QRF，对应 GRF Labs 的四个仓库）、<b>R 方法库</b>（tidyhte、metalearner、evalITR、model4you、DeepLearningCausal、survlearners 等 HTE 实现）、<b>方法学专题</b>（BOCF 缺失数据、HTE 公开课讲义、因果推断三件工具、时间序列缺失填补）。</p>
-<p class="muted">全部页面均配备<b>站内全文搜索</b>（按 <code>/</code> 聚焦，方向键选择，Enter 跳转）。译文均为非官方，仅供学习交流；代码与公式保持原样，译者补充内容以「背景与解释」框标出。</p>
+<p>本库专注收录 <b>GRF Labs 官方工具的完整中文译本</b>，即该组织的核心仓库：<b>grf</b>（广义随机森林官方文档，覆盖因果森林、工具变量森林、IV/DR-learner、策略学习、生存森林）、<b>policytree</b>（从因果森林学到的最优策略树）、以及 <b>SURE / QRF</b>（分类变量的充分表示）。三者构成从「估计效应」到「据此决策」的完整链条。</p>
+<p class="muted">想了解 R 生态中的其他 HTE 方法（tidyhte、Meta-Learner、evalITR、survlearners 等）与方法学专题（BOCF、HTE 公开课讲义、因果推断三件工具），请前往 <a href="https://zhangkaicr.github.io/share/" target="_blank" rel="noopener">share 教程库</a>。全部页面均配备<b>站内全文搜索</b>（按 <code>/</code> 聚焦，方向键选择，Enter 跳转）。译文均为非官方，仅供学习交流；代码与公式保持原样，译者补充内容以「背景与解释」框标出。</p>
 </div>
 
 <div class="stat">
-<div><div class="n">13</div><div class="l">收录库</div></div>
-<div><div class="n">40</div><div class="l">页面</div></div>
-<div><div class="n">367</div><div class="l">小节</div></div>
-<div><div class="n">4</div><div class="l">GRF Labs 仓库</div></div>
+<div><div class="n">3</div><div class="l">核心工具库</div></div>
+<div><div class="n">15</div><div class="l">页面</div></div>
+<div><div class="n">116</div><div class="l">小节</div></div>
+<div><div class="n">3</div><div class="l">GRF Labs 仓库</div></div>
 </div>
 
 <section><div class="part"><h3>核心工具</h3><span class="ln"></span></div><div class="libs">
@@ -265,80 +265,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <div class="lib-d">分类变量的充分表示与充分独立比率（SURE）。解决因果森林直接处理无序分类变量时的人为顺序问题。</div>
 <div class="lib-t"><ul><li>为何需要充分表示</li><li>完整译文（含全部推导与实验）</li></ul></div>
 <div class="lib-f"><a href="surefq/index.html">进入</a><a href="surefq/search.html">搜索</a></div>
-</div>
-</div></section>
-<section><div class="part"><h3>R 方法库</h3><span class="ln"></span></div><div class="libs">
-<div class="lib">
-<div class="lib-h"><div class="group">R 方法库</div>
-<div class="name"><a href="tidyhte-cn/index.html">tidyhte</a></div></div>
-<div class="lib-d">用 tidyverse 语法估计异质性处理效应，与 dplyr / ggplot2 工作流无缝衔接。</div>
-<div class="lib-t"><ul><li>基础用法</li><li>边际效应与弹性</li><li>高级定制</li><li>性能与陷阱</li></ul></div>
-<div class="lib-f"><a href="tidyhte-cn/index.html">进入</a><a href="tidyhte-cn/search.html">搜索</a></div>
-</div>
-<div class="lib">
-<div class="lib-h"><div class="group">R 方法库</div>
-<div class="name"><a href="metalearner-cn/index.html">Meta-Learner 元学习器</a></div></div>
-<div class="lib-d">S / T / X / U / E 类元学习器的系统综述与实现对照，HTE 入门必读。</div>
-<div class="lib-t"><ul><li>元学习器总览</li><li>各实现对照</li></ul></div>
-<div class="lib-f"><a href="metalearner-cn/index.html">进入</a><a href="metalearner-cn/search.html">搜索</a></div>
-</div>
-<div class="lib">
-<div class="lib-h"><div class="group">R 方法库</div>
-<div class="name"><a href="model4you-cn/index.html">model4you</a></div></div>
-<div class="lib-d">面向个体化治疗反应（personalized medicine）的效应估计 R 包中译。</div>
-<div class="lib-t"><ul><li>包总览与核心函数</li></ul></div>
-<div class="lib-f"><a href="model4you-cn/index.html">进入</a><a href="model4you-cn/search.html">搜索</a></div>
-</div>
-<div class="lib">
-<div class="lib-h"><div class="group">R 方法库</div>
-<div class="name"><a href="evalITR-cn/index.html">evalITR 规则评估</a></div></div>
-<div class="lib-d">评估个体化治疗规则（ITR）的增益：Qini 曲线、AUUC、经验策略与 IPS 估计。</div>
-<div class="lib-t"><ul><li>ITR 评估总览</li><li>Qini 曲线</li><li>因果效应与增益</li><li>经验策略学习</li><li>在 R 中构建 ITR</li><li>交叉验证与调参</li><li>进阶主题</li></ul></div>
-<div class="lib-f"><a href="evalITR-cn/index.html">进入</a><a href="evalITR-cn/search.html">搜索</a></div>
-</div>
-<div class="lib">
-<div class="lib-h"><div class="group">R 方法库</div>
-<div class="name"><a href="rj-dlc-cn/index.html">DeepLearningCausal</a></div></div>
-<div class="lib-d">用深度神经网络与集成学习估计处理效应，面向大样本与高维场景。</div>
-<div class="lib-t"><ul><li>总览与安装</li><li>DML 与神经网络</li></ul></div>
-<div class="lib-f"><a href="rj-dlc-cn/index.html">进入</a><a href="rj-dlc-cn/search.html">搜索</a></div>
-</div>
-<div class="lib">
-<div class="lib-h"><div class="group">R 方法库</div>
-<div class="name"><a href="survlearners-cn/index.html">survlearners</a></div></div>
-<div class="lib-d">生存结局下的异质性处理效应估计，处理删失与时间依赖的处理分配时点。</div>
-<div class="lib-t"><ul><li>总览与安装</li><li>数据准备</li><li>建模与调参</li><li>模型解释</li><li>示例合集</li></ul></div>
-<div class="lib-f"><a href="survlearners-cn/index.html">进入</a><a href="survlearners-cn/search.html">搜索</a></div>
-</div>
-</div></section>
-<section><div class="part"><h3>方法学专题</h3><span class="ln"></span></div><div class="libs">
-<div class="lib">
-<div class="lib-h"><div class="group">方法学专题</div>
-<div class="name"><a href="bocf-cn/index.html">BOCF 基线观测结转</a></div></div>
-<div class="lib-d">基线观测结转（BOCF）：临床试验缺失数据处理的一种方法学探讨。</div>
-<div class="lib-t"><ul><li>引言</li><li>方法</li><li>结果</li><li>结论</li></ul></div>
-<div class="lib-f"><a href="bocf-cn/index.html">进入</a><a href="bocf-cn/search.html">搜索</a></div>
-</div>
-<div class="lib">
-<div class="lib-h"><div class="group">方法学专题</div>
-<div class="name"><a href="hte-course/index.html">HTE 公开课讲义</a></div></div>
-<div class="lib-d">《平均值的谎言：谁真正受益？》公开课讲义，从动机、潜在结果框架到识别条件。</div>
-<div class="lib-t"><ul><li>讲义正文</li></ul></div>
-<div class="lib-f"><a href="hte-course/index.html">进入</a><a href="hte-course/search.html">搜索</a></div>
-</div>
-<div class="lib">
-<div class="lib-h"><div class="group">方法学专题</div>
-<div class="name"><a href="causal-tools-cn/index.html">因果推断三件工具</a></div></div>
-<div class="lib-d">贝叶斯网络、do-算符与反事实的入门导读。</div>
-<div class="lib-t"><ul><li>三件工具导读</li></ul></div>
-<div class="lib-f"><a href="causal-tools-cn/index.html">进入</a><a href="causal-tools-cn/search.html">搜索</a></div>
-</div>
-<div class="lib">
-<div class="lib-h"><div class="group">方法学专题</div>
-<div class="name"><a href="imputeTS-cn/index.html">imputeTS</a></div></div>
-<div class="lib-d">时间序列缺失值填补 R 包中译（缺失处理专题）。</div>
-<div class="lib-t"><ul><li>总览与安装</li><li>核心函数</li><li>方法细节</li><li>实战案例</li></ul></div>
-<div class="lib-f"><a href="imputeTS-cn/index.html">进入</a><a href="imputeTS-cn/search.html">搜索</a></div>
 </div>
 </div></section>
 
