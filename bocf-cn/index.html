@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme-default="light">
+<head>
+<script>
+(function(){
+  var KEY="share-theme", d=document.documentElement;
+  try{var saved=localStorage.getItem(KEY);}catch(e){var saved=null;}
+  d.setAttribute("data-theme", saved || d.getAttribute("data-theme-default") || "light");
+  document.addEventListener("DOMContentLoaded",function(){
+    var b=document.getElementById("theme-toggle"); if(!b) return;
+    function sync(){
+      var dark=d.getAttribute("data-theme")==="dark";
+      b.setAttribute("aria-pressed", dark?"true":"false");
+      b.setAttribute("title", dark?"切换到亮色主题 (Alt+T)":"切换到暗色主题 (Alt+T)");
+    }
+    b.addEventListener("click",function(){
+      var nxt=d.getAttribute("data-theme")==="dark"?"light":"dark";
+      d.setAttribute("data-theme",nxt);
+      try{localStorage.setItem(KEY,nxt);}catch(e){}
+      sync();
+    });
+    document.addEventListener("keydown",function(e){
+      if(e.altKey&&(e.key==="t"||e.key==="T")) b.click();
+    });
+    sync();
+  });
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>重新审视基线观测结转（BOCF）：临床试验缺失数据处理的一种方法学探讨 · BOCF 中文译本</title>
+<style>
+:root{
+  --bg:#f7f7f5; --card:#ffffff; --text:#2c2c2a; --muted:#6b6a65;
+  --line:#e3e2dd; --accent:#b7552a; --accent-soft:#fbeede; --tag:#f1efe8;
+  --code-bg:#f4f3ef; --code-line:#e7e5df; --code-text:#2c2c2a;
+  --note-bg:#eef6ff; --note-line:#bcd6f5; --note-text:#1f3a5f;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  line-height:1.8; margin:0;
+}
+.wrap{max-width:840px;margin:0 auto;padding:32px 22px 80px}
+.topbar{margin-bottom:26px}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;
+  font-size:14px;font-weight:600}
+.back:hover{text-decoration:underline}
+h1{font-size:28px;font-weight:700;letter-spacing:-.3px;margin:6px 0 4px;line-height:1.35}
+.byline{color:var(--muted);font-size:14px;margin:6px 0 2px;font-style:italic}
+.sub{color:var(--muted);font-size:13.5px;margin-bottom:8px}
+.sub a{color:var(--accent)}
+.lead{font-size:16px;color:var(--text);margin:14px 0 22px;border-left:3px solid var(--accent);
+  padding:4px 0 4px 16px;background:var(--accent-soft);border-radius:0 8px 8px 0}
+.content h2{font-size:22px;font-weight:700;margin:38px 0 12px;padding-bottom:6px;
+  border-bottom:1px solid var(--line)}
+.content h3{font-size:18px;font-weight:700;margin:26px 0 10px}
+.content h4{font-size:16px;font-weight:700;margin:20px 0 8px}
+.content p{margin:12px 0}
+.content ul,.content ol{margin:12px 0;padding-left:26px}
+.content li{margin:6px 0}
+.content a{color:var(--accent);text-decoration:none}
+.content a:hover{text-decoration:underline}
+.content img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;
+  margin:14px 0;background:#fff;display:block}
+.content table{border-collapse:collapse;width:100%;margin:18px 0;font-size:13.5px}
+.content th,.content td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+.content th{background:var(--accent-soft);font-weight:600}
+.content tr:nth-child(even) td{background:#faf9f6}
+.content blockquote{margin:16px 0;padding:12px 16px;border-left:3px solid var(--line);
+  color:var(--muted);background:var(--card);border-radius:0 8px 8px 0}
+.note{margin:20px 0;padding:14px 18px;border:1px solid var(--note-line);border-left:4px solid var(--note-line);
+  background:var(--note-bg);border-radius:0 8px 8px 0;color:var(--note-text)}
+.note .nt{display:inline-block;font-weight:700;font-size:14px;margin-bottom:6px;
+  background:var(--note-line);color:#0f2a4a;padding:2px 10px;border-radius:4px}
+.note p{margin:6px 0;font-size:14.5px;line-height:1.75}
+.foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--muted);line-height:1.7}
+.foot a{color:var(--accent)}
+
+:root[data-theme="dark"]{
+  --bg:#0f1116; --card:#181b22; --text:#e4e6ea; --muted:#98a0ac;
+  --line:#2a2f3a; --accent:#f0a472; --accent-soft:#2a1c12; --tag:#1e222b;
+  --code-bg:#0b0d12; --code-line:#1d2129; --code-text:#d7dae0;
+  --note-bg:#15233b; --note-line:#274168; --note-text:#bcd6f5;
+}
+:root[data-theme="dark"] .content th{background:var(--accent-soft)}
+:root[data-theme="dark"] .content tr:nth-child(even) td{background:#14171e}
+:root[data-theme="dark"] .content img{background:#0b0d12}
+:root[data-theme="dark"] .note .nt{color:#cfe0f7}
+
+.tt{
+  position:fixed; top:16px; right:16px; z-index:9999; width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center; border-radius:50%;
+  cursor:pointer; color:var(--text); background:var(--card);
+  border:1px solid var(--line);
+  box-shadow:0 2px 10px rgba(0,0,0,.24); transition:transform .15s, border-color .15s, background .15s;
+}
+.tt:hover{transform:translateY(-1px); border-color:var(--accent)}
+.tt:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tt svg{display:none}
+[data-theme="dark"] .ico-sun{display:block}
+[data-theme="dark"] .ico-moon{display:none}
+[data-theme="light"] .ico-sun{display:none}
+[data-theme="light"] .ico-moon{display:block}
+@media(max-width:640px){.tt{top:10px; right:10px; width:36px; height:36px}}
+@media print{.tt{display:none}}
+</style>
+<style>
+/* ---- 全局搜索 ---- */
+.sbox{position:relative;display:inline-flex;align-items:center;margin-left:10px}
+.sbox input{background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);color:inherit;
+ border-radius:6px;padding:4px 9px 4px 25px;font-size:13px;width:170px;font-family:inherit;outline:none}
+.sbox input:focus{border-color:#4ea1ff;width:220px}
+.sbox .si{position:absolute;left:8px;font-size:12px;opacity:.6;pointer-events:none}
+.spanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:440px;max-width:88vw;
+ max-height:64vh;overflow-y:auto;z-index:900;background:var(--panel,#262c34);
+ border:1px solid var(--border,#3a4350);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.spanel.open{display:block}
+.spanel .sh{padding:7px 10px;font-size:12px;opacity:.7;border-bottom:1px solid var(--border,#3a4350);margin-bottom:4px}
+.spanel .sempty{font-size:12px;opacity:.65;padding:16px 10px;text-align:center}
+.sres{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:inherit}
+.sres:hover,.sres.sel{background:var(--panel2,#2e3540)}
+.sres .c{font-size:11px;opacity:.65;margin-bottom:1px}
+.sres .s{font-size:12px;color:#4ea1ff;margin-bottom:2px}
+.sres .t{font-size:13px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sres mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+.srch-main{margin:22px 0}
+.srch-main input{width:100%;background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);
+ color:inherit;border-radius:8px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none}
+.srch-main input:focus{border-color:#4ea1ff}
+.srch-meta{font-size:13px;opacity:.7;margin:12px 0 6px}
+.srch-list{list-style:none;margin:0;padding:0}
+.srch-list .sres{border:1px solid var(--border,#3a4350);margin:7px 0;padding:9px 11px}
+.srch-list .sres:hover{border-color:#4ea1ff}
+@media (max-width:640px){.sbox input{width:110px}.sbox input:focus{width:150px}.spanel{width:86vw}}
+</style><!--search.css-marker-->
+<style>
+/* ===== 因果森林知识库 · 统一导航 ===== */
+.cfh-nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:10px;
+ padding:8px 16px;background:var(--bg,#181b22);border-bottom:1px solid var(--line,#2a2f3a);
+ font-size:13.5px;flex-wrap:wrap}
+.cfh-nav .cfh-home{font-weight:600;color:var(--text,#e4e6ea);text-decoration:none;font-size:14px;
+ display:flex;align-items:center;gap:6px}
+.cfh-nav .cfh-home:hover{color:var(--accent,#7aa2f7)}
+.cfh-nav .cfh-crumb{color:var(--muted,#98a0ac);font-size:12.5px}
+.cfh-nav .cfh-crumb a{color:var(--accent,#7aa2f7);text-decoration:none}
+.cfh-nav .cfh-sp{flex:1}
+.cfh-nav select{background:var(--card,#181b22);color:var(--text,#e4e6ea);
+ border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:4px 8px;font-size:12.5px;
+ font-family:inherit;outline:none;cursor:pointer;max-width:230px}
+.cfh-nav select:hover{border-color:var(--accent,#7aa2f7)}
+.cfh-nav a.cfh-sbtn{color:var(--text,#e4e6ea);text-decoration:none;border:1px solid var(--line,#2a2f3a);
+ border-radius:6px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.cfh-nav a.cfh-sbtn:hover{border-color:var(--accent,#7aa2f7);color:var(--accent,#7aa2f7)}
+@media (max-width:700px){.cfh-nav .cfh-crumb{display:none}.cfh-nav select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="cfh-nav">
+<a class="cfh-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="cfh-crumb">/ <a href="index.html">BOCF 基线观测结转</a> </span>
+<span class="cfh-sp"></span>
+<select onchange="if(this.value)location.href=this.value" aria-label="切换库">
+<option value="grf-cn/index.html">grf 广义随机森林</option>
+<option value="policytree-cn/index.html">policytree 策略树</option>
+<option value="surefq/surefq.html">SURE / QRF 充分表示</option>
+<option value="tidyhte-cn/index.html">tidyhte 优雅的 HTE</option>
+<option value="metalearner-cn/index.html">Meta-Learner 元学习器</option>
+<option value="model4you-cn/index.html">model4you 个体化治疗</option>
+<option value="evalITR-cn/index.html">evalITR 规则评估</option>
+<option value="rj-dlc-cn/index.html">DeepLearningCausal</option>
+<option value="survlearners-cn/index.html">survlearners 生存 HTE</option>
+<option value="bocf-cn/index.html" selected>BOCF 基线观测结转</option>
+<option value="hte-course/index.html">HTE 公开课讲义</option>
+<option value="causal-tools-cn/index.html">因果推断三件工具</option>
+<option value="imputeTS-cn/index.html">imputeTS 缺失填补</option>
+</select>
+<a class="cfh-sbtn" href="search.html">&#128269; 搜索本页</a>
+</div>
+<button id="theme-toggle" class="tt" type="button" aria-label="切换明暗主题" title="切换明暗主题 (Alt+T)">
+  <svg class="ico-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7"/></svg>
+  <svg class="ico-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.2 8.2 0 1 0 10.5 10.5z"/></svg>
+</button>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="../index.html">&larr; 返回 share 总目录</a><span class="sbox"><span class="si">&#128269;</span>
+<input type="search" id="s-q" placeholder="搜索本站…（按 /）" autocomplete="off" aria-label="搜索本站">
+<span class="spanel" id="s-panel"></span></span>
+  </div>
+  <h1>重新审视基线观测结转（BOCF）：临床试验缺失数据处理的一种方法学探讨</h1>
+  <p class="byline">Hong Liu-Seifert, Shuyu Zhang, Deborah D'Souza, Vladimir Skljarevski</p>
+  <p class="sub">原文：<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2819899/" target="_blank" rel="noopener">A closer look at the baseline-observation-carried-forward (BOCF)</a>（英文）&nbsp;·&nbsp;发表于 Patient Preference and Adherence（2010 年 2 月 4 日（在线发表））&nbsp;·&nbsp;DOI: 10.2147/ppa.s8135</p>
+
+  <div class="content">
+<section class="body main-article-body"><section class="abstract" id="abstract1"><h2 id="sec-摘要">摘要</h2>
+<section id="sec1"><h3 class="pmc_sec_title" id="sec-目的">目的：</h3>
+<p>基线观测结转（BOCF）法是处理因提前终止治疗而产生缺失数据的一种方法。我们考察了这一方法的若干改良方案，并综合考虑了治疗相关与非治疗相关的终止原因。</p></section><section id="sec2"><h3 class="pmc_sec_title" id="sec-方法">方法：</h3>
+<p>我们采用两项度洛西汀慢性疼痛试验（安慰剂对照）来考察不同分析方法对研究结果的影响。我们将终止治疗的原因归类为治疗相关和非治疗相关两类。主要疗效结局中的缺失数据采用五种统计方法处理：混合模型重复测量（MMRM）、末次观测结转（LOCF）、BOCF、改良 BOCF（mBOCF，即因治疗相关原因——不良事件[AEs]或疗效不佳——而终止者），以及 aeBOCF（仅因不良事件而终止者）。</p></section><section id="sec3"><h3 class="pmc_sec_title" id="sec-结果">结果：</h3>
+<p>在简明疼痛量表（BPI）平均疼痛评分自基线的平均变化上，度洛西汀采用 MMRM（研究 1，<em>P</em> = 0.004；研究 2，<em>P</em> &lt; 0.001）、LOCF（研究 1，<em>P</em> = 0.019；研究 2，<em>P</em> &lt; 0.001）、BOCF（研究 1，<em>P</em> = 0.019；研究 2，<em>P</em> = 0.013）和 mBOCF（研究 1，<em>P</em> = 0.041；研究 2，<em>P</em> = 0.005）时均优于安慰剂。采用 aeBOCF 时，度洛西汀在研究 2 中优于安慰剂（<em>P</em> = 0.005），在研究 1 中数值上更优但未达显著（<em>P</em> = 0.075）。</p></section><section id="sec4"><h3 class="pmc_sec_title" id="sec-结论">结论：</h3>
+<p>由于不同方法对缺失数据的处理基于不同的假设，所选分析方法可能会影响对研究结果的解释。应重视来自患者实际治疗结局的影响。采用不同的统计方法（如敏感性分析）有助于评估研究结果的稳健性，并更准确地反映治疗结局。</p></section><section id="kwd-group1" class="kwd-group"><p><strong>关键词：</strong>终止治疗、治疗相关、疼痛、统计学</p></section></section><section id="sec5"><h2 class="pmc_sec_title" id="sec-引言">引言</h2>
+<p>临床试验的开展旨在对所有入组患者进行治疗与评价。临床试验中最常见的问题之一，是难以评价那些无法完成全部试验流程或中途退出的患者的数据。患者退出临床试验的原因很多，包括依从性差、不便、日程冲突、违反方案、不良事件、死亡、过早康复，或其他往往超出研究者控制能力的"非治疗相关"原因。无论如何，任何退出试验的理由都会导致这些患者（脱落者）的数据缺失，并可能使最终研究结局产生潜在偏倚。因此，妥善处理脱落、对临床试验结局进行合理分析十分重要。</p>
+<p>已有多种统计方法被用于临床试验中的缺失数据处理。其中之一是末次观测结转（LOCF）法，以末次非缺失观测值替代缺失的终点值。然而，这一方法存在缺陷：它会给出有偏的治疗效应估计，以及对"无治疗效应"这一原假设的有偏检验。<a href="#b1-ppa-4-011" class="usa-link" aria-describedby="b1-ppa-4-011"><sup>1</sup></a> 此外，若活性药组与安慰剂组的脱落率相同，LOCF 倾向于低估治疗效应；而当两组脱落率不等时，偏倚可能以任一方向大幅放大。<a href="#b2-ppa-4-011" class="usa-link" aria-describedby="b2-ppa-4-011"><sup>2</sup></a> 再者，LOCF 法必须假设受试者的测量值自脱落之时起至试验结束始终停留在同一水平。另一种方法是混合模型重复测量（MMRM）分析，它利用基于似然的估计、个体特异性效应以及重复测量间的相关性。<a href="#b3-ppa-4-011" class="usa-link" aria-describedby="b3-ppa-4-011"><sup>3</sup></a> 该方法在作为主分析时被认为更为可靠，有时也比采用末次或基线观测结转（BOCF）的简单填补方法更受青睐。<a href="#b4-ppa-4-011" class="usa-link" aria-describedby="b4-ppa-4-011"><sup>4</sup></a> BOCF 是另一种用于处理患者脱落的方法。<a href="#b5-ppa-4-011" class="usa-link" aria-describedby="b5-ppa-4-011"><sup>5</sup></a> BOCF 与 LOCF 的区别在于：BOCF 用基线观测值，而 LOCF 用末次观测值，来替代缺失的终点值。BOCF 法要求患者仍留在试验中，才能被评价为应答者。</p>
+<p>我们利用两项度洛西汀治疗慢性疼痛的临床试验数据——即慢性下腰痛（CLBP，研究 1）<a href="#b6-ppa-4-011" class="usa-link" aria-describedby="b6-ppa-4-011"><sup>6</sup></a> 和膝骨关节炎（OA）慢性疼痛（研究 2）<a href="#b7-ppa-4-011" class="usa-link" aria-describedby="b7-ppa-4-011"><sup>7</sup></a>——考察了患者退出试验的潜在原因及其在 BOCF 法中的作用，并建议对 BOCF 法进行改良，以考虑治疗相关与非治疗相关的终止原因。</p>
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>缺失数据的机制（MCAR / MAR / MNAR）与 BOCF、LOCF 的隐含假设。</strong>临床试验中的缺失并非随机，统计学上通常分为三类：<em>完全随机缺失（MCAR）</em>，即缺失与任何已观测或未观测变量均无关；<em>随机缺失（MAR）</em>，即缺失仅与已观测变量有关；<em>非随机缺失（MNAR）</em>，即缺失与未观测到的结局本身有关（例如疼痛真正加重的患者更可能停药）。LOCF 隐含假设脱落者的疗效在停药后"冻结"于末次水平，BOCF 则假设脱落者回落到基线（即治疗毫无残留效应，最保守）。在疼痛等主观结局试验中，这两种假设都容易被违背：若患者因疗效好（如治愈或转用其他治疗）而停药，LOCF 会高估、BOCF 会低估疗效；若因副作用停药，两类方法都可能掩盖真实疗效，从而偏向假阴性（掩盖疗效）。因此，BOCF / LOCF 的结论必须谨慎解读。</p>
+</div></section><section id="sec6"><h2 class="pmc_sec_title" id="sec-方法-2">方法</h2>
+<p>本研究在两项为期 13 周、随机、双盲、安慰剂对照试验中进行。研究 1 纳入经临床诊断患有 CLBP 的男性和女性患者（度洛西汀 N = 115，安慰剂 N = 121）。研究 2 纳入 ≥40 岁的男性和女性膝 OA 患者（度洛西汀 N = 128，安慰剂 N = 128）。两项研究的患者特征具有可比性。各研究的患者人口学资料及其他特征信息此前已有报道。<a href="#b6-ppa-4-011" class="usa-link" aria-describedby="b6-ppa-4-011"><sup>6</sup></a><sup>,</sup><a href="#b7-ppa-4-011" class="usa-link" aria-describedby="b7-ppa-4-011"><sup>7</sup></a></p>
+<p>这些临床研究的主要目标是，以简明疼痛量表（BPI）24 小时平均疼痛评分衡量，评估度洛西汀相比安慰剂在减轻疼痛程度方面的疗效。</p>
+<section id="sec7"><h3 class="pmc_sec_title" id="sec-统计分析">统计分析</h3>
+<p>两项研究的主疗效分析均为：采用 MMRM 方法分析 BPI 平均疼痛自基线的平均变化。</p>
+<p>LOCF 和 BOCF 均在研究方案中预先设定为附加分析方法。对于完成治疗阶段的患者，BOCF 终点定义为末次非缺失观测值；对于提前终止的患者，BOCF 终点定义为基线值。</p>
+<p>对于提前终止试验的患者，脱落原因被归类为治疗相关或非治疗相关。治疗相关原因包括"不良事件"和"疗效不佳"。非治疗相关原因包括"不符合入组标准""违反方案""失访""受试者决定"（如工作冲突、交通不便、搬迁或不愿意填写问卷）以及"研究者决定"（如研究中心关闭或患者被认为不可靠）。</p>
+<p>由于因非治疗相关原因脱落的患者可为治疗效应评估提供有用信息，我们定义了改良 BOCF（mBOCF）终点如下：1) 对于完成治疗阶段的患者，BOCF 终点定义为末次非缺失观测值；或 2) 对于因治疗相关原因（即不良事件[AEs]或疗效不佳[LOE]）提前终止的患者，BOCF 终点定义为基线值；3) 对于因非治疗相关原因（即除 AEs 或 LOE 之外的原因）提前终止的患者，BOCF 终点定义为末次非缺失观测值。</p>
+<p>在 mBOCF 法中，对因非治疗相关原因脱落者以及完成者，采用自基线至末次观测的变化（即 LOCF 终点）；对因治疗相关原因脱落者，采用零变化。</p>
+<p>另一种 BOCF 方法，即 aeBOCF，对因不良事件脱落者采用零变化，而对因任何其他原因脱落者以及完成研究者，采用自基线至末次观测的变化（LOCF 终点）。</p>
+<p>对于采用 LOCF、BOCF、mBOCF 和 aeBOCF 方法的平均变化分析，采用协方差分析（ANCOVA）模型，纳入自基线至终点的基线值变化、治疗、研究者以及治疗×研究者交互项。采用最小二乘均数（LS mean）的 III 型平方和评估治疗差异。</p>
+<p>除平均变化分析外，还采用 LOCF、BOCF、mBOCF 和 aeBOCF 方法进行了应答率（定义为 BPI 平均疼痛降低 ≥30%，这种 ≥30% 的下降被认为"中等重要"<a href="#b8-ppa-4-011" class="usa-link" aria-describedby="b8-ppa-4-011"><sup>8</sup></a>）的分类分析。采用 Fisher 精确检验评估治疗差异。</p>
+<p>为评估不同脱落原因对患者疗效结局的影响，我们对 BPI 平均疼痛自基线至 LOCF 终点的变化，按以下去向类别进行分析：1) 完成 13 周治疗者；2) 因不良事件终止者；3) 因疗效不佳终止者；4) 因 AEs 或 LOE 以外原因终止者。</p>
+<p>效应量按治疗差异 /（标准误 × N 的平方根）计算。</p>
+<p>所有分析均纳入具有基线及至少一次基线后观测的患者。所有检验均为双侧，显著性水平 0.05。文中"显著"一词均指统计学显著。</p>
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>改良 BOCF（mBOCF / aeBOCF）的动机。</strong>标准 BOCF 对所有脱落者一视同仁地"回到基线"，但脱落原因五花八门。把"因不良事件停药"（治疗相关，确实可能无效或不可耐受）与"因搬家、失访等无关原因停药"（治疗可能本来有效）混为一谈，会稀释甚至掩盖真实疗效。mBOCF 的思路是：对非治疗相关脱落者沿用其末次观测（LOCF 式），只对治疗相关脱落者回到基线；aeBOCF 则更进一步，仅对因不良事件脱落者回到基线。这样做的目的，是避免把"因不良事件停药"一刀切地错判为"无效"，从而更贴近患者的实际治疗结局。</p>
+</div></section></section><section id="sec8"><h2 class="pmc_sec_title" id="sec-结果-2">结果</h2>
+<p>患者去向见 <a href="#t1-ppa-4-011" class="usa-link">表 1</a>。与安慰剂组相比，度洛西汀组在两项研究中因不良事件而终止者均显著更多（研究 1，<em>P</em> &lt; 0.05；研究 2，<em>P</em> &lt; 0.01）。此外，在研究 2 中，完成研究的患者比例在度洛西汀组（72.7%）与安慰剂组（86.7%）间存在显著差异（<em>P</em> &lt; 0.01）。两项研究中，因受试者决定、违反方案、研究者决定、失访、疗效不佳及不符合入组标准而终止者，各治疗组间均无差异。</p>
+<section class="tw xbox font-sm" id="t1-ppa-4-011"><h3 class="obj_head" id="sec-表-1">表 1.</h3>
+<div class="caption p"><p>患者去向</p></div>
+<div class="tbl-box p" tabindex="0"><table class="content" frame="hsides" rules="groups">
+<thead>
+<tr>
+<th valign="top" align="left" rowspan="2" colspan="1"></th>
+<th valign="top" align="left" colspan="2" rowspan="1">
+<strong>研究 1</strong><hr>
+</th>
+<th valign="top" align="left" colspan="2" rowspan="1">
+<strong>研究 2</strong><hr>
+</th>
+</tr>
+<tr>
+<th valign="top" align="left" rowspan="1" colspan="1"><strong>安慰剂 (N = 121) n (%)</strong></th>
+<th valign="top" align="left" rowspan="1" colspan="1"><strong>度洛西汀 60/120 mg/天 (N = 115) n (%)</strong></th>
+<th valign="top" align="left" rowspan="1" colspan="1"><strong>安慰剂 (N = 128) n (%)</strong></th>
+<th valign="top" align="left" rowspan="1" colspan="1"><strong>度洛西汀 60/120 mg/天 (N = 128) n (%)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">完成 13 周治疗者</td>
+<td valign="top" align="left" rowspan="1" colspan="1">98 (81.0)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">84 (73.0)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">111 (86.7)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">93 (72.7)<a href="#tfn2-ppa-4-011" class="usa-link"><sup>**</sup></a>
+</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">因任何原因终止</td>
+<td valign="top" align="left" rowspan="1" colspan="1">23 (19.0)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">31 (27.0)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">17 (13.3)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">35 (27.3)<a href="#tfn2-ppa-4-011" class="usa-link"><sup>**</sup></a>
+</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">  不良事件</td>
+<td valign="top" align="left" rowspan="1" colspan="1">7 (5.8)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">16 (13.9)<a href="#tfn1-ppa-4-011" class="usa-link"><sup>*</sup></a>
+</td>
+<td valign="top" align="left" rowspan="1" colspan="1">7 (5.5)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">24 (18.8)<a href="#tfn2-ppa-4-011" class="usa-link"><sup>**</sup></a>
+</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">  受试者决定</td>
+<td valign="top" align="left" rowspan="1" colspan="1">10 (8.3)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">11 (9.6)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">2 (1.6)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">4 (3.1)</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">  违反方案</td>
+<td valign="top" align="left" rowspan="1" colspan="1">2 (1.7)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">2 (1.7)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">2 (1.6)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">3 (2.3)</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">  研究者决定</td>
+<td valign="top" align="left" rowspan="1" colspan="1">2 (1.7)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">1 (0.9)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0 (0.0)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">2 (1.6)</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">  失访</td>
+<td valign="top" align="left" rowspan="1" colspan="1">1 (0.8)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">1 (0.9)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0 (0.0)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">1 (0.8)</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">  疗效不佳</td>
+<td valign="top" align="left" rowspan="1" colspan="1">1 (0.8)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0 (0.0)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">5 (3.9)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">1 (0.8)</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">  不符合入组标准</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0 (0.0)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0 (0.0)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">1 (0.8)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0 (0.0)</td>
+</tr>
+</tbody>
+</table></div>
+<div class="p text-right font-secondary"><a href="table/t1-ppa-4-011/" class="usa-link" target="_blank" rel="noopener noreferrer">Open in a new tab</a></div>
+<div class="tw-foot p">
+<div class="fn" id="tfn20-ppa-4-011"><p><strong>注：</strong></p></div>
+<div class="fn" id="tfn1-ppa-4-011">
+<sup>*</sup><p class="display-inline"><em>P</em> &lt; 0.05，与安慰剂相比；</p>
+</div>
+<div class="fn" id="tfn2-ppa-4-011">
+<sup>**</sup><p class="display-inline"><em>P</em> &lt; 0.01，与安慰剂相比。</p>
+</div>
+<div class="fn" id="tfn3-ppa-4-011"><p><strong>缩写：</strong> n，该类别中的患者人数；N，随机化患者总数。</p></div>
+</div></section><p>研究 1 中，在主疗效指标 BPI 平均疼痛平均变化上（<a href="#t2-ppa-4-011" class="usa-link">表 2</a>），度洛西汀采用 MMRM（−2.32）、BOCF（−1.86）、LOCF（−2.09）和 mBOCF（−1.91）时均优于安慰剂 [安慰剂组对应为：MMRM（−1.50，<em>P</em> = 0.004）、BOCF（−1.25，<em>P</em> = 0.019）、LOCF（−1.45，<em>P</em> = 0.019）、mBOCF（−1.35，<em>P</em> = 0.041）]。然而，采用 aeBOCF 时，度洛西汀（−1.94）与安慰剂（−1.46，<em>P</em> = 0.075）之间无显著差异。研究 2 中，度洛西汀在 BPI 平均疼痛上同样优于安慰剂，采用 MMRM（−2.72）、BOCF（−2.23）、LOCF（−2.51）、mBOCF（−2.29）和 aeBOCF（−2.29），安慰剂组对应为 [MMRM（–1.88，<em>P</em> &lt; 0.001）、BOCF（–1.63，<em>P</em> = 0.013）、LOCF（–1.72，<em>P</em> &lt; 0.001）、mBOCF（–1.61，<em>P</em> = 0.005）、aeBOCF（–1.62，<em>P</em> = 0.005）]。文中亦提供了效应量信息。</p>
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>MMRM 为何更受推崇。</strong>混合模型重复测量（MMRM）不"填补"缺失值，而是基于似然（likelihood-based）直接对所有可用数据建模，并允许不同时间点之间存在相关结构。它对 MAR 假设下的缺失数据具有一致性估计，且不像 LOCF / BOCF 那样强加"末次水平不变"或"回落基线"之类的强假设。正因如此，FDA 与 EMA 的缺失数据指导原则均将 MMRM 列为连续型主结局的首选主分析方法之一。本文两项研究中，MMRM 给出的 P 值也最小、效应量最大，正体现了其相对更高的检验效能。</p>
+</div>
+<section class="tw xbox font-sm" id="t2-ppa-4-011"><h3 class="obj_head" id="sec-表-2">表 2.</h3>
+<div class="caption p"><p>13 周治疗阶段所有随机化患者的简明疼痛量表（BPI）平均疼痛平均变化分析</p></div>
+<div class="tbl-box p" tabindex="0"><table class="content" frame="hsides" rules="groups">
+<thead><tr>
+<th valign="middle" align="left" rowspan="1" colspan="1"><strong>研究</strong></th>
+<th valign="middle" align="left" rowspan="1" colspan="1"><strong>分析方法</strong></th>
+<th valign="middle" align="left" rowspan="1" colspan="1"><strong>治疗组<a href="#tfn4-ppa-4-011" class="usa-link"><sup>a</sup></a></strong></th>
+<th valign="middle" align="left" rowspan="1" colspan="1"><strong>LS 均数变化 (SE)</strong></th>
+<th valign="middle" align="left" rowspan="1" colspan="1"><strong>效应量</strong></th>
+<th valign="middle" align="left" rowspan="1" colspan="1"><strong><em>P</em> 值<a href="#tfn6-ppa-4-011" class="usa-link"><sup>b</sup></a></strong></th>
+</tr></thead>
+<tbody>
+<tr>
+<td valign="top" align="left" rowspan="10" colspan="1">研究 1<a href="#tfn7-ppa-4-011" class="usa-link"><sup>c</sup></a>
+</td>
+<td valign="top" align="left" rowspan="1" colspan="1">MMRM<a href="#tfn8-ppa-4-011" class="usa-link"><sup>d</sup></a>
+</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–2.32 (0.22)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.36</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.004</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–1.50 (0.21)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">BOCF</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–1.86 (0.20)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.28</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.019</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–1.25 (0.20)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">LOCF</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–2.09 (0.21)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.28</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.019</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–1.45 (0.21)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">mBOCF</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–1.91 (0.21)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.25</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.041</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–1.35 (0.21)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">aeBOCF</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–1.94 (0.21)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.21</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.075</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–1.46 (0.21)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="10" colspan="1">研究 2<a href="#tfn9-ppa-4-011" class="usa-link"><sup>e</sup></a>
+</td>
+<td valign="top" align="left" rowspan="1" colspan="1">MMRM<a href="#tfn8-ppa-4-011" class="usa-link"><sup>d</sup></a>
+</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–2.72 (0.20)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.41</td>
+<td valign="top" align="left" rowspan="1" colspan="1">&lt;0.001</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–1.88 (0.18)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">BOCF</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–2.23 (0.20)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.28</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.013</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–1.63 (0.19)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">LOCF</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–2.51 (0.20)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.39</td>
+<td valign="top" align="left" rowspan="1" colspan="1">&lt;0.001</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–1.72 (0.18)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">mBOCF</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–2.29 (0.20)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.32</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.005</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–1.61 (0.19)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">aeBOCF</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–2.29 (0.20)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.31</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.005</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–1.62 (0.19)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+</tbody>
+</table></div>
+<div class="p text-right font-secondary"><a href="table/t2-ppa-4-011/" class="usa-link" target="_blank" rel="noopener noreferrer">Open in a new tab</a></div>
+<div class="tw-foot p">
+<div class="fn" id="tfn4-ppa-4-011">
+<sup>a</sup><p class="display-inline">研究 1：N（度洛西汀 60/120 mg QD）= 109，N（安慰剂）= 115。</p>
+</div>
+<div class="fn" id="tfn5-ppa-4-011"><p>研究 2：N（度洛西汀 60/120 mg QD）= 121，N（安慰剂）= 127。</p></div>
+<div class="fn" id="tfn6-ppa-4-011">
+<sup>b</sup><p class="display-inline">与安慰剂比较的 <em>P</em> 值。</p>
+</div>
+<div class="fn" id="tfn7-ppa-4-011">
+<sup>c</sup><p class="display-inline">基线均数（标准差）：度洛西汀 60/120 mg QD = 5.91 (1.61)，安慰剂 = 5.93 (1.67)。</p>
+</div>
+<div class="fn" id="tfn8-ppa-4-011">
+<sup>d</sup><p class="display-inline">研究 1 的主疗效分析。</p>
+</div>
+<div class="fn" id="tfn9-ppa-4-011">
+<sup>e</sup><p class="display-inline">基线均数（标准差）：度洛西汀 60/120 mg QD = 6.09 (1.38)，安慰剂 = 6.16 (1.26)。</p>
+</div>
+<div class="fn" id="tfn10-ppa-4-011"><p><strong>缩写：</strong> aeBOCF，仅因不良事件脱落；BOCF，基线观测结转；DLX，度洛西汀；LOCF，末次观测结转；LS Mean，最小二乘均数；mBOCF，改良 BOCF；MMRM，混合模型重复测量；QD，每日一次；SE，标准误。</p></div>
+</div></section><p>研究 1 中，度洛西汀组与安慰剂组的应答率百分比均无差异（BOCF [45.9% 对 33.0%，<em>P</em> = 0.056]、LOCF [53.2% 对 40.0%，<em>P</em> = 0.060]、mBOCF [47.7% 对 37.4%，<em>P</em> = 0.137]、aeBOCF [48.6% 对 40.0%，<em>P</em> = 0.226]）。研究 2 中，30% 应答率的结果（<a href="#t3-ppa-4-011" class="usa-link">表 3</a>）显示，采用 BOCF（57% 对 42.5%，<em>P</em> = 0.031）、LOCF（65.3% 对 44.1%，<em>P</em> &lt; 0.001）、mBOCF（59.5% 对 42.5%，<em>P</em> = 0.008）和 aeBOCF（59.5% 对 42.5%，<em>P</em> = 0.008）时，度洛西汀组的应答率均显著高于安慰剂组。</p>
+<section class="tw xbox font-sm" id="t3-ppa-4-011"><h3 class="obj_head" id="sec-表-3">表 3.</h3>
+<div class="caption p"><p>简明疼痛量表（BPI）平均疼痛的 30% 应答率</p></div>
+<div class="tbl-box p" tabindex="0"><table class="content" frame="hsides" rules="groups">
+<thead><tr>
+<th valign="top" align="left" rowspan="1" colspan="1"><strong>研究</strong></th>
+<th valign="top" align="left" rowspan="1" colspan="1"><strong>分析方法</strong></th>
+<th valign="top" align="left" rowspan="1" colspan="1"><strong>治疗组<a href="#tfn11-ppa-4-011" class="usa-link"><sup>a</sup></a></strong></th>
+<th valign="top" align="left" rowspan="1" colspan="1"><strong>应答者<a href="#tfn13-ppa-4-011" class="usa-link"><sup>b</sup></a> n (%)</strong></th>
+<th valign="top" align="left" rowspan="1" colspan="1"><strong><em>P</em> 值<a href="#tfn14-ppa-4-011" class="usa-link"><sup>c</sup></a></strong></th>
+</tr></thead>
+<tbody>
+<tr>
+<td valign="top" align="left" rowspan="8" colspan="1">研究 1</td>
+<td valign="top" align="left" rowspan="1" colspan="1">BOCF</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">50 (45.9)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.056</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">38 (33.0)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">LOCF</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">58 (53.2)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.060</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">46 (40.0)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">mBOCF</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">52 (47.7)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.137</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">43 (37.4)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">aeBOCF</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">53 (48.6)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.226</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">46 (40.0)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="8" colspan="1">研究 2</td>
+<td valign="top" align="left" rowspan="1" colspan="1">BOCF</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">69 (57.0)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.031</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">54 (42.5)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">LOCF</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">79 (65.3)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">&lt;0.001</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">56 (44.1)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">mBOCF</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">72 (59.5)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.008</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">54 (42.5)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">aeBOCF</td>
+<td valign="top" align="left" rowspan="1" colspan="1">度洛西汀 60/120 mg QD</td>
+<td valign="top" align="left" rowspan="1" colspan="1">72 (59.5)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.008</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1">安慰剂</td>
+<td valign="top" align="left" rowspan="1" colspan="1">54 (42.5)</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+</tbody>
+</table></div>
+<div class="p text-right font-secondary"><a href="table/t3-ppa-4-011/" class="usa-link" target="_blank" rel="noopener noreferrer">Open in a new tab</a></div>
+<div class="tw-foot p">
+<div class="fn" id="tfn11-ppa-4-011">
+<sup>a</sup><p class="display-inline">研究 1：N（度洛西汀 60/120 mg QD）= 109，N（安慰剂）= 115。</p>
+</div>
+<div class="fn" id="tfn12-ppa-4-011"><p>研究 2：N（度洛西汀 60/120 mg QD）= 121，N（安慰剂）= 127。</p></div>
+<div class="fn" id="tfn13-ppa-4-011">
+<sup>b</sup><p class="display-inline">应答定义为 BPI 平均疼痛至少降低 30%。</p>
+</div>
+<div class="fn" id="tfn14-ppa-4-011">
+<sup>c</sup><p class="display-inline">与安慰剂比较的 <em>P</em> 值。</p>
+</div>
+<div class="fn" id="tfn15-ppa-4-011"><p><strong>缩写：</strong> aeBOCF，仅因不良事件脱落；BOCF，基线观测结转；BPI，简明疼痛量表；DLX，度洛西汀；LOCF，末次观测结转；mBOCF，改良 BOCF；MMRM，混合模型重复测量；N，该类别中的患者人数；QD，每日一次。</p></div>
+</div></section><p>无论去向原因如何，度洛西汀组与安慰剂组在 BPI 平均疼痛上的治疗差异（无统计学显著性）方向，除研究 1 中"因 AEs 或 LOE 以外原因终止"外，均与完成者一致（<a href="#t4-ppa-4-011" class="usa-link">表 4</a>）。</p>
+<section class="tw xbox font-sm" id="t4-ppa-4-011"><h3 class="obj_head" id="sec-表-4">表 4.</h3>
+<div class="caption p"><p>所有随机化患者的 BPI 平均疼痛平均变化分析（LOCF 法）——按去向状态分层</p></div>
+<div class="tbl-box p" tabindex="0"><table class="content" frame="hsides" rules="groups">
+<thead>
+<tr>
+<th valign="top" align="left" rowspan="4" colspan="1"></th>
+<th valign="top" align="left" colspan="4" rowspan="1">
+<strong>研究 1</strong><hr>
+</th>
+<th valign="top" align="left" colspan="4" rowspan="1">
+<strong>研究 2</strong><hr>
+</th>
+</tr>
+<tr>
+<th valign="top" align="left" colspan="2" rowspan="1">
+<strong>安慰剂</strong><hr>
+</th>
+<th valign="top" align="left" colspan="2" rowspan="1">
+<strong>度洛西汀 60/120 mg/天</strong><hr>
+</th>
+<th valign="top" align="left" colspan="2" rowspan="1">
+<strong>安慰剂</strong><hr>
+</th>
+<th valign="top" align="left" colspan="2" rowspan="1">
+<strong>度洛西汀 60/120 mg/天</strong><hr>
+</th>
+</tr>
+<tr>
+<th valign="top" align="left" rowspan="1" colspan="1"><strong>n</strong></th>
+<th valign="top" align="left" rowspan="1" colspan="1"><strong>LS 均数变化 (SE)</strong></th>
+<th valign="top" align="left" rowspan="1" colspan="1"><strong>n</strong></th>
+<th valign="top" align="left" rowspan="1" colspan="1"><strong>LS 均数变化 (SE)</strong></th>
+<th valign="top" align="left" rowspan="1" colspan="1"><strong>n</strong></th>
+<th valign="top" align="left" rowspan="1" colspan="1"><strong>LS 均数变化 (SE)</strong></th>
+<th valign="top" align="left" rowspan="1" colspan="1"><strong>n</strong></th>
+<th valign="top" align="left" rowspan="1" colspan="1"><strong>LS 均数变化 (SE)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">完成者</td>
+<td valign="top" align="left" rowspan="1" colspan="1">98</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–1.51 (0.20)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">84</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–2.47 (0.22)<a href="#tfn16-ppa-4-011" class="usa-link"><sup>***</sup></a>
+</td>
+<td valign="top" align="left" rowspan="1" colspan="1">111</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–2.02 (0.17)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">92</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–3.04 (0.19)<a href="#tfn16-ppa-4-011" class="usa-link"><sup>***</sup></a>
+</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">因以下原因终止</td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+<td valign="top" align="left" rowspan="1" colspan="1"></td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">  不良事件</td>
+<td valign="top" align="left" rowspan="1" colspan="1">4</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.85 (1.46)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">13</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–0.65 (1.06)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">7</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–0.88 (0.72)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">20</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–0.93 (0.45)</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">  疗效不佳</td>
+<td valign="top" align="left" rowspan="1" colspan="1">4</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–0.79 (1.44)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">3</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–0.79 (1.30)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">6</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–0.36 (0.23)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">1</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–1.62 (0.54)</td>
+</tr>
+<tr>
+<td valign="top" align="left" rowspan="1" colspan="1">  其他原因</td>
+<td valign="top" align="left" rowspan="1" colspan="1">9</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–1.48 (0.95)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">9</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–0.49 (0.93)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">3</td>
+<td valign="top" align="left" rowspan="1" colspan="1">0.07 (1.08)</td>
+<td valign="top" align="left" rowspan="1" colspan="1">8</td>
+<td valign="top" align="left" rowspan="1" colspan="1">–1.64 (0.69)</td>
+</tr>
+</tbody>
+</table></div>
+<div class="p text-right font-secondary"><a href="table/t4-ppa-4-011/" class="usa-link" target="_blank" rel="noopener noreferrer">Open in a new tab</a></div>
+<div class="tw-foot p">
+<div class="fn" id="tfn16-ppa-4-011">
+<sup>***</sup><p class="display-inline"><em>P</em> ≤ 0.001，与安慰剂相比。</p>
+</div>
+<div class="fn" id="tfn17-ppa-4-011"><p><strong>缩写：</strong> BPI，简明疼痛量表；LOCF，末次观测结转；LS，最小二乘；n，该类别中的患者人数；SE，标准误。</p></div>
+</div></section></section><section id="sec9"><h2 class="pmc_sec_title" id="sec-讨论">讨论</h2>
+<p>在研究 1 和研究 2 中，采用 MMRM、BOCF、LOCF 和 mBOCF 方法时，度洛西汀在主疗效指标（即 BPI 平均疼痛变化）上均优于安慰剂。采用 aeBOCF 时，度洛西汀在研究 1 中未与安慰剂分开，但在研究 2 中分开。研究 2 中，应答率（即 BPI 平均疼痛降低 ≥30%）的模式与 BPI 平均疼痛评分平均变化分析相似，BOCF、LOCF、mBOCF 和 aeBOCF 方法均显示度洛西汀优于安慰剂。然而，在研究 1 中，任何分析方法都未在 BPI 平均疼痛的 30% 应答率上显示出度洛西汀与安慰剂之间的统计学显著差异。</p>
+<p>在终止试验的患者中，药物—安慰剂治疗差异的方向一般与完成者相同，研究 1 中"因 AEs 或 LOE 以外原因终止"者除外。然而，这些差异均无统计学显著性。尽管在完成者中观察到一致的治疗差异，在脱落者中也可见总体趋势，但由于各脱落类别的样本量较小，仍难以对每一类别中的治疗效应作出确切刻画。</p>
+<p>BOCF 法未考虑因与治疗无关的原因脱落的患者所观察到的变化。此前一项基于多中心、多研究数据库的发表物报道了与提前终止研究相关的因素<a href="#b9-ppa-4-011" class="usa-link" aria-describedby="b9-ppa-4-011"><sup>9</sup></a><sup>,</sup><a href="#b10-ppa-4-011" class="usa-link" aria-describedby="b10-ppa-4-011"><sup>10</sup></a>，并表明与高失访率相关的一些变量包括：年龄、女性、非裔美国人种族、既往未参加过研究，以及美国中部以外的研究中心地理位置。此外，在大型多中心试验中，某些国家的非治疗相关事件导致终止率高于其他国家并不罕见，这可能源于全球不同人群之间的文化差异。</p>
+<p>在 BOCF 法下，因非治疗相关原因脱落而未被纳入考量的一组患者，实际上可能已从所研究的治疗中获益，并也可能在临床实践中获益，因此分析时不应忽略这些患者。此外，尽管 BOCF 法有时被认为更为保守，但事实并非总是如此——研究 1 的结果即显示，BOCF 法的 P 值（<em>P</em> = 0.019）低于 mBOCF（<em>P</em> = 0.041）和 aeBOCF（<em>P</em> = 0.075）。</p>
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>"BOCF 更保守"并非绝对。</strong>常有人认为，BOCF 把脱落者拉回基线，因而"最保守、最不易出现假阳性"。但本文研究 1 的结果恰好相反：BOCF 的 P 值（0.019）比 mBOCF（0.041）和 aeBOCF（0.075）更小，即 BOCF 反而"更显著"。原因在于不同改良法对脱落者的处理方式不同，保守与否取决于脱落结构与原因构成，而非方法名称本身。这再次说明，缺失数据策略的影响必须结合具体试验的脱落模式来判断。</p>
+</div>
+<p>mBOCF 法旨在考虑脱落原因，对治疗相关和非治疗相关原因脱落者区别对待。在 mBOCF 法中，对因非治疗相关原因脱落者采用平均疼痛评分自基线至末次观测的变化（LOCF 终点），对因治疗相关原因脱落者采用基线评分（BOCF 终点）。对因非治疗相关原因脱落的患者，其应答仍可能反映真实的治疗应答。因此，在 mBOCF 法中，这些患者的实际治疗结局被纳入度洛西汀与安慰剂之间治疗差异的评估。aeBOCF 法旨在仅考虑因治疗相关（不良事件）原因脱落者。采用 aeBOCF 的理由是：若药物因不可耐受而导致终止，则视为无效；同理，若治疗因疗效不佳而终止，也应视为无效。</p>
+<p>由于因非治疗相关原因提前退出临床试验的患者，在评估治疗差异时可能作出合理贡献，应考虑将这些患者纳入治疗效应评估，正如本分析所考察的 mBOCF 法那样。这可避免临床试验因患者出于非治疗相关原因脱落而导致结局偏倚。在纵向临床试验中处理提前终止是一项常见且真实的挑战。因此，重要的是不应仅依赖单一方法作为得出推论的唯一统计手段。应采用不同方法与敏感性分析来确定结论的稳健性。</p>
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>敏感性分析的意义。</strong>不同的缺失数据处理方法各自隐含不同假设，结论可能因方法而异——本文中 aeBOCF 在研究 1 即未显示显著差异，而 MMRM 始终显著。因此，监管与期刊普遍要求以 MMRM 等基于似然的方法作为主分析，同时以 LOCF、BOCF、mBOCF、aeBOCF 等多种填补方法作为敏感性分析交叉验证。只有当主要结论在不同合理假设下都稳健时，疗效证据才站得住脚。</p>
+</div></section><section id="ack1" class="ack"><h2 class="pmc_sec_title" id="sec-致谢">致谢</h2>
+<p><strong>致谢/利益披露</strong></p>
+<p>本研究由 Eli Lilly and Company 与 Boehringer Ingelheim GmbH 资助。</p>
+<p>Hong Liu-Seifert、Shuyu Zhang、Deborah D'Souza 和 Vladimir Skljarevski 为 Eli Lilly and Company 的员工及股东。</p></section><section id="ref-list1" class="ref-list"><h2 class="pmc_sec_title" id="sec-参考文献">参考文献</h2>
+<section id="ref-list1_sec2"><ul class="ref-list font-sm" style="list-style-type:none">
+<li id="b1-ppa-4-011">
+<span class="label">1.</span><cite>Liu G, Gould AL. Comparison of alternative strategies for analysis of longitudinal trials with dropouts. J Biopharm Stat. 2002;12(2):207–226. doi: 10.1081/bip-120015744.</cite> [<a href="https://doi.org/10.1081/bip-120015744" class="usa-link usa-link--external" data-ga-action="click_feat_suppl" target="_blank" rel="noopener noreferrer">DOI</a>] [<a href="https://pubmed.ncbi.nlm.nih.gov/12413241/" class="usa-link">PubMed</a>] [<a href="https://scholar.google.com/scholar_lookup?journal=J%20Biopharm%20Stat&amp;title=Comparison%20of%20alternative%20strategies%20for%20analysis%20of%20longitudinal%20trials%20with%20dropouts&amp;author=G%20Liu&amp;author=AL%20Gould&amp;volume=12&amp;issue=2&amp;publication_year=2002&amp;pages=207-226&amp;pmid=12413241&amp;doi=10.1081/bip-120015744&amp;" class="usa-link usa-link--external" data-ga-action="click_feat_suppl" target="_blank" rel="noopener noreferrer">Google Scholar</a>]</li>
+<li id="b2-ppa-4-011">
+<span class="label">2.</span><cite>Lane P. Handling drop-out in longitudinal clinical trials: a comparison of the LOCF and MMRM approaches. Pharm Stat. 2008;7(2):93–106. doi: 10.1002/pst.267.</cite> [<a href="https://doi.org/10.1002/pst.267" class="usa-link usa-link--external" data-ga-action="click_feat_suppl" target="_blank" rel="noopener noreferrer">DOI</a>] [<a href="https://pubmed.ncbi.nlm.nih.gov/17351897/" class="usa-link">PubMed</a>] [<a href="https://scholar.google.com/scholar_lookup?journal=Pharm%20Stat&amp;title=Handling%20drop-out%20in%20longitudinal%20clinical%20trials:%20a%20comparison%20of%20the%20LOCF%20and%20MMRM%20approaches&amp;author=P%20Lane&amp;volume=7&amp;issue=2&amp;publication_year=2008&amp;pages=93-106&amp;pmid=17351897&amp;doi=10.1002/pst.267&amp;" class="usa-link usa-link--external" data-ga-action="click_feat_suppl" target="_blank" rel="noopener noreferrer">Google Scholar</a>]</li>
+<li id="b3-ppa-4-011">
+<span class="label">3.</span><cite>Mallinckrodt CH, Sanger TM, Dubé S, et al.  Assessing and interpreting treatment effects in longitudinal clinical trials with missing data. Biol Psychiatry. 2003;53(8):754–760. doi: 10.1016/s0006-3223(02)01867-x.</cite> [<a href="https://doi.org/10.1016/s0006-3223(02)01867-x" class="usa-link usa-link--external" data-ga-action="click_feat_suppl" target="_blank" rel="noopener noreferrer">DOI</a>] [<a href="https://pubmed.ncbi.nlm.nih.gov/12706959/" class="usa-link">PubMed</a>] [<a href="https://scholar.google.com/scholar_lookup?journal=Biol%20Psychiatry&amp;title=Assessing%20and%20interpreting%20treatment%20effects%20in%20longitudinal%20clinical%20trials%20with%20missing%20data&amp;author=CH%20Mallinckrodt&amp;author=TM%20Sanger&amp;author=S%20Dub%C3%A9&amp;volume=53&amp;issue=8&amp;publication_year=2003&amp;pages=754-760&amp;pmid=12706959&amp;doi=10.1016/s0006-3223(02)01867-x&amp;" class="usa-link usa-link--external" data-ga-action="click_feat_suppl" target="_blank" rel="noopener noreferrer">Google Scholar</a>]</li>
+<li id="b4-ppa-4-011">
+<span class="label">4.</span><cite>Mallinckrodt CH, Lane PW, Schnell D, Peng Y, Mancuso JP. Recommendations for the primary analysis of continuous endpoints in longitudinal clinical trials. Drug Inf J. 2008;42(4):303–319.</cite> [<a href="https://scholar.google.com/scholar_lookup?journal=Drug%20Inf%20J&amp;title=Recommendations%20for%20the%20primary%20analysis%20of%20continuous%20endpoints%20in%20longitudinal%20clinical%20trials&amp;author=CH%20Mallinckrodt&amp;author=PW%20Lane&amp;author=D%20Schnell&amp;author=Y%20Peng&amp;author=JP%20Mancuso&amp;volume=42&amp;issue=4&amp;publication_year=2008&amp;pages=303-319&amp;" class="usa-link usa-link--external" data-ga-action="click_feat_suppl" target="_blank" rel="noopener noreferrer">Google Scholar</a>]</li>
+<li id="b5-ppa-4-011">
+<span class="label">5.</span><cite>Shao J, Jordan DC, Pritchett YL. Baseline observation carry forward: reasoning, properties, and practical issues. J Biopharm Stat. 2009;19(4):672–684. doi: 10.1080/10543400902964118.</cite> [<a href="https://doi.org/10.1080/10543400902964118" class="usa-link usa-link--external" data-ga-action="click_feat_suppl" target="_blank" rel="noopener noreferrer">DOI</a>] [<a href="https://pubmed.ncbi.nlm.nih.gov/20183433/" class="usa-link">PubMed</a>] [<a href="https://scholar.google.com/scholar_lookup?journal=J%20Biopharm%20Stat&amp;title=Baseline%20observation%20carry%20forward:%20reasoning,%20properties,%20and%20practical%20issues&amp;author=J%20Shao&amp;author=DC%20Jordan&amp;author=YL%20Pritchett&amp;volume=19&amp;issue=4&amp;publication_year=2009&amp;pages=672-684&amp;pmid=20183433&amp;doi=10.1080/10543400902964118&amp;" class="usa-link usa-link--external" data-ga-action="click_feat_suppl" target="_blank" rel="noopener noreferrer">Google Scholar</a>]</li>
+<li id="b6-ppa-4-011">
+<span class="label">6.</span><cite>Skljarevski V, Desaiah D, Liu-Seifert H, et al.  Efficacy and safety of duloxetine in patients with chronic low back pain. Spine. 2009 doi: 10.1097/BRS.0b013e3181d3cef6. In press.</cite> [<a href="https://doi.org/10.1097/BRS.0b013e3181d3cef6" class="usa-link usa-link--external" data-ga-action="click_feat_suppl" target="_blank" rel="noopener noreferrer">DOI</a>] [<a href="https://pubmed.ncbi.nlm.nih.gov/20461028/" class="usa-link">PubMed</a>] [<a href="https://scholar.google.com/scholar_lookup?journal=Spine&amp;title=Efficacy%20and%20safety%20of%20duloxetine%20in%20patients%20with%20chronic%20low%20back%20pain&amp;author=V%20Skljarevski&amp;author=D%20Desaiah&amp;author=H%20Liu-Seifert&amp;publication_year=2009&amp;pmid=20461028&amp;doi=10.1097/BRS.0b013e3181d3cef6&amp;" class="usa-link usa-link--external" data-ga-action="click_feat_suppl" target="_blank" rel="noopener noreferrer">Google Scholar</a>]</li>
+<li id="b7-ppa-4-011">
+<span class="label">7.</span><cite>Chappell AS, Desaiah D, Liu-Seifert H, et al.  Duloxetine 60 to 120 mg once daily versus placebo in the treatment of patients with osteoarthritis knee pain. [Poster] Presented at the American Academy of Pain Medicine (AAPM) – 25th Annual Meeting; Honolulu, HI, USA. Jan 28–31, 2009.</cite> [<a href="https://scholar.google.com/scholar_lookup?Chappell%20AS,%20Desaiah%20D,%20Liu-Seifert%20H,%20et%20al.%20Duloxetine%2060%20to%20120%20mg%20once%20daily%20versus%20placebo%20in%20the%20treatment%20of%20patients%20with%20osteoarthritis%20knee%20pain.%20[Poster]%20Presented%20at%20the%20American%20Academy%20of%20Pain%20Medicine%20(AAPM)%20%E2%80%93%2025th%20Annual%20Meeting;%20Honolulu,%20HI,%20USA.%20Jan%2028%E2%80%9331,%202009." class="usa-link usa-link--external" data-ga-action="click_feat_suppl" target="_blank" rel="noopener noreferrer">Google Scholar</a>]</li>
+<li id="b8-ppa-4-011">
+<span class="label">8.</span><cite>Dworkin RH, Turk DC, Wyrwich KW, et al.  Interpreting the clinical importance of treatment outcomes in chronic pain clinical trials: IMMPACT recommendations. J Pain. 2008;9(2):105–121. doi: 10.1016/j.jpain.2007.09.005.</cite> [<a href="https://doi.org/10.1016/j.jpain.2007.09.005" class="usa-link usa-link--external" data-ga-action="click_feat_suppl" target="_blank" rel="noopener noreferrer">DOI</a>] [<a href="https://pubmed.ncbi.nlm.nih.gov/18055266/" class="usa-link">PubMed</a>] [<a href="https://scholar.google.com/scholar_lookup?journal=J%20Pain&amp;title=Interpreting%20the%20clinical%20importance%20of%20treatment%20outcomes%20in%20chronic%20pain%20clinical%20trials:%20IMMPACT%20recommendations&amp;author=RH%20Dworkin&amp;author=DC%20Turk&amp;author=KW%20Wyrwich&amp;volume=9&amp;issue=2&amp;publication_year=2008&amp;pages=105-121&amp;pmid=18055266&amp;doi=10.1016/j.jpain.2007.09.005&amp;" class="usa-link usa-link--external" data-ga-action="click_feat_suppl" target="_blank" rel="noopener noreferrer">Google Scholar</a>]</li>
+<li id="b9-ppa-4-011">
+<span class="label">9.</span><cite>Andersen JW, Van Der Horst C, Gorski H, Fass RJ. Conference on Retroviruses and Opportunistic Infections. The association of site with early study discontinuation on HIV clinical studies in the protease inhibitor era: DACS200. Program Abstr 8th Conf Retrovir Oppor Infect Conf Retrovir Oppor Infect 8th 2001 Chic Ill; 2001 Feb 4–8; p. 188. (abstract no. 486)</cite> [<a href="https://scholar.google.com/scholar_lookup?Andersen%20JW,%20Van%20Der%20Horst%20C,%20Gorski%20H,%20Fass%20RJ.%20Conference%20on%20Retroviruses%20and%20Opportunistic%20Infections.%20The%20association%20of%20site%20with%20early%20study%20discontinuation%20on%20HIV%20clinical%20studies%20in%20the%20protease%20inhibitor%20era:%20DACS200.%20Program%20Abstr%208th%20Conf%20Retrovir%20Oppor%20Infect%20Conf%20Retrovir%20Oppor%20Infect%208th%202001%20Chic%20Ill;%202001%20Feb%204%E2%80%938;%20p.%20188.%20(abstract%20no.%20486)" class="usa-link usa-link--external" data-ga-action="click_feat_suppl" target="_blank" rel="noopener noreferrer">Google Scholar</a>]</li>
+<li id="b10-ppa-4-011">
+<span class="label">10.</span><cite>Anderson JW, Fass R, van der Horst C. Factors associated with early study discontinuation in AACTG studies, DACS 200. Contemp Clin Trials. 2007;28(5):583–592. doi: 10.1016/j.cct.2007.02.002.</cite> [<a href="https://doi.org/10.1016/j.cct.2007.02.002" class="usa-link usa-link--external" data-ga-action="click_feat_suppl" target="_blank" rel="noopener noreferrer">DOI</a>] [<a href="https://pubmed.ncbi.nlm.nih.gov/17395549/" class="usa-link">PubMed</a>] [<a href="https://scholar.google.com/scholar_lookup?journal=Contemp%20Clin%20Trials&amp;title=Factors%20associated%20with%20early%20study%20discontinuation%20in%20AACTG%20studies,%20DACS%20200&amp;author=JW%20Anderson&amp;author=R%20Fass&amp;author=C%20van%20der%20Horst&amp;volume=28&amp;issue=5&amp;publication_year=2007&amp;pages=583-592&amp;pmid=17395549&amp;doi=10.1016/j.cct.2007.02.002&amp;" class="usa-link usa-link--external" data-ga-action="click_feat_suppl" target="_blank" rel="noopener noreferrer">Google Scholar</a>]</li>
+</ul></section></section></section>
+  </div>
+
+  <div class="foot">
+    <p><strong>版权与翻译声明：</strong>本文为 <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2819899/" target="_blank" rel="noopener">PMC2819899 原文</a>（Hong Liu-Seifert 等，<em>Patient Preference and Adherence</em>，2010）的中文翻译，仅供个人学习与科研交流之用，不代表原作者或期刊的官方中文版本。版权归原作者及期刊所有。译文中的「背景与解释」框为译者面向医学研究者补充的科普性注解，非原文内容。引用请以英文原文为准。</p>
+  </div>
+</div>
+<script src="search.js"></script>
+</body>
+</html>
