@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme-default="light">
+<head>
+<script>
+(function(){
+  var KEY="share-theme", d=document.documentElement;
+  try{var saved=localStorage.getItem(KEY);}catch(e){var saved=null;}
+  d.setAttribute("data-theme", saved || d.getAttribute("data-theme-default") || "light");
+  document.addEventListener("DOMContentLoaded",function(){
+    var b=document.getElementById("theme-toggle"); if(!b) return;
+    function sync(){
+      var dark=d.getAttribute("data-theme")==="dark";
+      b.setAttribute("aria-pressed", dark?"true":"false");
+      b.setAttribute("title", dark?"切换到亮色主题 (Alt+T)":"切换到暗色主题 (Alt+T)");
+    }
+    b.addEventListener("click",function(){
+      var nxt=d.getAttribute("data-theme")==="dark"?"light":"dark";
+      d.setAttribute("data-theme",nxt);
+      try{localStorage.setItem(KEY,nxt);}catch(e){}
+      sync();
+    });
+    document.addEventListener("keydown",function(e){
+      if(e.altKey&&(e.key==="t"||e.key==="T")) b.click();
+    });
+    sync();
+  });
+})();
+</script>
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},
+options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《Qini 曲线：自动成本-收益分析》 · grf 中文教程</title>
+<style>
+:root{
+  --bg:#f7f7f5; --card:#ffffff; --text:#2c2c2a; --muted:#6b6a65;
+  --line:#e3e2dd; --accent:#534ab7; --accent-soft:#eeedfe; --tag:#f1efe8;
+  --code-bg:#f4f3ef; --code-line:#e7e5df; --code-text:#2c2c2a;
+  --note-bg:#eef6ff; --note-line:#bcd6f5; --note-text:#1f3a5f;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  line-height:1.8; margin:0;
+}
+.wrap{max-width:840px;margin:0 auto;padding:32px 22px 80px}
+.topbar{margin-bottom:26px}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;
+  font-size:14px;font-weight:600}
+.back:hover{text-decoration:underline}
+h1{font-size:30px;font-weight:700;letter-spacing:-.3px;margin:6px 0 4px;line-height:1.3}
+.sub{color:var(--muted);font-size:14px;margin-bottom:8px}
+.sub a{color:var(--accent)}
+.lead{font-size:16px;color:var(--text);margin:14px 0 22px;border-left:3px solid var(--accent);
+  padding:4px 0 4px 16px;background:var(--accent-soft);border-radius:0 8px 8px 0}
+.content h2{font-size:22px;font-weight:700;margin:38px 0 12px;padding-bottom:6px;
+  border-bottom:1px solid var(--line)}
+.content h3{font-size:18px;font-weight:700;margin:26px 0 10px}
+.content h4{font-size:16px;font-weight:700;margin:20px 0 8px}
+.content p{margin:12px 0}
+.content ul,.content ol{margin:12px 0;padding-left:26px}
+.content li{margin:6px 0}
+.content a{color:var(--accent);text-decoration:none}
+.content a:hover{text-decoration:underline}
+.content img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;
+  margin:14px 0;background:#fff;display:block}
+.content table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+.content th,.content td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+.content th{background:var(--accent-soft);font-weight:600}
+.content tr:nth-child(even) td{background:var(--card)}
+.content blockquote{margin:16px 0;padding:12px 16px;border-left:3px solid var(--line);
+  color:var(--muted);background:var(--card);border-radius:0 8px 8px 0}
+.content code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13.5px;background:var(--code-bg);padding:2px 5px;border-radius:4px;color:var(--code-text)}
+pre{background:var(--code-bg);border:1px solid var(--code-line);border-radius:10px;
+  padding:16px 18px;overflow-x:auto;margin:16px 0;line-height:1.6}
+pre code{background:none;padding:0;font-size:13.5px;color:var(--code-text)}
+.content .sourceCode{margin:16px 0}
+/* downlit token coloring (light) */
+.content .co{color:#6a737d}
+.content .st{color:#032f62}
+.content .fu{color:#4078f2}
+.content .cf{color:#d73a49}
+.content .kw{color:#a626a4}
+.content .fl,.content .cn{color:#b9520f}
+.content .op{color:#444}
+/* 背景与解释 callout */
+.note{margin:18px 0;padding:14px 18px;border:1px solid var(--note-line);
+  background:var(--note-bg);border-radius:10px;color:var(--note-text)}
+.note .nt{display:inline-block;font-weight:700;font-size:13px;letter-spacing:.04em;
+  margin-bottom:6px;color:var(--accent)}
+.note p{margin:6px 0}
+.note code{background:rgba(255,255,255,.6)}
+.foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--muted)}
+.foot a{color:var(--accent)}
+
+:root[data-theme="dark"]{
+  --bg:#0f1116; --card:#181b22; --text:#e4e6ea; --muted:#98a0ac;
+  --line:#2a2f3a; --accent:#7aa2f7; --accent-soft:#16203a; --tag:#1e222b;
+  --code-bg:#0b0d12; --code-line:#1d2129; --code-text:#d7dae0;
+  --note-bg:#15233b; --note-line:#274168; --note-text:#bcd6f5;
+}
+:root[data-theme="dark"] .content th{background:var(--accent-soft)}
+:root[data-theme="dark"] .content tr:nth-child(even) td{background:#14171e}
+:root[data-theme="dark"] .content img{background:#0b0d12}
+:root[data-theme="dark"] .content .co{color:#7f8b9a}
+:root[data-theme="dark"] .content .st{color:#9ecbff}
+:root[data-theme="dark"] .content .fu{color:#82aaff}
+:root[data-theme="dark"] .content .cf{color:#f07178}
+:root[data-theme="dark"] .content .kw{color:#c792ea}
+:root[data-theme="dark"] .content .fl,.content .cn{color:#f78c6c}
+
+.tt{
+  position:fixed; top:16px; right:16px; z-index:9999; width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center; border-radius:50%;
+  cursor:pointer; color:var(--text); background:var(--card);
+  border:1px solid var(--line);
+  box-shadow:0 2px 10px rgba(0,0,0,.24); transition:transform .15s, border-color .15s, background .15s;
+}
+.tt:hover{transform:translateY(-1px); border-color:var(--accent)}
+.tt:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tt svg{display:none}
+[data-theme="dark"] .ico-sun{display:block}
+[data-theme="dark"] .ico-moon{display:none}
+[data-theme="light"] .ico-sun{display:none}
+[data-theme="light"] .ico-moon{display:block}
+@media(max-width:640px){.tt{top:10px; right:10px; width:36px; height:36px}}
+@media print{.tt{display:none}}
+</style>
+<style>
+/* ---- 全局搜索 ---- */
+.sbox{position:relative;display:inline-flex;align-items:center;margin-left:10px}
+.sbox input{background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);color:inherit;
+ border-radius:6px;padding:4px 9px 4px 25px;font-size:13px;width:170px;font-family:inherit;outline:none}
+.sbox input:focus{border-color:#4ea1ff;width:220px}
+.sbox .si{position:absolute;left:8px;font-size:12px;opacity:.6;pointer-events:none}
+.spanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:440px;max-width:88vw;
+ max-height:64vh;overflow-y:auto;z-index:900;background:var(--panel,#262c34);
+ border:1px solid var(--border,#3a4350);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.spanel.open{display:block}
+.spanel .sh{padding:7px 10px;font-size:12px;opacity:.7;border-bottom:1px solid var(--border,#3a4350);margin-bottom:4px}
+.spanel .sempty{font-size:12px;opacity:.65;padding:16px 10px;text-align:center}
+.sres{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:inherit}
+.sres:hover,.sres.sel{background:var(--panel2,#2e3540)}
+.sres .c{font-size:11px;opacity:.65;margin-bottom:1px}
+.sres .s{font-size:12px;color:#4ea1ff;margin-bottom:2px}
+.sres .t{font-size:13px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sres mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+.srch-main{margin:22px 0}
+.srch-main input{width:100%;background:var(--panel2,#2e3540);border:1px solid var(--border,#3a4350);
+ color:inherit;border-radius:8px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none}
+.srch-main input:focus{border-color:#4ea1ff}
+.srch-meta{font-size:13px;opacity:.7;margin:12px 0 6px}
+.srch-list{list-style:none;margin:0;padding:0}
+.srch-list .sres{border:1px solid var(--border,#3a4350);margin:7px 0;padding:9px 11px}
+.srch-list .sres:hover{border-color:#4ea1ff}
+@media (max-width:640px){.sbox input{width:110px}.sbox input:focus{width:150px}.spanel{width:86vw}}
+</style><!--search.css-marker-->
+<style>
+/* ===== 因果森林知识库 · 统一导航 ===== */
+.cfh-nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:10px;
+ padding:8px 16px;background:var(--bg,#181b22);border-bottom:1px solid var(--line,#2a2f3a);
+ font-size:13.5px;flex-wrap:wrap}
+.cfh-nav .cfh-home{font-weight:600;color:var(--text,#e4e6ea);text-decoration:none;font-size:14px;
+ display:flex;align-items:center;gap:6px}
+.cfh-nav .cfh-home:hover{color:var(--accent,#7aa2f7)}
+.cfh-nav .cfh-crumb{color:var(--muted,#98a0ac);font-size:12.5px}
+.cfh-nav .cfh-crumb a{color:var(--accent,#7aa2f7);text-decoration:none}
+.cfh-nav .cfh-sp{flex:1}
+.cfh-nav select{background:var(--card,#181b22);color:var(--text,#e4e6ea);
+ border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:4px 8px;font-size:12.5px;
+ font-family:inherit;outline:none;cursor:pointer;max-width:230px}
+.cfh-nav select:hover{border-color:var(--accent,#7aa2f7)}
+.cfh-nav a.cfh-sbtn{color:var(--text,#e4e6ea);text-decoration:none;border:1px solid var(--line,#2a2f3a);
+ border-radius:6px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.cfh-nav a.cfh-sbtn:hover{border-color:var(--accent,#7aa2f7);color:var(--accent,#7aa2f7)}
+@media (max-width:700px){.cfh-nav .cfh-crumb{display:none}.cfh-nav select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="cfh-nav">
+<a class="cfh-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="cfh-crumb">/ <a href="index.html">grf 广义随机森林</a> / maq</span>
+<span class="cfh-sp"></span>
+<select onchange="if(this.value)location.href=this.value" aria-label="切换库">
+<option value="grf-cn/index.html" selected>grf 广义随机森林</option>
+<option value="policytree-cn/index.html">policytree 策略树</option>
+<option value="surefq/surefq.html">SURE / QRF 充分表示</option>
+<option value="tidyhte-cn/index.html">tidyhte 优雅的 HTE</option>
+<option value="metalearner-cn/index.html">Meta-Learner 元学习器</option>
+<option value="model4you-cn/index.html">model4you 个体化治疗</option>
+<option value="evalITR-cn/index.html">evalITR 规则评估</option>
+<option value="rj-dlc-cn/index.html">DeepLearningCausal</option>
+<option value="survlearners-cn/index.html">survlearners 生存 HTE</option>
+<option value="bocf-cn/index.html">BOCF 基线观测结转</option>
+<option value="hte-course/index.html">HTE 公开课讲义</option>
+<option value="causal-tools-cn/index.html">因果推断三件工具</option>
+<option value="imputeTS-cn/index.html">imputeTS 缺失填补</option>
+</select>
+<a class="cfh-sbtn" href="search.html">&#128269; 搜索本页</a>
+</div>
+<button id="theme-toggle" class="tt" type="button" aria-label="切换明暗主题" title="切换明暗主题 (Alt+T)">
+  <svg class="ico-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7"/></svg>
+  <svg class="ico-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.2 8.2 0 1 0 10.5 10.5z"/></svg>
+</button>
+
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">&larr; grf 教程总览</a><span class="sbox"><span class="si">&#128269;</span>
+<input type="search" id="s-q" placeholder="搜索本站…（按 /）" autocomplete="off" aria-label="搜索本站">
+<span class="spanel" id="s-panel"></span></span>
+  </div>
+  <h1>《Qini 曲线：自动成本-收益分析》</h1>
+  <p class="sub">原文：<a href="https://grf-labs.github.io/grf/articles/maq.html" target="_blank" rel="noopener">Qini curves: Automatic cost-benefit analysis</a>（英文）&nbsp;·&nbsp;grf 官方文档中文译本</p>
+
+  <div class="content">
+    
+<div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">grf</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">maq</span>)</pre></div>
+<p>本篇短文简要介绍 Qini 曲线（或称成本-收益曲线，cost curves）如何作为一种直观而有吸引力的指标，用于在"实施治疗存在成本"时对治疗规则（treatment rules）进行评估；并介绍如何将其推广到多个治疗臂（treatment arms），这些功能在配套包 <a href="https://github.com/grf-labs/maq">maq</a> 中实现。完整的理论细节，请参考 <a href="https://arxiv.org/abs/2306.11979">这篇论文</a>。</p>
+<div id="using-estimated-cates-to-derive-treatment-allocation-policies" class="section level2">
+<h2 class="hasAnchor" id="sec-用估计的-cate-推导治疗分配策略">
+<a href="#using-estimated-cates-to-derive-treatment-allocation-policies" class="anchor"></a>用估计的 CATE 推导治疗分配策略</h2>
+<p>在正式介绍 Qini 曲线之前，我们先约定一些术语、复习几个核心概念。考虑一个二值处理分配 <span class="math inline">\(W_i = \{0, 1\}\)</span> 以及我们关心的某个结局 <span class="math inline">\(Y_i\)</span>。为了判断人群中是否存在某些亚组（subgroup）——由某些可观测特征 <span class="math inline">\(X_i\)</span> 定义——对处理分配的反应各不相同，我们的核心关注对象是条件平均处理效应（conditional average treatment effect，简称 CATE）</p>
+<p><span class="math display">\[\tau(X_i) = E[Y_i(1) - Y_i(0) \,|\, X_i
+= x],\]</span></p>
+<p>其中 <span class="math inline">\(Y_i(1)\)</span> 和 <span class="math inline">\(Y_i(0)\)</span> 分别是两种处理状态下的潜在结局（potential outcomes）：治疗臂与对照组臂。</p>
+<p>估计函数 <span class="math inline">\(\tau(X_i)\)</span> 的方法有很多，因果森林（Causal Forest）就是其中之一。当我们已经在某个训练集上得到估计函数 <span class="math inline">\(\hat \tau(\cdot)\)</span> 之后，下一步自然要问：在一个独立的测试集（held-out test set）上，可以用什么指标（metric）来评估它？这取决于我们的实际用途。在很多场景下，我们希望用 <span class="math inline">\(\hat \tau(\cdot)\)</span> 来指导治疗分配。估计得到的 CATE 函数 <span class="math inline">\(\hat \tau(\cdot)\)</span> 实际上隐含地给出了一族策略（policies），我们记为 <span class="math inline">\(\pi(\cdot)\)</span>：它接收协变量 <span class="math inline">\(X_i\)</span>，并把它映射为一个治疗决策 <span class="math inline">\(\{0: \text{不治疗}, 1: \text{治疗}\}\)</span>。举例来说，假设我们的资源有限，只打算对最多 10% 的个体实施治疗。那么，"只治疗预测获益最高的前 10%"这一策略就是</p>
+<p><span class="math display">\[
+\pi(X_i) =
+\begin{cases}
+    1,&amp; \text{if CATE predictions } \hat \tau(X_i) \geq \text{top
+ 10%}\\
+    0,              &amp; \text{otherwise}.
+\end{cases}
+\]</span> 这一策略的价值为 <span class="math inline">\(E[\pi(X_i) (Y_i(1) - Y_i(0))]\)</span>，它也可以表述为一个简单的优先规则（priority rule）：只治疗那些预测处理效应高于某个阈值的个体。这个策略价值满足一个中心极限定理——也就是说，尽管用于决定治疗分配的底层函数 <span class="math inline">\(\hat \tau(\cdot)\)</span> 可能来自复杂的"黑盒"机器学习算法，我们仍然可以对它在真实世界中部署时的表现给出估计值和置信区间。</p>
+</div>
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>什么是 Uplift 建模（Uplift Modeling）？</strong>传统的预测模型关心"这个病人会不会康复（<span class="math inline">\(Y\)</span>）"，而 Uplift 建模关心的是"<em>治疗对这个病人带来了多大改变</em>"——也就是处理效应本身。它的目标不是预测结局，而是预测"给治疗 vs. 不给治疗"的<em>差值</em>。这正是 CATE <span class="math inline">\(\tau(X_i)\)</span> 的含义：在协变量 <span class="math inline">\(X_i\)</span> 给定的条件下，干预带来的增量收益。</p>
+<p>对医学研究者而言，这意味着我们不再问"谁病得最重"，而是问"谁最可能因治疗而获益"。举个例子：某种降压药对年轻人效果平平，但对伴有特定基因型的高血压患者效果显著。平均效应（ATE）会把这两种情况混在一起，掩盖真正该被治疗的亚组。Uplift 建模正是异质性处理效应（HTE）分析的核心思路，也是下文所有靶向治疗策略的基础。</p>
+</div>
+<div id="qini-curves-evaluating-policies-over-many-decision-thresholds" class="section level2">
+<h2 class="hasAnchor" id="sec-qini-曲线-在多个决策阈值上评估策略">
+<a href="#qini-curves-evaluating-policies-over-many-decision-thresholds" class="anchor"></a>Qini 曲线：在多个决策阈值上评估策略</h2>
+<p>为了更具一般性，现在考虑"实施治疗会产生成本"的情形，记 <span class="math inline">\(C_i(1)\)</span> 为把第 <span class="math inline">\(i\)</span> 个个体分配到治疗臂的成本（并假设不实施治疗没有成本，即 <span class="math inline">\(C_i(0)=0\)</span>）。成本随个体变化的例子可以是疫苗接种：把药品送到远离医疗中心的居民那里，成本往往高于送到附近的居民。成本未必是金钱，它也可以刻画更抽象的东西，例如负外部性（negative externalities）。</p>
+<p>现在的问题是：给定预算 <span class="math inline">\(B\)</span>，用什么合适的方法来量化"依据估计 CATE 来分配治疗"背后的成本-收益权衡（cost-benefit tradeoff）？事实证明，把成本纳入我们在上一节勾勒的策略评估框架中，是一件很自然的事。</p>
+<p>回顾一下，策略 <span class="math inline">\(\pi(X_i)\)</span> 是一个把协变量 <span class="math inline">\(X_i\)</span> 映射为治疗决策的函数，<span class="math inline">\(\pi(X_i) \in \{0: \text{不治疗}, 1: \text{治疗}\}\)</span>。在本节中，这个函数会依赖于预算 <span class="math inline">\(B\)</span>，我们用下标记为 <span class="math inline">\(\pi_B(X_i)\)</span>。结果它同样可以表达为一个治疗优先规则，本质上就是："如果你有 <span class="math inline">\(B\)</span> 的预算可用，那么当 Alice 的估计成本-收益比（CATE/成本）高于某个临界值时就治疗她"，对 Bob 等人同理。如果 Alice 的估计 CATE 为负，我们就不会考虑治疗她——因为那样既会增加成本，又会拉低收益。</p>
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>成本-收益权衡（Cost-Benefit Tradeoff）为什么关键？</strong>在真实世界里，治疗从来不是"免费的"。一支疫苗冷链运输到偏远地区，成本远高于城市社区；一款新药即便更有效，也可能因为价格而只能覆盖一小部分患者。Qini 框架把这种"每单位花费能换来的平均处理效应"（即 CATE/成本）作为排序依据，本质上是在问：<em>在有限预算下，先治谁最划算？</em></p>
+<p>注意一个常被忽略的点：Qini 曲线并不要求"成本"和"处理效应"用同一把尺子度量（比如成本用人民币、效应用血压降幅），因为决策只取决于它们的<em>比值</em>。这让它在跨尺度、跨场景的卫生经济学评价中非常灵活。若某个体的估计 CATE 为负，则无论成本多低都不该治疗——因为那只会白白烧钱还拉低总体收益。</p>
+</div>
+<p>我们有一个包含 <span class="math inline">\(n\)</span> 条观测结局与处理分配的测试集可供评估。我们想量化的是：在不同的支出水平（spend levels）<span class="math inline">\(B\)</span> 下，依据 <span class="math inline">\(\pi_B\)</span> 来分配治疗所能实现的期望增益（gain，用 ATE 衡量）。</p>
+<p>在上一节，我们略去了评估一个策略的具体细节。好在它其实很简单：如果我们知道处理的随机化概率，就可以用逆倾向加权（inverse-propensity weighting，简称 IPW）来估计所实现的增益——做法是对"与策略处方相符"的测试集结局差异取平均：</p>
+<p><span class="math display">\[
+\frac{1}{n} \sum_{i}^{n} \pi_B(X_i) \left( \frac{W_i Y_i}{P[W_i =
+1|X_i]} - \frac{(1-W_i)Y_i}{P[W_i = 0|X_i]} \right).
+\]</span> IPW（括号中的项）考虑了这样一个事实：所开出的策略 <span class="math inline">\(\pi_B(X_i)\)</span> 可能与个体 <span class="math inline">\(i\)</span> 实际观测到的处理 <span class="math inline">\(W_i\)</span> 并不一致。当我们改变可用预算 <span class="math inline">\(B\)</span> 时，<strong>Qini 曲线</strong>就把上面的价值描绘出来，从而得到如下量的估计：</p>
+<p><span class="math display">\[
+Q(B) = E[\pi_B(X_i) (Y_i(1) - Y_i(0))] = E[\pi_B(X_i) \tau(X_i)],
+\]</span> 即在各种预算 <span class="math inline">\(B\)</span> 取值下，依据我们估计的 CATE 与成本来分配治疗所能实现的增益；并且满足约束：我们平均承担的成本 <span class="math inline">\(E[\pi_B(X_i) (C_i(1) - C_i(0))]\)</span> 不超过 <span class="math inline">\(B\)</span>。</p>
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>Qini 曲线到底是什么？</strong>可以把 Qini 曲线想象成"预算 vs. 收益"的性价比图：横轴是你能花多少钱（或治疗的覆盖比例），纵轴是到该支出水平为止、按成本-收益排序后靶向治疗所能实现的累积期望增益 <span class="math inline">\(Q(B)\)</span>。</p>
+<p>曲线的"形状"比单一数字更有信息量：如果它明显高出那条"不看 CATE、随机分配"的虚线（基线），就说明"挑人治疗"确实比"人人都治"划算；如果它很快就进入平台期，说明再多的预算也救不回那些预测效应为负的个体。Qini 曲线最大的实用价值在于：它不仅给出点估计，还自带自助法（bootstrap）得到的置信带，让你能量化"这个靶向策略到底有多稳"。</p>
+</div>
+<p>下面的代码示例是一个玩具例子。为了让说明尽量简单，我们假设每个个体的成本都相同，治疗 Bob 和 Alice 各花费 1.0（采用某种选定的计量单位）。（Qini 作为一个评估指标有个很好的性质：它不要求成本和处置效应使用同一种计量尺度，只有它们的比值才重要。）</p>
+<div class="sourceCode" id="cb2"><pre class="r"><span class="no">n</span> <span class="kw">&lt;-</span> <span class="fl">2000</span>
+<span class="no">p</span> <span class="kw">&lt;-</span> <span class="fl">5</span>
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+<span class="no">W</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="no">n</span>, <span class="fl">1</span>, <span class="fl">0.5</span>)
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmax</a></span>(<span class="no">X</span>[, <span class="fl">1</span>], <span class="fl">0</span>) * <span class="no">W</span> + <span class="no">X</span>[, <span class="fl">2</span>] + <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span>(<span class="no">X</span>[, <span class="fl">3</span>], <span class="fl">0</span>) + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+<span class="co"># 1) 在训练集上训练一个 CATE 函数。</span>
+<span class="no">train</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span>(<span class="no">n</span>/<span class="fl">2</span>)
+<span class="no">c.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/causal_forest.html">causal_forest</a></span>(<span class="no">X</span>[<span class="no">train</span>, ], <span class="no">Y</span>[<span class="no">train</span>], <span class="no">W</span>[<span class="no">train</span>])
+
+<span class="co"># 2) 在测试集上预测 CATE。</span>
+<span class="no">test</span> <span class="kw">&lt;-</span> -<span class="no">train</span>
+<span class="no">tau.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">c.forest</span>, <span class="no">X</span>[<span class="no">test</span>, ])$<span class="no">predictions</span>
+
+<span class="co"># 3) 使用逆倾向加权的测试集结局来估计 Qini 曲线。</span>
+<span class="no">IPW.scores</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html">ifelse</a></span>(<span class="no">W</span>[<span class="no">test</span>] <span class="kw">==</span> <span class="fl">1</span>, <span class="no">Y</span>[<span class="no">test</span>]/<span class="fl">0.5</span>, -<span class="no">Y</span>[<span class="no">test</span>]/<span class="fl">0.5</span>)
+<span class="co"># 假设每个个体的成本相同。</span>
+<span class="no">cost</span> <span class="kw">&lt;-</span> <span class="fl">1</span>
+<span class="co"># 使用 maq 包拟合 Qini 曲线，用 200 次自助抽样（bootstrap）计算标准误。</span>
+<span class="no">qini</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/maq/man/maq.html">maq</a></span>(<span class="no">tau.hat</span>, <span class="no">cost</span>, <span class="no">IPW.scores</span>, <span class="kw">R</span> <span class="kw">=</span> <span class="fl">200</span>)
+
+<span class="co"># 构建一条基线 Qini 曲线：用 ATE 而非 CATE 来分配治疗。</span>
+<span class="no">qini.baseline</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/maq/man/maq.html">maq</a></span>(<span class="no">tau.hat</span>, <span class="no">cost</span>, <span class="no">IPW.scores</span>, <span class="kw">target.with.covariates</span> <span class="kw">=</span> <span class="fl">FALSE</span>, <span class="kw">R</span> <span class="kw">=</span> <span class="fl">200</span>)
+
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">qini</span>, <span class="kw">xlim</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">0</span>, <span class="fl">1</span>))
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">qini.baseline</span>, <span class="kw">add</span> <span class="kw">=</span> <span class="fl">TRUE</span>, <span class="kw">lty</span> <span class="kw">=</span> <span class="fl">2</span>, <span class="kw">ci.args</span> <span class="kw">=</span> <span class="kw">NULL</span>) <span class="co"># 为清晰起见省略置信区间。</span></pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/maq_files/figure-html/unnamed-chunk-2-1.png" alt="" width="700"></p>
+<p>实线表示期望增益（纵轴）：随着我们愿意为每个个体支出的金额（横轴）增加，我们把治疗分配给"每单位花费下预测获益最大"的个体时所能获得的增益，并配有 95 % 置信带。虚线表示"不考虑 CATE"时的 Qini 曲线——也就是说，当这条线走到尽头时，预算已用尽、每个人都接受了治疗，此时增益等于 ATE，即 0.38。（因此，虚线上的每个点代表：在不同支出水平下，针对人群中任意一组个体时我们所能预期的 ATE 的比例，所以它不必是 45 度线。）</p>
+<p>黑色实线这条 Qini 曲线，利用估计的 CATE 来预测哪些测试集受试者"每单位花费下的治疗效应"最高。当这条曲线明显地冲到那根"忽略" CATE 的虚直线上方时，说明按照估计 CATE 所暗示的那样，把治疗定向（targeting）到某个对此最敏感的亚人群是有收益的。这条曲线在 <span class="math inline">\(B=\)</span> 0.89 处停下（或"进入平台期"），因为到那个点我们已经把治疗分配给了所有预测会获益的个体，即 <span class="math inline">\(\hat \tau(X_i) &gt; 0\)</span>。</p>
+<p>我们可以通过下面的方式，在曲线上读取不同 <span class="math inline">\(B\)</span> 处的估计值：</p>
+<div class="sourceCode" id="cb3"><pre class="r"><span class="fu"><a href="https://rdrr.io/pkg/maq/man/average_gain.html">average_gain</a></span>(<span class="no">qini</span>, <span class="kw">spend</span> <span class="kw">=</span> <span class="fl">0.2</span>)
+<span class="co">#&gt; estimate  std.err </span>
+<span class="co">#&gt;    0.288    0.044</span></pre></div>
+<p>也就是说，在平均支出 <span class="math inline">\(B=0.2\)</span> 时，每个个体的平均收益 95% 置信区间为 0.29 <span class="math inline">\(\pm\)</span> 0.09。（这里的标准误以估计函数 <span class="math inline">\(\hat \tau(\cdot)\)</span> 为条件，刻画的是估计 Qini 曲线时测试集带来的不确定性。）</p>
+<p>如果我们改用同等预算去治疗人群中的任意一组个体，估计得到的增益则为：</p>
+<div class="sourceCode" id="cb4"><pre class="r"><span class="fu"><a href="https://rdrr.io/pkg/maq/man/average_gain.html">average_gain</a></span>(<span class="no">qini.baseline</span>, <span class="kw">spend</span> <span class="kw">=</span> <span class="fl">0.2</span>)
+<span class="co">#&gt; estimate  std.err </span>
+<span class="co">#&gt;    0.075    0.019</span></pre></div>
+<p><strong>关于策略评估的说明：</strong>只要 IPW 能解决的问题，通常都存在一个双稳健（doubly robust）方法（这里是增强型 IPW，即 Augmented-IPW）能在统计功效上做得更好。本篇为简洁起见仍采用 IPW 评估，但请注意：在 GRF 中，你可以额外训练一个测试集森林，并通过函数 <code><a href="https://grf-labs.github.io/grf/articles/reference/get_scores.html">get_scores(forest)</a></code> 取得双稳健的测试集得分，用它来代替 <code>IPW.scores</code>，从而得到 Qini 曲线的双稳健估计。</p>
+<div id="aside-the-qini-curve-vs-the-toc-curve" class="section level3">
+<h3 class="hasAnchor" id="sec-题外话-qini-曲线与-toc-曲线的区别">
+<a href="#aside-the-qini-curve-vs-the-toc-curve" class="anchor"></a>题外话：Qini 曲线与 TOC 曲线的区别</h3>
+<p>到目前为止，我们已经介绍了两条曲线，它们看起来都在服务于相似的目的。区别何在？这取决于具体应用场景。仔细看就会发现，哪条曲线有用，取决于我们想要回答的问题。下图并列展示了 TOC 与 Qini 曲线在如下情形下的样子：ATE 为正，但人群中存在治疗效应既为正也为负的亚组（Qini 图中虚线代表 ATE）。</p>
+<p><img src="https://grf-labs.github.io/grf/articles/maq_files/figure-html/unnamed-chunk-5-1.png" alt="" width="700"></p>
+<p>TOC 把"某个评分规则各分位数上的平均处理效应"与"整体平均处理效应"进行比较。而 Qini 曲线刻画的是：当我们改变每个个体支出的预算约束时，每单位所对应的平均处理效应。</p>
+<p>所以：如果你关心的是"是否存在一组人比平均而言从治疗中获益更多"，那么 TOC 曲线很有用。如果成本并不直接相关，而你更想检测异质性（heterogeneity）是否存在，TOC 就很有帮助，因为它能清晰地揭示"靶向治疗在哪里起作用"的那个分位数。因此，TOC 是一种衡量异质性的通用工具。</p>
+<p>如果你所处的场景天然适合做某种成本-收益分析，那么 Qini 曲线就很有用。它的好处在于能清晰地揭示：在给定各种预算分配水平下，通过把治疗定向到"最敏感"的个体，每单位支出所能实现的期望增益。Qini 曲线的另一个优势是它更自然地被推广到多个治疗臂——因为成本要素延续了类似的"成本-收益权衡"，只不过现在它同时跨越"治疗臂"和"个体"两个维度。</p>
+<p><em>关于恒定成本的说明：</em>对于单一治疗臂，当每个个体的成本相同，即 <span class="math inline">\(C_i(X_i) = 1\)</span> 时，我们也可以把上面 Qini 曲线图的横轴理解为"接受治疗的比例"（treated fraction）。</p>
+</div>
+</div>
+<div id="qini-curves-with-multi-armed-treatment" class="section level2">
+<h2 class="hasAnchor" id="sec-多臂治疗情形下的-qini-曲线">
+<a href="#qini-curves-with-multi-armed-treatment" class="anchor"></a>多臂治疗情形下的 Qini 曲线</h2>
+<p>现在考虑我们有 <span class="math inline">\(k = 0,\ldots K\)</span> 个可用治疗臂的情形，其中 <span class="math inline">\(k=0\)</span> 是零成本的对照组臂。例如，<span class="math inline">\(k=1\)</span> 可以是低成本的药，<span class="math inline">\(k=2\)</span> 可以是成本更高但效果更好的药（<span class="math inline">\(k=0\)</span> 可以是安慰剂对照）。</p>
+<p>给定估计的处理效应 <span class="math inline">\(\hat \tau(\cdot)\)</span> 与成本 <span class="math inline">\(C(\cdot)\)</span>（注意，这些对象现在是向量值（vector-valued）的，即 <span class="math inline">\(\hat \tau(X_i)\)</span> 的第 <span class="math inline">\(k\)</span> 个元素，是针对协变量为 <span class="math inline">\(X_i\)</span> 的个体、第 <span class="math inline">\(k\)</span> 个治疗臂的 CATE 估计<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>）——我们接下来要问：如何像上面那样，在改变可用预算的同时，依据估计的 CATE（与成本）来最优地分配治疗？</p>
+<p>结果表明，要做这件事，我们需要求解一个带约束的优化问题，因为底层的策略对象 <span class="math inline">\(\pi_B(X_i)\)</span> 现在必须为每个个体在多个（成本各异的）潜在治疗臂中做出最优选择。例如，在每个支出水平上，我们都要决定：是给 Alice 分配某个初始治疗臂，还是说——如果 Bob 已经被分配了一个臂——我们应该把 Bob 升级到一个成本更高但效果更好的臂。</p>
+<p><a href="https://github.com/grf-labs/maq">maq</a> 包能高效地完成这一计算（通过一个定制算法来求解解路径，solution path），这里我们直接跳到一个包含 2 个治疗臂和 1 个对照组的玩具例子。我们模拟一个简单情形：其中一个治疗臂（编号 2）平均效果更好，但成本也更高。我们假设把任何个体分配到第一个臂的成本是 0.2（采用某种选定的计量单位），分配到第二个臂的成本是 0.5（成本也可以依据某些已知特征随个体变化，此时可以把下面的 <code>cost</code> 参数设为一个矩阵）。</p>
+<div class="sourceCode" id="cb5"><pre class="r"><span class="co"># 模拟两个治疗臂（1 和 2）以及一个对照组臂 0。</span>
+<span class="no">n</span> <span class="kw">&lt;-</span> <span class="fl">3000</span>
+<span class="no">p</span> <span class="kw">&lt;-</span> <span class="fl">5</span>
+<span class="no">X</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span>(<span class="no">n</span> * <span class="no">p</span>), <span class="no">n</span>, <span class="no">p</span>)
+<span class="no">W</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">as.factor</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span>(<span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"0"</span>, <span class="st">"1"</span>, <span class="st">"2"</span>), <span class="no">n</span>, <span class="kw">replace</span> <span class="kw">=</span> <span class="fl">TRUE</span>))
+<span class="no">Y</span> <span class="kw">&lt;-</span> <span class="no">X</span>[, <span class="fl">1</span>] + <span class="no">X</span>[, <span class="fl">2</span>] * (<span class="no">W</span> <span class="kw">==</span> <span class="st">"1"</span>) + <span class="fl">1.5</span> * <span class="no">X</span>[, <span class="fl">3</span>] * (<span class="no">W</span> <span class="kw">==</span> <span class="st">"2"</span>) + <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span>(<span class="no">n</span>)
+
+<span class="co"># 1) 在训练集上训练一个 CATE 函数。</span>
+<span class="no">train</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span>(<span class="no">n</span>/<span class="fl">2</span>)
+<span class="no">c.forest</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://grf-labs.github.io/grf/articles/reference/multi_arm_causal_forest.html">multi_arm_causal_forest</a></span>(<span class="no">X</span>[<span class="no">train</span>, ], <span class="no">Y</span>[<span class="no">train</span>], <span class="no">W</span>[<span class="no">train</span>])
+
+<span class="co"># 2) 在测试集上预测 CATE。</span>
+<span class="no">test</span> <span class="kw">&lt;-</span> -<span class="no">train</span>
+<span class="no">tau.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">c.forest</span>, <span class="no">X</span>[<span class="no">test</span>, ], <span class="kw">drop</span> <span class="kw">=</span> <span class="fl">TRUE</span>)$<span class="no">predictions</span>
+
+<span class="co"># 3) 基于 IPW 构建多臂 Qini 曲线（maq 包内置的便捷函数）。</span>
+<span class="no">IPW.scores</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/maq/man/get_ipw_scores.html">get_ipw_scores</a></span>(<span class="no">Y</span>[<span class="no">test</span>], <span class="no">W</span>[<span class="no">test</span>])
+
+<span class="co"># 第 1 和第 2 臂的成本。</span>
+<span class="no">cost</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">0.2</span>, <span class="fl">0.5</span>)
+
+<span class="co"># 针对多臂策略的 Qini 曲线。</span>
+<span class="no">ma.qini</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/maq/man/maq.html">maq</a></span>(<span class="no">tau.hat</span>, <span class="no">cost</span>, <span class="no">IPW.scores</span>, <span class="kw">R</span> <span class="kw">=</span> <span class="fl">200</span>)
+
+<span class="co"># 一条"基线" Qini 曲线：忽略协变量。</span>
+<span class="no">ma.qini.baseline</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/maq/man/maq.html">maq</a></span>(<span class="no">tau.hat</span>, <span class="no">cost</span>, <span class="no">IPW.scores</span>, <span class="kw">target.with.covariates</span> <span class="kw">=</span> <span class="fl">FALSE</span>, <span class="kw">R</span> <span class="kw">=</span> <span class="fl">200</span>)</pre></div>
+<p>多臂策略对应的 Qini 曲线如下图所示：</p>
+<div class="sourceCode" id="cb6"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">ma.qini</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">ma.qini.baseline</span>, <span class="kw">add</span> <span class="kw">=</span> <span class="fl">TRUE</span>, <span class="kw">lty</span> <span class="kw">=</span> <span class="fl">2</span>, <span class="kw">ci.args</span> <span class="kw">=</span> <span class="kw">NULL</span>)</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/maq_files/figure-html/unnamed-chunk-7-1.png" alt="" width="700"></p>
+<p>虚线代表一条 Qini 曲线：它只依据 <code>tau.hat</code> 的平均值来把治疗分配到各个臂。这条曲线在 <span class="math inline">\(B=0.2\)</span> 处有一个拐点（kink）：第一段描绘的是低成本臂的 ATE，第二段则是成本更高、但平均更有效臂的 ATE。这条曲线上的点，代表针对任意一组个体时每单位的平均收益<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a>。</p>
+<p>实线展示的是某策略的估计 Qini 曲线：该策略利用 <code>tau.hat</code> 和 <code>cost</code>，在某个给定支出下，把治疗臂分配给"预测成本-收益最高"的个体。我们可以通过估计虚线与实线之间的差距，来评估"同时使用两个臂进行靶向"相对于"随机分配治疗"的价值。例如，在 <span class="math inline">\(B=0.3\)</span> 处，这个垂直距离为：</p>
+<div class="sourceCode" id="cb7"><pre class="r"><span class="fu"><a href="https://rdrr.io/pkg/maq/man/difference_gain.html">difference_gain</a></span>(<span class="no">ma.qini</span>, <span class="no">ma.qini.baseline</span>, <span class="kw">spend</span> <span class="kw">=</span> <span class="fl">0.3</span>)
+<span class="co">#&gt; estimate  std.err </span>
+<span class="co">#&gt;    0.235    0.049</span></pre></div>
+<p>我们还可以通过 <code>predict</code> 取得底层多臂策略 <span class="math inline">\(\pi_B\)</span> 的估计，例如在 <span class="math inline">\(B=0.3\)</span> 时：</p>
+<div class="sourceCode" id="cb8"><pre class="r"><span class="no">pi.hat</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span>(<span class="no">ma.qini</span>, <span class="kw">spend</span> <span class="kw">=</span> <span class="fl">0.3</span>)
+<span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(<span class="no">pi.hat</span>)
+<span class="co">#&gt;      [,1] [,2]</span>
+<span class="co">#&gt; [1,]    1    0</span>
+<span class="co">#&gt; [2,]    1    0</span>
+<span class="co">#&gt; [3,]    1    0</span>
+<span class="co">#&gt; [4,]    1    0</span>
+<span class="co">#&gt; [5,]    0    1</span>
+<span class="co">#&gt; [6,]    0    0</span></pre></div>
+<p><span class="math inline">\(\pi_B(X_i)\)</span> 现在是一个 <span class="math inline">\(K\)</span> 维向量，即：在上面第 <span class="math inline">\(i\)</span> 行中，若我们在该支出水平下把第 <span class="math inline">\(k\)</span> 个臂分配给该个体，则第 <span class="math inline">\(k\)</span> 列为 1；若分配的是对照组臂，则所有元素均为 0<a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a>。</p>
+<p>我们还可以通过为每个臂分别计算 Qini 曲线，来与单臂治疗策略做比较。</p>
+<div class="sourceCode" id="cb9"><pre class="r"><span class="no">qini.arm1</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/maq/man/maq.html">maq</a></span>(<span class="no">tau.hat</span>[, <span class="fl">1</span>], <span class="no">cost</span>[<span class="fl">1</span>], <span class="no">IPW.scores</span>[, <span class="fl">1</span>], <span class="kw">R</span> <span class="kw">=</span> <span class="fl">200</span>)
+<span class="no">qini.arm2</span> <span class="kw">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/maq/man/maq.html">maq</a></span>(<span class="no">tau.hat</span>[, <span class="fl">2</span>], <span class="no">cost</span>[<span class="fl">2</span>], <span class="no">IPW.scores</span>[, <span class="fl">2</span>], <span class="kw">R</span> <span class="kw">=</span> <span class="fl">200</span>)
+
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">ma.qini</span>, <span class="kw">ci.args</span> <span class="kw">=</span> <span class="kw">NULL</span>) <span class="co"># 为清晰起见省略置信区间。</span>
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">qini.arm1</span>, <span class="kw">add</span> <span class="kw">=</span> <span class="fl">TRUE</span>, <span class="kw">col</span> <span class="kw">=</span> <span class="st">"blue"</span>, <span class="kw">ci.args</span> <span class="kw">=</span> <span class="kw">NULL</span>)
+<span class="fu"><a href="https://rdrr.io/r/base/plot.html">plot</a></span>(<span class="no">qini.arm2</span>, <span class="kw">add</span> <span class="kw">=</span> <span class="fl">TRUE</span>, <span class="kw">col</span> <span class="kw">=</span> <span class="st">"red"</span>, <span class="kw">ci.args</span> <span class="kw">=</span> <span class="kw">NULL</span>)
+<span class="fu"><a href="https://rdrr.io/r/graphics/legend.html">legend</a></span>(<span class="st">"topleft"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"both arms"</span>, <span class="st">"arm 1"</span>, <span class="st">"arm 2"</span>),
+       <span class="kw">col</span> <span class="kw">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">"black"</span>, <span class="st">"blue"</span>, <span class="st">"red"</span>), <span class="kw">lty</span> <span class="kw">=</span> <span class="fl">1</span>)</pre></div>
+<p><img src="https://grf-labs.github.io/grf/articles/maq_files/figure-html/unnamed-chunk-11-1.png" alt="" width="700"></p>
+<p>蓝线（臂 1）在支出水平约 0.2 处进入平台期，因为一旦达到这个支出水平，我们已经把治疗给了所有被认为会从臂 1 获益的个体（即 <span class="math inline">\(\hat \tau_1(X_i) &gt; 0\)</span>），因此无法再通过增加支出获得更多增益。</p>
+<p>针对单臂治疗规则的 Qini 曲线，有助于评估"使用某个特定臂或某种特定靶向函数"的价值。多臂 Qini 的推广则让我们可以回答这样的问题："在某一特定支出水平下，相比只用单个臂，同时使用两个臂进行最优靶向能带来多大的增益提升？"我们把 <span class="math inline">\(\hat Q(B)\)</span> 记为多臂策略的估计 Qini 曲线，把 <span class="math inline">\(\hat Q_2(B)\)</span> 记为臂 2 的估计 Qini 曲线。在 <span class="math inline">\(B = 0.3\)</span> 处，差值 <span class="math inline">\(\hat Q(B) - \hat Q_2(B)\)</span>（即上图中绿色竖线所示）为：</p>
+<div class="sourceCode" id="cb10"><pre class="r"><span class="fu"><a href="https://rdrr.io/pkg/maq/man/difference_gain.html">difference_gain</a></span>(<span class="no">ma.qini</span>, <span class="no">qini.arm2</span>, <span class="kw">spend</span> <span class="kw">=</span> <span class="fl">0.3</span>)
+<span class="co">#&gt; estimate  std.err </span>
+<span class="co">#&gt;    0.154    0.073</span></pre></div>
+<p>在这个例子中，多臂策略通过给每个测试集个体分配"最具成本-收益"的治疗，获得了比仅用臂 1 的策略更大的增益（任意两条曲线上的点都可以用这个函数比较，得到成对标准误，它考虑了在同一测试数据上拟合的 Qini 曲线之间的相关性）。</p>
+<p>我们还可以在一系列支出水平上比较不同的靶向策略。函数 <code>integrated_difference</code> 估计两条 Qini 曲线之间的面积。下面阴影区域（积分 <span class="math inline">\(\int_{0}^{0.3} \left(Q(B) - Q_2(B)\right)dB\)</span>）的估计值为：</p>
+<p><img src="https://grf-labs.github.io/grf/articles/maq_files/figure-html/unnamed-chunk-13-1.png" alt="" width="700"></p>
+<div class="sourceCode" id="cb11"><pre class="r"><span class="fu"><a href="https://rdrr.io/pkg/maq/man/integrated_difference.html">integrated_difference</a></span>(<span class="no">ma.qini</span>, <span class="no">qini.arm2</span>, <span class="kw">spend</span> <span class="kw">=</span> <span class="fl">0.3</span>)
+<span class="co">#&gt; estimate  std.err </span>
+<span class="co">#&gt;   0.0087   0.0575</span></pre></div>
+</div>
+<div class="note"><span class="nt">背景与解释</span>
+<p><strong>Qini 曲线与精准医疗（Precision Medicine）/ 靶向治疗的关系。</strong>精准医疗的愿景是"对正确的患者，在正确的时间，用正确的治疗"。多臂 Qini 曲线恰好把这句话变成了可计算、可比较、可置信的决策工具：当我们有便宜但温和的药（臂 1）和昂贵但强效的药（臂 2）时，Qini 框架能告诉你"在某个预算下，应该把谁升级到贵药"，并给出相比"只用一种药"或"随机分配"的增益提升（<code>difference_gain</code> / <code>integrated_difference</code>）。</p>
+<p>对临床研究者而言，这意味着 RCT 之后还能走得更远：不再只报一个"整体有效"，而是量化"如何把有限的药物资源精准投到最获益的亚组"，并给出置信区间支撑卫生决策。这也是从"证据是否存在"走向"证据如何落地"的关键一步。</p>
+</div>
+<div id="references" class="section level2">
+<h2 class="hasAnchor" id="sec-参考文献">
+<a href="#references" class="anchor"></a>参考文献</h2>
+<p>Sverdrup, Erik, Han Wu, Susan Athey, and Stefan Wager. Qini Curves for Multi-Armed Treatment Rules. <em>Journal of Computational and Graphical Statistics</em>, 2025.（<a href="https://arxiv.org/abs/2306.11979">arxiv</a>）</p>
+<p>Yadlowsky, Steve, Scott Fleming, Nigam Shah, Emma Brunskill, and Stefan Wager. Evaluating Treatment Prioritization Rules via Rank-Weighted Average Treatment Effects. <em>Journal of the American Statistical Association</em>, 120(549), 2025.（<a href="https://arxiv.org/abs/2111.07966">arxiv</a>）</p>
+</div>
+<div class="footnotes footnotes-end-of-document">
+<hr>
+<ol>
+<li id="fn1"><p>在单臂情形下，估计 CATE 的方法有很多都可以直接推广到多臂情形——只需为不同的治疗臂分别拟合独立的 CATE 函数即可。在本篇中，我们使用的是 GRF 的 <code>multi_arm_causal_forest</code>，它会联合估计各个臂的处理效应。<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+<li id="fn2"><p>当治疗臂较多时，这种"基线"臂分配会在"平均成本"与 <span class="math inline">\(\hat \tau(X_i)\)</span> 平面上描出左上方的凸包（convex hull）。<a href="#fnref2" class="footnote-back">↩︎</a></p></li>
+<li id="fn3"><p>注意，在这行矩阵中，最多只有一个个体会出现非整数元素。如果给定的预算不足以给最后一个（第 <span class="math inline">\(i\)</span> 个）个体完整分配治疗，那么该个体要么有一个分数元素，要么有两个分数元素——取决于它是被分配了一个初始臂，还是被升级到了成本更高的臂。这些分数可以解释为"分配到某个臂的概率"。<a href="#fnref3" class="footnote-back">↩︎</a></p></li>
+</ol>
+</div>
+
+  </div>
+
+  <div class="foot">
+    <p>本页为 <a href="https://grf-labs.github.io/grf/articles/maq.html" target="_blank" rel="noopener">grf 官方文档</a> 的中文译本，原文版权归 grf 作者所有，依据项目许可（MIT）翻译并注明出处，仅供学习交流。代码与公式保持原样，译文新增的「背景与解释」框为译者补充。</p>
+  </div>
+</div>
+<script src="search.js"></script>
+</body>
+</html>
