@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>因果森林知识库 · 因果推断与异质处理效应中文文献库</title>
-<meta name="description" content="因果森林（causal forest）中文文献库：GRF Labs 官方工具 grf、policytree、SURE/QRF 的完整中文译本，含方法导论、诊断与策略学习。">
+<meta name="description" content="因果森林（causal forest）中文文献库：GRF Labs 官方工具 grf、policytree、SURE/QRF、maq 的完整中文译本，含方法导论、诊断与策略学习。">
 <script>(function(){var s=localStorage.getItem("cfh-theme");if(s===null)s="dark";document.documentElement.setAttribute("data-theme",s);})();</script>
 <style>
 :root{--bg:#0f1116;--card:#181b22;--card2:#1c212a;--text:#e4e6ea;--muted:#98a0ac;--faint:#6f7783;
@@ -220,7 +220,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <div class="hero">
 <span class="eyebrow">CAUSAL FOREST · GRF LABS 中文文献库</span>
 <h1>因果森林知识库</h1>
-<p class="tagline">GRF Labs 官方工具的完整中文译本——因果森林（grf）、策略树（policytree）与分类变量的充分表示（SURE / QRF）。</p>
+<p class="tagline">GRF Labs 官方工具的完整中文译本——因果森林（grf）、策略树（policytree）、充分表示（SURE / QRF）与多臂 Qini（maq）。</p>
 <p class="origin">原文来源：<a href="https://grf-labs.github.io/" target="_blank" rel="noopener">grf-labs.github.io</a> ·
 <a href="https://arxiv.org/abs/1908.09874" target="_blank" rel="noopener">arXiv:1908.09874</a> ·
 <a href="https://grf-labs.github.io/grf/" target="_blank" rel="noopener">grf 官方文档</a></p>
@@ -233,15 +233,16 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <div class="intro">
 <h2>这个库收录什么</h2>
 <p>因果推断近十余年最重要的进展之一，是把「平均处理效应（ATE）」推进到<b>「谁真正受益」（CATE）</b>的层面。GRF Labs 的工作给出了统计上最可靠的方案：先用倾向得分与矩条件构造<b>伪结果（pseudo-outcome）</b>，再用随机森林的渐近理论做局部加权估计——这就是<b>因果森林（causal forest）</b>。</p>
-<p>本库专注收录 <b>GRF Labs 官方工具的完整中文译本</b>，即该组织的核心仓库：<b>grf</b>（广义随机森林官方文档，覆盖因果森林、工具变量森林、IV/DR-learner、策略学习、生存森林）、<b>policytree</b>（从因果森林学到的最优策略树）、以及 <b>SURE / QRF</b>（分类变量的充分表示）。三者构成从「估计效应」到「据此决策」的完整链条。</p>
-<p class="muted">想了解 R 生态中的其他 HTE 方法（tidyhte、Meta-Learner、evalITR、survlearners 等）与方法学专题（BOCF、HTE 公开课讲义、因果推断三件工具），请前往 <a href="https://zhangkaicr.github.io/share/" target="_blank" rel="noopener">share 教程库</a>。全部页面均配备<b>站内全文搜索</b>（按 <code>/</code> 聚焦，方向键选择，Enter 跳转）。译文均为非官方，仅供学习交流；代码与公式保持原样，译者补充内容以「背景与解释」框标出。</p>
+<p>本库专注收录 <b>GRF Labs 官方工具的完整中文译本</b>，即该组织的核心仓库：<b>grf</b>（广义随机森林官方文档，覆盖因果森林、工具变量森林、IV/DR-learner、策略学习、生存森林）、<b>policytree</b>（从因果森林学到的最优策略树）、<b>SURE / QRF</b>（分类变量的充分表示）、以及 <b>maq</b>（预算约束下的多臂 Qini 策略评估）。四者构成从「估计效应」到「据此决策」再到「评估决策价值」的完整链条。</p>
+<p>另设<b>「拓展教程」</b>一组，收录因果森林生态中的高质量第三方实践文章（非 GRF Labs 官方工具），如用可解释性机器学习解释因果森林的完整范例。</p>
+<p class="muted">译文均为非官方，仅供学习交流；代码与公式保持原样，译者补充内容以「背景与解释」框标出。</p>
 </div>
 
 <div class="stat">
-<div><div class="n">3</div><div class="l">核心工具库</div></div>
-<div><div class="n">15</div><div class="l">页面</div></div>
-<div><div class="n">116</div><div class="l">小节</div></div>
-<div><div class="n">3</div><div class="l">GRF Labs 仓库</div></div>
+<div><div class="n">5</div><div class="l">核心工具库</div></div>
+<div><div class="n">21</div><div class="l">页面</div></div>
+<div><div class="n">155</div><div class="l">小节</div></div>
+<div><div class="n">4</div><div class="l">GRF Labs 仓库</div></div>
 </div>
 
 <section><div class="part"><h3>核心工具</h3><span class="ln"></span></div><div class="libs">
@@ -265,6 +266,22 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <div class="lib-d">分类变量的充分表示与充分独立比率（SURE）。解决因果森林直接处理无序分类变量时的人为顺序问题。</div>
 <div class="lib-t"><ul><li>为何需要充分表示</li><li>完整译文（含全部推导与实验）</li></ul></div>
 <div class="lib-f"><a href="surefq/index.html">进入</a><a href="surefq/search.html">搜索</a></div>
+</div>
+<div class="lib">
+<div class="lib-h"><div class="group">核心工具</div>
+<div class="name"><a href="maq/index.html">maq 多臂 Qini</a></div></div>
+<div class="lib-d">预算约束下的多臂策略评估：求解最优分配路径，用 Qini 曲线估计其期望收益。GRF Labs 第 4 个核心仓库。</div>
+<div class="lib-t"><ul><li>maq 包总览与官方示例</li><li>MAQ 算法参考（凸包与解路径）</li><li>函数参考</li></ul></div>
+<div class="lib-f"><a href="maq/index.html">进入</a><a href="maq/search.html">搜索</a></div>
+</div>
+</div></section>
+<section><div class="part"><h3>拓展教程</h3><span class="ln"></span></div><div class="libs">
+<div class="lib">
+<div class="lib-h"><div class="group">拓展教程</div>
+<div class="name"><a href="explain-cf/index.html">解释因果森林</a></div></div>
+<div class="lib-d">Michael Mayer 的博文中译：在真实 RCT 上用因果森林建模处理效应，再用变量重要性、PDP、Friedman H 与 SHAP 解释它。</div>
+<div class="lib-t"><ul><li>ERCP 试验数据</li><li>因果森林建模</li><li>变量重要性与 PDP</li><li>Friedman H 交互强度</li><li>SHAP 全局与局部解释</li></ul></div>
+<div class="lib-f"><a href="explain-cf/index.html">进入</a><a href="explain-cf/search.html">搜索</a></div>
 </div>
 </div></section>
 
