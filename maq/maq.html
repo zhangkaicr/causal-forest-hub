@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>maq：多臂 Qini 曲线 · 因果森林知识库</title>
+<script>
+(function(){var s=localStorage.getItem("cfh-theme");if(s===null)s="dark";document.documentElement.setAttribute("data-theme",s);})();
+</script>
+<style>
+:root{--bg:#0f1116;--card:#181b22;--text:#e4e6ea;--muted:#98a0ac;--line:#2a2f3a;--accent:#5ad1a0;--link:#7aa2f7}
+[data-theme="light"]{--bg:#f7f7f5;--card:#ffffff;--text:#2c2c2a;--muted:#6b6a65;--line:#e3e2dd;--accent:#1a7f5a;--link:#534ab7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.78;transition:background .2s,color .2s}
+.wrap{max-width:880px;margin:0 auto;padding:0 20px 70px}
+.hero{padding:34px 0 12px;border-bottom:1px solid var(--line);margin-bottom:22px}
+.hero .tag{display:inline-block;font-size:11.5px;letter-spacing:.1em;color:var(--accent);border:1px solid var(--line);border-radius:20px;padding:2px 11px;margin-bottom:10px}
+.hero h1{margin:0 0 8px;font-size:28px;line-height:1.35}
+.hero .sub{color:var(--muted);font-size:14.5px}
+.hero .src{margin-top:8px;font-size:13px;color:var(--muted)}
+.hero .src a{color:var(--link)}
+main h1{font-size:24px;margin:8px 0 16px}
+main h2{font-size:21px;margin:34px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+main h3{font-size:17px;margin:26px 0 10px;color:var(--accent)}
+main p{margin:10px 0}
+main a{color:var(--link)}
+main ul,main ol{padding-left:24px}
+main table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;display:block;overflow-x:auto}
+main th,main td{border:1px solid var(--line);padding:7px 10px}
+main th{background:var(--card)}
+code{background:var(--card);color:var(--accent);padding:2px 5px;border-radius:4px;font-family:"SF Mono",Consolas,monospace;font-size:13.5px}
+.equation{overflow-x:auto;margin:14px 0;padding:10px 4px}
+.bg-note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:13px 17px;margin:18px 0}
+.bg-note p{margin:6px 0}
+main img{max-width:100%;height:auto;display:block;margin:12px auto;border-radius:6px;border:1px solid var(--line);background:#fff}
+figure{margin:20px 0;text-align:center}
+figcaption{color:var(--muted);font-size:13px;margin-top:8px}
+pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:13px 15px;overflow-x:auto;font-size:13.5px}
+pre code{background:none;padding:0;color:inherit}
+.links{margin-top:26px;padding-top:16px;border-top:1px solid var(--line)}
+.links a{display:inline-block;margin:6px 8px 6px 0;color:var(--link);text-decoration:none;border:1px solid var(--line);border-radius:7px;padding:7px 13px;font-size:13.5px}
+.links a:hover{border-color:var(--accent)}
+.foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+/* 搜索 */
+.sbox{position:relative;display:inline-flex;align-items:center;margin-left:10px}
+.sbox input{background:var(--card);border:1px solid var(--line);color:inherit;border-radius:6px;padding:4px 9px 4px 25px;font-size:13px;width:170px;font-family:inherit;outline:none}
+.sbox input:focus{border-color:var(--accent);width:220px}
+.sbox .si{position:absolute;left:8px;font-size:12px;opacity:.6;pointer-events:none}
+.spanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:440px;max-width:88vw;max-height:64vh;overflow-y:auto;z-index:900;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.spanel.open{display:block}
+.spanel .sh{padding:7px 10px;font-size:12px;opacity:.7;border-bottom:1px solid var(--line);margin-bottom:4px}
+.spanel .sempty{font-size:12px;opacity:.65;padding:16px 10px;text-align:center}
+.sres{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:inherit}
+.sres:hover,.sres.sel{background:var(--bg)}
+.sres .c{font-size:11px;opacity:.65;margin-bottom:1px}
+.sres .s{font-size:12px;color:var(--accent);margin-bottom:2px}
+.sres .t{font-size:13px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sres mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+.srch-main{margin:22px 0}
+.srch-main input{width:100%;background:var(--card);border:1px solid var(--line);color:inherit;border-radius:8px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none}
+.srch-meta{font-size:13px;opacity:.7;margin:12px 0 6px}
+.srch-list{list-style:none;margin:0;padding:0}
+.srch-list .sres{border:1px solid var(--line);margin:7px 0;padding:9px 11px}
+.topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--bg)}
+.topbar .tb-home{font-weight:600;color:var(--text);text-decoration:none}
+.th-btn{background:var(--card);border:1px solid var(--line);color:inherit;border-radius:6px;padding:4px 11px;font-size:13px;cursor:pointer;font-family:inherit}
+.th-btn:hover{border-color:var(--accent)}
+/* ===== 因果森林知识库 · 统一导航 ===== */
+.cfh-nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:10px;
+ padding:8px 16px;background:var(--bg,#181b22);border-bottom:1px solid var(--line,#2a2f3a);
+ font-size:13.5px;flex-wrap:wrap}
+.cfh-nav .cfh-home{font-weight:600;color:var(--text,#e4e6ea);text-decoration:none;font-size:14px;
+ display:flex;align-items:center;gap:6px}
+.cfh-nav .cfh-home:hover{color:var(--accent,#7aa2f7)}
+.cfh-nav .cfh-crumb{color:var(--muted,#98a0ac);font-size:12.5px}
+.cfh-nav .cfh-crumb a{color:var(--accent,#7aa2f7);text-decoration:none}
+.cfh-nav .cfh-sp{flex:1}
+.cfh-nav select{background:var(--card,#181b22);color:var(--text,#e4e6ea);
+ border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:4px 8px;font-size:12.5px;
+ font-family:inherit;outline:none;cursor:pointer;max-width:230px}
+.cfh-nav select:hover{border-color:var(--accent,#7aa2f7)}
+.cfh-nav a.cfh-sbtn{color:var(--text,#e4e6ea);text-decoration:none;border:1px solid var(--line,#2a2f3a);
+ border-radius:6px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.cfh-nav a.cfh-sbtn:hover{border-color:var(--accent,#7aa2f7);color:var(--accent,#7aa2f7)}
+@media (max-width:700px){.cfh-nav .cfh-crumb{display:none}.cfh-nav select{max-width:150px}}
+</style>
+<script>
+function toggleTheme(){var c=document.documentElement.getAttribute("data-theme");var n=c==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);localStorage.setItem("cfh-theme",n)}
+</script>
+<script src="search.js"></script>
+</head>
+<body>
+<div class="cfh-nav">
+<a class="cfh-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="cfh-crumb">/ <a href="maq/maq.html">maq 多臂 Qini</a> </span>
+<span class="cfh-sp"></span>
+<select onchange="if(this.value)location.href=this.value" aria-label="切换库">
+<option value="grf-cn/index.html">grf 广义随机森林</option>
+<option value="policytree-cn/index.html">policytree 策略树</option>
+<option value="surefq/surefq.html">SURE / QRF 充分表示</option>
+<option value="maq/maq.html" selected>maq 多臂 Qini</option>
+<option value="explain-cf/explain_cf.html">解释因果森林</option>
+</select>
+<a class="cfh-sbtn" href="search.html">&#128269; 搜索本页</a>
+</div>
+<div class="topbar">
+<a class="tb-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="sbox"><span class="si">&#128269;</span>
+<input type="search" id="s-q" placeholder="搜索本页…（按 /）" autocomplete="off" aria-label="搜索">
+<span class="spanel" id="s-panel"></span></span>
+<button class="th-btn" onclick="toggleTheme()">&#9681; 主题</button>
+</div>
+<div class="wrap">
+<div class="hero">
+<span class="tag">核心工具 · GRF Labs</span>
+<h1>maq：多臂 Qini 曲线</h1>
+<div class="sub">Multi-Armed Qini —— 在成本与预算约束下评估多臂处理规则：求解最优分配路径，估计其期望收益。</div>
+<div class="src">原文：<a href="https://github.com/grf-labs/maq" target="_blank" rel="noopener">github.com/grf-labs/maq</a>（Sverdrup、Wu、Athey、Wager）· 本站为中文译本</div>
+</div>
+<main>
+
+<h1>maq：多臂 Qini 曲线（Multi-Armed Qini）</h1>
+
+<p><strong>官方仓库：</strong><a href="https://github.com/grf-labs/maq" target="_blank" rel="noopener">github.com/grf-labs/maq</a> ｜ <strong>官方文档：</strong><a href="https://grf-labs.github.io/maq/" target="_blank" rel="noopener">grf-labs.github.io/maq</a> ｜ <strong>安装来源：</strong>CRAN（<code>install.packages("maq")</code>）</p>
+
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>maq 是 GRF Labs 组织下的第 4 个核心仓库，与 grf、policytree、sufrep 同属一个体系。它回答的问题是：<b>当不同的处理（药物、项目、干预）成本不同、且预算有限时，如何评估一个「在预算约束下最优地分配多种处理」的策略？</b>本库 <a href="../grf-cn/maq.html">grf 教程中的《Qini 曲线：自动成本-收益分析》</a> 是该方法背后论文（Sverdrup、Wu、Athey、Wager，发表于 <i>Journal of Computational and Graphical Statistics</i>，2025）的完整译文；本页则是 maq 软件包自身的官方文档译本，两者互为对照。</p>
+</div>
+
+<h2 id="sec-简介">简介</h2>
+<p>maq 是一个用<b>广义 Qini 曲线</b>评估处理分配策略的 R/Python 包。给定估计的<b>条件平均处理效应</b>（CATE）、处理<b>成本</b>与<b>评估评分</b>，maq 会在一系列预算水平上计算<b>最优处理分配</b>，并估计由此产生的策略价值。底层优化利用了分配问题中「线性多选背包」的结构，可以高效地算出整条解路径。</p>
+<p>常见用法是：在一个训练样本上用 <a href="../grf-cn/grf.html">grf</a> 的 <code>multi_arm_causal_forest</code> 拟合 CATE 估计器，再在留出的评估样本上计算双鲁棒（AIPW）评分，最后用 maq 拟合 Qini 曲线并读出「每多花一单位预算能换来多少增益」。</p>
+
+<h2 id="sec-安装">安装</h2>
+<p>最新发布版可从 CRAN 安装：</p>
+<pre><code class="language-r">install.packages("maq")</code></pre>
+<p>开发版可以这样安装：</p>
+<pre><code class="language-r">devtools::install_github("grf-labs/maq", subdir = "r-package/maq")</code></pre>
+<p>（从源码安装需要 C++ 编译器。）Python 绑定见官方仓库的 <a href="https://github.com/grf-labs/maq/tree/master/python-package" target="_blank" rel="noopener">python-package</a> 目录。</p>
+
+<h2 id="sec-使用示例">使用示例</h2>
+<p>下面是官方文档的完整示例：三分支处理（一个对照臂 + 两个处理臂），处理成本由协变量给出，评估评分用 AIPW：</p>
+<pre><code class="language-r">library(maq)
+
+# 在训练样本上拟合 CATE 估计器。
+n &lt;- 3000
+p &lt;- 5
+X &lt;- matrix(runif(n * p), n, p)
+W &lt;- as.factor(sample(c("0", "1", "2"), n, replace = TRUE))
+Y &lt;- X[, 1] + X[, 2] * (W == "1") + 1.5 * X[, 3] * (W == "2") + rnorm(n)
+train &lt;- sample(1:n, n/2)
+
+tau.forest &lt;- grf::multi_arm_causal_forest(X[train, ], Y[train], W[train])
+
+# 在留出的评估数据上预测 CATE。
+test &lt;- -train
+tau.hat &lt;- predict(tau.forest, X[test, ], drop = TRUE)$predictions
+
+# 假设成本等于个体的处理前协变量——下面只是一个玩具示例。
+cost &lt;- cbind(X[test, 4] / 4, X[test, 5])
+
+# 拟合一个评估森林，在测试集上计算双鲁棒（DR）评分。
+eval.forest &lt;- grf::multi_arm_causal_forest(X[test, ], Y[test], W[test])
+DR.scores &lt;- grf::get_scores(eval.forest, drop = TRUE)
+
+# 在评估数据上拟合 Qini 曲线，用 200 次 bootstrap 重复构造置信区间。
+ma.qini &lt;- maq(tau.hat, cost, DR.scores, R = 200)
+
+# 绘制 Qini 曲线。
+plot(ma.qini)
+legend("topleft", c("All arms", "95% CI"), lty = c(1, 3))
+
+# 在给定的单位支出水平上获得增益估计及标准误。
+average_gain(ma.qini, spend = 0.2)
+
+# 获得给定单位支出水平下的处理分配矩阵。
+pi.mat &lt;- predict(ma.qini, spend = 0.2)
+
+# 如果处理的随机化概率已知，可以用逆概率加权（IPW）评分
+# 作为 AIPW 评分之外的另一种评估方式。
+W.hat &lt;- rep(1/3, 3)
+IPW.scores &lt;- get_ipw_scores(Y[test], W[test], W.hat)
+mq.ipw &lt;- maq(tau.hat, cost, IPW.scores)</code></pre>
+
+<h2 id="sec-数学细节">数学细节</h2>
+<p>设 <code>τ̂(·)</code> 是一个估计的 CATE 函数，其第 k 个元素度量第 i 个个体 <code>X_i</code> 在处理臂 <code>k = 1, …, K</code>（<code>k = 0</code> 为对照臂）上的条件平均处理效应 <code>E[Y_i(k) − Y_i(0) | X_i]</code>。设 <code>C(·)</code> 是给第 i 个个体分配某一处理臂的已知成本函数。maq 给出如下 Qini 曲线的估计：</p>
+<div class="equation">\[ Q(B) = E\big[\langle \pi_B(X_i),~ \tau(X_i)\rangle \big] \]</div>
+<p>即在任意预算约束 <code>B</code> 下的期望增益：策略 <code>π_B</code>（利用给定的 <code>τ̂(·)</code> 与 <code>C(·)</code>）最优地决定「给哪个个体分配哪个臂」，使得平均成本不超过 <code>B</code>。策略 <code>π_B</code> 是一个线性规划的解：maq 通过一个利用多选背包结构的算法，沿递增的预算水平 <code>B</code> 计算出整条分配解路径。算法概览见本库 <a href="algorithm.html">《MAQ 算法参考》</a> 一页。</p>
+
+<h2 id="sec-参考文献">参考文献</h2>
+<ul>
+<li>Erik Sverdrup, Han Wu, Susan Athey, and Stefan Wager. <b>Qini Curves for Multi-Armed Treatment Rules.</b> <i>Journal of Computational and Graphical Statistics</i>. 34(3), 2025. <a href="https://doi.org/10.1080/10618600.2024.2418820" target="_blank" rel="noopener">论文</a> · <a href="https://arxiv.org/abs/2306.11979" target="_blank" rel="noopener">arXiv:2306.11979</a></li>
+</ul>
+<div class="links">
+<a href="algorithm.html">算法参考（含图解）</a>
+<a href="functions.html">函数参考</a>
+<a href="https://github.com/grf-labs/maq" target="_blank" rel="noopener">官方仓库</a>
+</div>
+
+</main>
+<div class="foot">
+<p>本页为 grf-labs/maq 官方文档的中文译本，仅供学习交流。原文版权归作者所有，译文均为非官方。</p>
+</div>
+</div>
+</body>
+</html>
