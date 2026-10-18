@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>解释一个因果森林 · 因果森林知识库</title>
+<script>
+(function(){var s=localStorage.getItem("cfh-theme");if(s===null)s="dark";document.documentElement.setAttribute("data-theme",s);})();
+</script>
+<style>
+:root{--bg:#0f1116;--card:#181b22;--text:#e4e6ea;--muted:#98a0ac;--line:#2a2f3a;--accent:#5ad1a0;--link:#7aa2f7}
+[data-theme="light"]{--bg:#f7f7f5;--card:#ffffff;--text:#2c2c2a;--muted:#6b6a65;--line:#e3e2dd;--accent:#1a7f5a;--link:#534ab7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.78;transition:background .2s,color .2s}
+.wrap{max-width:880px;margin:0 auto;padding:0 20px 70px}
+.hero{padding:34px 0 12px;border-bottom:1px solid var(--line);margin-bottom:22px}
+.hero .tag{display:inline-block;font-size:11.5px;letter-spacing:.1em;color:var(--accent);border:1px solid var(--line);border-radius:20px;padding:2px 11px;margin-bottom:10px}
+.hero h1{margin:0 0 8px;font-size:28px;line-height:1.35}
+.hero .sub{color:var(--muted);font-size:14.5px}
+.hero .src{margin-top:8px;font-size:13px;color:var(--muted)}
+.hero .src a{color:var(--link)}
+main h1{font-size:24px;margin:8px 0 16px}
+main h2{font-size:21px;margin:34px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+main h3{font-size:17px;margin:26px 0 10px;color:var(--accent)}
+main p{margin:10px 0}
+main a{color:var(--link)}
+main ul,main ol{padding-left:24px}
+main table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;display:block;overflow-x:auto}
+main th,main td{border:1px solid var(--line);padding:7px 10px}
+main th{background:var(--card)}
+code{background:var(--card);color:var(--accent);padding:2px 5px;border-radius:4px;font-family:"SF Mono",Consolas,monospace;font-size:13.5px}
+.equation{overflow-x:auto;margin:14px 0;padding:10px 4px}
+.bg-note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:13px 17px;margin:18px 0}
+.bg-note p{margin:6px 0}
+main img{max-width:100%;height:auto;display:block;margin:12px auto;border-radius:6px;border:1px solid var(--line);background:#fff}
+figure{margin:20px 0;text-align:center}
+figcaption{color:var(--muted);font-size:13px;margin-top:8px}
+pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:13px 15px;overflow-x:auto;font-size:13.5px}
+pre code{background:none;padding:0;color:inherit}
+.links{margin-top:26px;padding-top:16px;border-top:1px solid var(--line)}
+.links a{display:inline-block;margin:6px 8px 6px 0;color:var(--link);text-decoration:none;border:1px solid var(--line);border-radius:7px;padding:7px 13px;font-size:13.5px}
+.links a:hover{border-color:var(--accent)}
+.foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+/* 搜索 */
+.sbox{position:relative;display:inline-flex;align-items:center;margin-left:10px}
+.sbox input{background:var(--card);border:1px solid var(--line);color:inherit;border-radius:6px;padding:4px 9px 4px 25px;font-size:13px;width:170px;font-family:inherit;outline:none}
+.sbox input:focus{border-color:var(--accent);width:220px}
+.sbox .si{position:absolute;left:8px;font-size:12px;opacity:.6;pointer-events:none}
+.spanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:440px;max-width:88vw;max-height:64vh;overflow-y:auto;z-index:900;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.spanel.open{display:block}
+.spanel .sh{padding:7px 10px;font-size:12px;opacity:.7;border-bottom:1px solid var(--line);margin-bottom:4px}
+.spanel .sempty{font-size:12px;opacity:.65;padding:16px 10px;text-align:center}
+.sres{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:inherit}
+.sres:hover,.sres.sel{background:var(--bg)}
+.sres .c{font-size:11px;opacity:.65;margin-bottom:1px}
+.sres .s{font-size:12px;color:var(--accent);margin-bottom:2px}
+.sres .t{font-size:13px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sres mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+.srch-main{margin:22px 0}
+.srch-main input{width:100%;background:var(--card);border:1px solid var(--line);color:inherit;border-radius:8px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none}
+.srch-meta{font-size:13px;opacity:.7;margin:12px 0 6px}
+.srch-list{list-style:none;margin:0;padding:0}
+.srch-list .sres{border:1px solid var(--line);margin:7px 0;padding:9px 11px}
+.topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--bg)}
+.topbar .tb-home{font-weight:600;color:var(--text);text-decoration:none}
+.th-btn{background:var(--card);border:1px solid var(--line);color:inherit;border-radius:6px;padding:4px 11px;font-size:13px;cursor:pointer;font-family:inherit}
+.th-btn:hover{border-color:var(--accent)}
+/* ===== 因果森林知识库 · 统一导航 ===== */
+.cfh-nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:10px;
+ padding:8px 16px;background:var(--bg,#181b22);border-bottom:1px solid var(--line,#2a2f3a);
+ font-size:13.5px;flex-wrap:wrap}
+.cfh-nav .cfh-home{font-weight:600;color:var(--text,#e4e6ea);text-decoration:none;font-size:14px;
+ display:flex;align-items:center;gap:6px}
+.cfh-nav .cfh-home:hover{color:var(--accent,#7aa2f7)}
+.cfh-nav .cfh-crumb{color:var(--muted,#98a0ac);font-size:12.5px}
+.cfh-nav .cfh-crumb a{color:var(--accent,#7aa2f7);text-decoration:none}
+.cfh-nav .cfh-sp{flex:1}
+.cfh-nav select{background:var(--card,#181b22);color:var(--text,#e4e6ea);
+ border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:4px 8px;font-size:12.5px;
+ font-family:inherit;outline:none;cursor:pointer;max-width:230px}
+.cfh-nav select:hover{border-color:var(--accent,#7aa2f7)}
+.cfh-nav a.cfh-sbtn{color:var(--text,#e4e6ea);text-decoration:none;border:1px solid var(--line,#2a2f3a);
+ border-radius:6px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.cfh-nav a.cfh-sbtn:hover{border-color:var(--accent,#7aa2f7);color:var(--accent,#7aa2f7)}
+@media (max-width:700px){.cfh-nav .cfh-crumb{display:none}.cfh-nav select{max-width:150px}}
+</style>
+<script>
+function toggleTheme(){var c=document.documentElement.getAttribute("data-theme");var n=c==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);localStorage.setItem("cfh-theme",n)}
+</script>
+<script src="search.js"></script>
+</head>
+<body>
+<div class="cfh-nav">
+<a class="cfh-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="cfh-crumb">/ <a href="explain-cf/explain_cf.html">解释因果森林</a> </span>
+<span class="cfh-sp"></span>
+<select onchange="if(this.value)location.href=this.value" aria-label="切换库">
+<option value="grf-cn/index.html">grf 广义随机森林</option>
+<option value="policytree-cn/index.html">policytree 策略树</option>
+<option value="surefq/surefq.html">SURE / QRF 充分表示</option>
+<option value="maq/maq.html">maq 多臂 Qini</option>
+<option value="explain-cf/explain_cf.html" selected>解释因果森林</option>
+</select>
+<a class="cfh-sbtn" href="search.html">&#128269; 搜索本页</a>
+</div>
+<div class="topbar">
+<a class="tb-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="sbox"><span class="si">&#128269;</span>
+<input type="search" id="s-q" placeholder="搜索本页…（按 /）" autocomplete="off" aria-label="搜索">
+<span class="spanel" id="s-panel"></span></span>
+<button class="th-btn" onclick="toggleTheme()">&#9681; 主题</button>
+</div>
+<div class="wrap">
+<div class="hero">
+<span class="tag">拓展教程 · 因果森林可解释性</span>
+<h1>解释一个因果森林</h1>
+<div class="sub">Explaining a Causal Forest —— 在真实的 ERCP 随机对照试验上用因果森林建模处理效应，并用变量重要性、PDP、Friedman H 与 SHAP 解释它。</div>
+<div class="src">原文：<a href="https://lorentzen.ch/index.php/2024/09/02/explaining-a-causal-forest/" target="_blank" rel="noopener">lorentzen.ch</a>（Michael Mayer，2024-09-02）· 本页为中文译本</div>
+</div>
+<main>
+
+<h1>解释一个因果森林</h1>
+
+<p>我们用<b>因果森林</b>[1] 对一项随机对照临床试验中的处理效应建模，然后用常见的<b>可解释性工具</b>来解释这个黑盒模型。它们会揭示「处理在哪些人群中效果更好、在哪些人群中效果更差」——效果类似森林图，但是<b>多变量</b>的。</p>
+
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>本文作者是 Michael Mayer（lorentzen.ch，R/ML 领域的知名博主，{hstats}、{kernelshap} 等包的作者），发表于 2024 年 9 月。这篇博文是「因果森林 + 可解释性机器学习」交叉领域的经典实践范例：先用 <a href="../grf-cn/grf.html">grf</a> 的 <code>causal_forest()</code> 拟合 CATE 模型，再用变量重要性、部分依赖图、Friedman H 统计量与 SHAP 把它解释给临床医生看。完整 R notebook 见 <a href="https://github.com/lorentzenchr/notebooks/blob/master/blogposts/2024-09-02%20causal_rf.R" target="_blank" rel="noopener">作者 GitHub</a>。</p>
+<p><b>一个关键前提：符号约定。</b>原文的结局 Y=1 表示「ERCP 术后胰腺炎」（<b>坏事</b>），因此处理效应为<b>负值</b>代表处理<b>有益</b>。文中反复出现的「负值 = 更强的处理效应」说的就是这件事。读图时请先记住这一点，否则结论会全部反过来。</p>
+</div>
+
+<h2 id="sec-数据">数据</h2>
+<p>作为示例，我们使用一项吲哚美辛（indomethacin）对比安慰剂预防 ERCP（经内镜逆行胰胆管造影）术后胰腺炎的<b>两臂</b> RCT 的个体级数据（602 例患者）[2]。数据集可在 <code>{medicaldata}</code> 包中获得。</p>
+<p>数据质量非常好，不需要花太多时间做数据准备：</p>
+<ul>
+<li>对因子变量做整数编码；</li>
+<li>挑选有意义的特征——基本上是文献 [2] 森林图（Figure 4）中展示的那些，去掉低信息量特征，并去掉「医院」这一变量。</li>
+</ul>
+<p>处理效应的边际估计是 −0.078，即吲哚美辛使 ERCP 术后胰腺炎的发生概率<b>下降 7.8 个百分点</b>。我们的目标是建立并解释一个模型，看看这个数值是否与某些协变量相关联。</p>
+<pre><code class="language-r">library(medicaldata)
+suppressPackageStartupMessages(library(dplyr))
+library(grf)          # causal_forest()
+library(ggplot2)
+library(patchwork)    # 组合多个 ggplot
+library(hstats)       # Friedman 的 H、部分依赖
+library(kernelshap)   # 通用 Kernel SHAP
+library(shapviz)      # SHAP 可视化
+
+W &lt;- as.integer(indo_rct$rx) - 1L      # 0=安慰剂, 1=处理
+table(W)
+#   0   1
+# 307 295
+
+Y &lt;- as.numeric(indo_rct$outcome) - 1  # Y=1：ERCP 术后胰腺炎（坏事）
+mean(Y)  # 0.1312292
+
+mean(Y[W == 1]) - mean(Y[W == 0])      # -0.07785568
+
+xvars &lt;- c(
+  "age",         # 年龄（岁）
+  "male",        # 男性（1=是）
+  "pep",         # 既往 ERCP 术后胰腺炎（1=是）
+  "recpanc",     # 复发性胰腺炎病史（1=是）
+  "type",        # Oddi 括约肌功能失常类型/程度（0=无, 到 3=3 型）
+  "difcan",      # 乳头插管困难（1=是）
+  "psphinc",     # 行胰管括约肌切开（1=是）
+  "bsphinc",     # 行胆管括约肌切开（1=是）
+  "pdstent",     # 放置胰管支架（1=是）
+  "train"        # 有实习医生参与支架放置（1=是）
+)
+
+X &lt;- indo_rct |&gt;
+  mutate_if(is.factor, function(v) as.integer(v) - 1L) |&gt;
+  rename(male = gender) |&gt;
+  select_at(xvars)
+
+head(X)
+# age  male   pep recpanc  type difcan psphinc bsphinc pdstent train
+#  26     0     0       1     1      0       0       0       0     1
+#  24     1     1       0       0      0       0       1       0       0
+#  57     0     0       0       2      0       0       0       0       0
+#  29     0     0       0       1      0       0       1       1       1
+#  38     0     1       0       1      0       1       1       1       1
+#  59     0     0       0       1      1       0       1       1       0
+
+summary(X)
+#     age             male             pep            recpanc
+# Min.   :19.00   Min.   :0.0000   Min.   :0.0000   Min.   :0.000
+# 1st Qu.:35.00   1st Qu.:0.0000   1st Qu.:0.0000   1st Qu.:0.000
+# Median :45.00   Median :45.00   Median :0.0000   Median :0.000
+# Mean   :45.27   Mean   :0.2093   Mean   :0.2093   Mean   :0.1595
+# 3rd Qu.:54.00   3rd Qu.:0.0000   3rd Qu.:0.0000   3rd Qu.:1.000
+# Max.   :90.00   Max.   :0.0000   Max.   :0.0000   Max.   :1.000
+#      type           difcan           psphinc          bsphinc
+# Min.   :0.000   Min.   :0.0000   Min.   :0.0000   Min.   :0.0000
+# 1st Qu.:1.000   1st Qu.:0.0000   1st Qu.:0.0000   1st Qu.:0.0000
+# Median :2.000   Median :2.000   Median :1.0000   Median :1.0000
+# Mean   :1.743   Mean   :0.2608   Mean   :0.5698   Mean   :0.5714
+# 3rd Qu.:2.000   3rd Qu.:1.0000   3rd Qu.:1.0000   3rd Qu.:1.0000
+# Max.   :3.000   Max.   :1.0000   Max.   :1.0000   Max.   :1.0000
+#    pdstent           train
+# Min.   :0.0000   Min.   :0.0000
+# 1st Qu.:1.0000   1st Qu.:0.0000
+# Median :1.0000   Median :0.0000
+# Mean   :0.8239   Mean   :0.4701
+# 3rd Qu.:1.0000   3rd Qu.:1.0000
+# Max.   :1.0000   Max.   :1.0000</code></pre>
+
+<h2 id="sec-模型">模型</h2>
+<p>我们用 <code>{grf}</code> 包拟合一个<b>因果森林</b> [1]——一个试图估计条件平均处理效应（CATE）<code>E[Y(1) − Y(0) | X = x]</code> 的树集成。正因如此，它可以用来研究<b>处理效应的异质性</b>。</p>
+<p>与典型的随机森林相比，它有两个关键点：</p>
+<ul>
+<li><b>诚实树</b>（honest trees）：在每棵树内部，一部分数据用于分裂，另一部分用于计算节点值。这种防过拟合机制在 <code>{grf}</code> 的所有随机森林中都有实现。</li>
+<li>分裂的选择是为了产生<b>处理效应差异尽可能大</b>的子节点（在一些附加约束下）。</li>
+</ul>
+<div class="bg-note">
+<p><strong>背景与解释（译者注）：</strong>原文作者特别提醒：并发症发生率约 13%，相对较低。因此某些亚组中处理效应（在<b>绝对尺度</b>上度量）变小，可能只是因为该亚组的并发症发生率本来就接近 0。理想情况下可以建模<b>相对</b>处理效应或比值比，但作者目前没有在 <code>{grf}</code> 中找到该选项。这是把 CATE 用于低发生率结局时的常见陷阱——效应值的绝对大小混杂了基线风险的信息。</p>
+</div>
+<pre><code class="language-r">fit &lt;- causal_forest(
+  X = X,
+  Y = Y,
+  W = W,
+  num.trees = 1000,
+  mtry = 4,
+  sample.fraction = 0.7,
+  seed = 1,
+  ci.group.size = 1,
+)</code></pre>
+
+<h2 id="sec-经典技术">用「经典」技术解释模型</h2>
+<p>看过树分裂的重要性之后，我们通过部分依赖图（PDP）和 Friedman 的 H 统计量来研究效应。这些方法只需要一个 <code>predict()</code> 函数和一个参考数据集。</p>
+<pre><code class="language-r">imp &lt;- sort(setNames(variable_importance(fit), xvars))
+par(mai = c(0.7, 2, 0.2, 0.2))
+barplot(imp, horiz = TRUE, las = 1, col = "orange")
+
+pred_fun &lt;- function(object, newdata, ...) {
+  predict(object, newdata, ...)$predictions
+}
+
+pdps &lt;- lapply(xvars, function(v) plot(partial_dep(fit, v, X = X, pred_fun = pred_fun)))
+wrap_plots(pdps, guides = "collect", ncol = 3) &amp;
+  ylim(c(-0.11, -0.06)) &amp;
+  ylab("Treatment effect")
+
+H &lt;- hstats(fit, X = X, pred_fun = pred_fun, verbose = FALSE)
+plot(H)
+
+partial_dep(fit, v = "age", X = X, BY = "bsphinc", pred_fun = pred_fun) |&gt;
+  plot()</code></pre>
+
+<h3 id="sec-变量重要性">变量重要性</h3>
+<p>因果森林的变量重要性可以用「每个特征被用于分裂的相对次数（在前 4 层）」来度量。最重要的变量是<b>年龄</b>。</p>
+<figure>
+<img src="figures/fig_imp.png" alt="变量重要性条形图">
+<figcaption>图：变量重要性（按分裂频次）。年龄最重要。</figcaption>
+</figure>
+
+<h3 id="sec-主效应">主效应</h3>
+<p>为了研究协变量对 CATE 的<b>主效应</b>，我们看部分依赖图（PDP）：在保持其他特征取值不变的情况下，展示平均预测如何随一个特征的取值变化（这种「保持其他不变」有时并不自然）。</p>
+<p>可以看到：35 岁以下人群的处理效应最强，随后减弱到 45 岁；对更年长的患者，效应又回升。</p>
+<p>请记住：<b>负值代表更强的（有益的）处理效应</b>。</p>
+<figure>
+<img src="figures/fig_pdp.png" alt="各变量的部分依赖图">
+<figcaption>图：全部 10 个变量的 PDP。处理效应随年龄先减弱后回升。</figcaption>
+</figure>
+
+<h3 id="sec-交互强度">交互强度</h3>
+<p>哪些协变量之间存在强交互？</p>
+<p>度量两两交互强度的一个<b>模型无关</b>方法是 Friedman 的 H 统计量 [3]。它度量「用两个特征各自的一维部分依赖函数去近似它们的二维部分依赖函数」所产生的误差。值为 0 表示没有交互；值为 α 意味着联合效应（变异）中约有 100α% 来自交互。</p>
+<p>下图<b>右侧</b>显示的就是这个统计量：年龄与胆管括约肌切开（bsphinc）之间，超过 15% 的联合效应变异来自它们的交互。</p>
+<p>通常，两两 H 统计量只对最重要的变量、或<b>总体</b>交互强度高的变量计算。总体交互强度（图<b>左侧</b>）可以用 Friedman H 的一个变体来度量，它显示预测变异中有多少来自「与该特征的交互」。</p>
+<figure>
+<img src="figures/fig_hstats.png" alt="Friedman H 交互统计量">
+<figcaption>图：hstats 输出的总体交互强度（左）与两两 H 统计量（右）。</figcaption>
+</figure>
+
+<h3 id="sec-可视化强交互">可视化强交互</h3>
+<p>交互可以用「分层 PDP」来可视化。可以看到：处理效应与年龄的关联主要出现在<b>接受了胆管括约肌切开</b>的人群中。</p>
+<figure>
+<img src="figures/fig_pdp_strat.png" alt="按 bsphinc 分层的年龄 PDP">
+<figcaption>图：按 bsphinc 分层的年龄 PDP。年龄效应主要存在于 bsphinc=1 的人群。</figcaption>
+</figure>
+
+<h2 id="sec-shap-分析">SHAP 分析</h2>
+<p>一种解释模型的「现代」方法基于 SHAP [4]。它把（中心化后的）预测分解为各协变量的<b>可加</b>贡献。</p>
+<p>由于 <code>{grf}</code> 没有内置 TreeSHAP，我们使用 <code>{kernelshap}</code> 实现的慢得多的 Kernel SHAP 算法——它对任何模型都适用。</p>
+<p>我们先解释<b>单个</b>数据行的预测，再分解<b>大量</b>预测；这些分解可以用简单的描述性图表来分析，从而获得对模型整体的洞察。</p>
+<pre><code class="language-r"># 解释单个 CATE
+kernelshap(fit, X = X[1, ], bg_X = X, pred_fun = pred_fun) |&gt;
+  shapviz() |&gt;
+  sv_waterfall() +
+  xlab("Prediction")
+
+# 全局解释所有 CATE
+system.time(  # 13 分钟
+  ks &lt;- kernelshap(fit, X = X, pred_fun = pred_fun)
+)
+shap_values &lt;- shapviz(ks)
+
+sv_importance(shap_values)
+sv_importance(shap_values, kind = "bee")
+sv_dependence(shap_values, v = xvars) +
+  plot_layout(ncol = 3) &amp;
+  ylim(c(-0.04, 0.03))</code></pre>
+
+<h3 id="sec-解释单个-cate">解释单个 CATE</h3>
+<p>用瀑布图解释第一位患者特征取值所对应的 CATE。</p>
+<figure>
+<img src="figures/fig_waterfall.png" alt="SHAP 瀑布图">
+<figcaption>图：单个 CATE 的 SHAP 瀑布图（kernelshap）。</figcaption>
+</figure>
+
+<h3 id="sec-shap-重要性图">SHAP 重要性图</h3>
+<p>各条形显示平均绝对 SHAP 值。例如可以说：胆管括约肌切开平均而言对处理效应的影响超过 ±0.01（但看不出<b>方向</b>）。</p>
+<figure>
+<img src="figures/fig_shap_imp.png" alt="SHAP 重要性条形图">
+<figcaption>图：SHAP 重要性（平均 |SHAP|）。</figcaption>
+</figure>
+
+<h3 id="sec-shap-摘要图">SHAP 摘要图</h3>
+<p>这是 SHAP 值的一维图，特征取值映射到颜色深浅，排序与重要性图一致。相比重要性条形图，我们还能额外地看出：胆管括约肌切开<b>削弱</b>处理效应（SHAP 值为正）。</p>
+<figure>
+<img src="figures/fig_shap_summary.png" alt="SHAP 摘要图">
+<figcaption>图：SHAP 摘要图（bee swarm 形式），颜色为该特征的取值。</figcaption>
+</figure>
+
+<h3 id="sec-shap-依赖图">SHAP 依赖图</h3>
+<p>SHAP 值对特征取值的散点图。给定 x 处的垂直散布（vertical scatter）表明<b>存在交互</b>；颜色标尺上还可以选一个候选交互特征。例如，年龄对处理效应的作用模式与 PDP 中相似；借助颜色，我们还能看出年龄效应依赖于胆管括约肌切开。</p>
+<p>记住：SHAP 值在<b>中心化预测尺度</b>上。正值依然代表<b>更弱</b>的处理效应。</p>
+<figure>
+<img src="figures/fig_shap_dep.png" alt="SHAP 依赖图">
+<figcaption>图：SHAP 依赖图。垂直散布与颜色结构共同提示交互。</figcaption>
+</figure>
+
+<h2 id="sec-小结">小结</h2>
+<ul>
+<li><code>{grf}</code> 是个非常棒的包，后续本博客还会有更多相关文章。</li>
+<li>因果森林是<b>直接建模处理效应</b>的一种有趣方式。</li>
+<li>标准可解释性方法可以用来解释这个黑盒模型。</li>
+</ul>
+
+<h2 id="sec-参考文献">参考文献</h2>
+<ol>
+<li>Athey, Susan, Julie Tibshirani, and Stefan Wager. &#8220;Generalized Random Forests&#8221;. <i>Annals of Statistics</i>, 47(2), 2019.</li>
+<li>Elmunzer BJ et al. A randomized trial of rectal indomethacin to prevent post-ERCP pancreatitis. <i>N Engl J Med</i>. 2012 Apr 12;366(15):1414-22. doi: 10.1056/NEJMoa1111103.</li>
+<li>Friedman, Jerome H., and Bogdan E. Popescu. Predictive Learning via Rule Ensembles. <i>The Annals of Applied Statistics</i> 2, no. 3 (2008): 916-54.</li>
+<li>Scott M. Lundberg and Su-In Lee. A Unified Approach to Interpreting Model Predictions. <i>Advances in Neural Information Processing Systems 30</i> (2017).</li>
+</ol>
+<div class="links">
+<a href="https://lorentzen.ch/index.php/2024/09/02/explaining-a-causal-forest/" target="_blank" rel="noopener">原文链接</a>
+<a href="https://github.com/lorentzenchr/notebooks/blob/master/blogposts/2024-09-02%20causal_rf.R" target="_blank" rel="noopener">完整 R notebook</a>
+<a href="../grf-cn/grf.html">grf 中文教程</a>
+<a href="../grf-cn/rate.html">RATE：因果森林的评估</a>
+</div>
+
+</main>
+<div class="foot">
+<p>本页为 lorentzen.ch 博文的中文译本，仅供学习交流。原文版权归作者所有，译文均为非官方。</p>
+</div>
+</div>
+</body>
+</html>
