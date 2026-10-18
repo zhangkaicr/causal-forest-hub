@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAQ 算法参考 · 因果森林知识库</title>
+<script>
+(function(){var s=localStorage.getItem("cfh-theme");if(s===null)s="dark";document.documentElement.setAttribute("data-theme",s);})();
+</script>
+<style>
+:root{--bg:#0f1116;--card:#181b22;--text:#e4e6ea;--muted:#98a0ac;--line:#2a2f3a;--accent:#5ad1a0;--link:#7aa2f7}
+[data-theme="light"]{--bg:#f7f7f5;--card:#ffffff;--text:#2c2c2a;--muted:#6b6a65;--line:#e3e2dd;--accent:#1a7f5a;--link:#534ab7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.78;transition:background .2s,color .2s}
+.wrap{max-width:880px;margin:0 auto;padding:0 20px 70px}
+.hero{padding:34px 0 12px;border-bottom:1px solid var(--line);margin-bottom:22px}
+.hero .tag{display:inline-block;font-size:11.5px;letter-spacing:.1em;color:var(--accent);border:1px solid var(--line);border-radius:20px;padding:2px 11px;margin-bottom:10px}
+.hero h1{margin:0 0 8px;font-size:28px;line-height:1.35}
+.hero .sub{color:var(--muted);font-size:14.5px}
+.hero .src{margin-top:8px;font-size:13px;color:var(--muted)}
+.hero .src a{color:var(--link)}
+main h1{font-size:24px;margin:8px 0 16px}
+main h2{font-size:21px;margin:34px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+main h3{font-size:17px;margin:26px 0 10px;color:var(--accent)}
+main p{margin:10px 0}
+main a{color:var(--link)}
+main ul,main ol{padding-left:24px}
+main table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;display:block;overflow-x:auto}
+main th,main td{border:1px solid var(--line);padding:7px 10px}
+main th{background:var(--card)}
+code{background:var(--card);color:var(--accent);padding:2px 5px;border-radius:4px;font-family:"SF Mono",Consolas,monospace;font-size:13.5px}
+.equation{overflow-x:auto;margin:14px 0;padding:10px 4px}
+.bg-note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:13px 17px;margin:18px 0}
+.bg-note p{margin:6px 0}
+main img{max-width:100%;height:auto;display:block;margin:12px auto;border-radius:6px;border:1px solid var(--line);background:#fff}
+figure{margin:20px 0;text-align:center}
+figcaption{color:var(--muted);font-size:13px;margin-top:8px}
+pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:13px 15px;overflow-x:auto;font-size:13.5px}
+pre code{background:none;padding:0;color:inherit}
+.links{margin-top:26px;padding-top:16px;border-top:1px solid var(--line)}
+.links a{display:inline-block;margin:6px 8px 6px 0;color:var(--link);text-decoration:none;border:1px solid var(--line);border-radius:7px;padding:7px 13px;font-size:13.5px}
+.links a:hover{border-color:var(--accent)}
+.foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+/* 搜索 */
+.sbox{position:relative;display:inline-flex;align-items:center;margin-left:10px}
+.sbox input{background:var(--card);border:1px solid var(--line);color:inherit;border-radius:6px;padding:4px 9px 4px 25px;font-size:13px;width:170px;font-family:inherit;outline:none}
+.sbox input:focus{border-color:var(--accent);width:220px}
+.sbox .si{position:absolute;left:8px;font-size:12px;opacity:.6;pointer-events:none}
+.spanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:440px;max-width:88vw;max-height:64vh;overflow-y:auto;z-index:900;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:6px}
+.spanel.open{display:block}
+.spanel .sh{padding:7px 10px;font-size:12px;opacity:.7;border-bottom:1px solid var(--line);margin-bottom:4px}
+.spanel .sempty{font-size:12px;opacity:.65;padding:16px 10px;text-align:center}
+.sres{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:inherit}
+.sres:hover,.sres.sel{background:var(--bg)}
+.sres .c{font-size:11px;opacity:.65;margin-bottom:1px}
+.sres .s{font-size:12px;color:var(--accent);margin-bottom:2px}
+.sres .t{font-size:13px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sres mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+.srch-main{margin:22px 0}
+.srch-main input{width:100%;background:var(--card);border:1px solid var(--line);color:inherit;border-radius:8px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none}
+.srch-meta{font-size:13px;opacity:.7;margin:12px 0 6px}
+.srch-list{list-style:none;margin:0;padding:0}
+.srch-list .sres{border:1px solid var(--line);margin:7px 0;padding:9px 11px}
+.topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--bg)}
+.topbar .tb-home{font-weight:600;color:var(--text);text-decoration:none}
+.th-btn{background:var(--card);border:1px solid var(--line);color:inherit;border-radius:6px;padding:4px 11px;font-size:13px;cursor:pointer;font-family:inherit}
+.th-btn:hover{border-color:var(--accent)}
+/* ===== 因果森林知识库 · 统一导航 ===== */
+.cfh-nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:10px;
+ padding:8px 16px;background:var(--bg,#181b22);border-bottom:1px solid var(--line,#2a2f3a);
+ font-size:13.5px;flex-wrap:wrap}
+.cfh-nav .cfh-home{font-weight:600;color:var(--text,#e4e6ea);text-decoration:none;font-size:14px;
+ display:flex;align-items:center;gap:6px}
+.cfh-nav .cfh-home:hover{color:var(--accent,#7aa2f7)}
+.cfh-nav .cfh-crumb{color:var(--muted,#98a0ac);font-size:12.5px}
+.cfh-nav .cfh-crumb a{color:var(--accent,#7aa2f7);text-decoration:none}
+.cfh-nav .cfh-sp{flex:1}
+.cfh-nav select{background:var(--card,#181b22);color:var(--text,#e4e6ea);
+ border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:4px 8px;font-size:12.5px;
+ font-family:inherit;outline:none;cursor:pointer;max-width:230px}
+.cfh-nav select:hover{border-color:var(--accent,#7aa2f7)}
+.cfh-nav a.cfh-sbtn{color:var(--text,#e4e6ea);text-decoration:none;border:1px solid var(--line,#2a2f3a);
+ border-radius:6px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+.cfh-nav a.cfh-sbtn:hover{border-color:var(--accent,#7aa2f7);color:var(--accent,#7aa2f7)}
+@media (max-width:700px){.cfh-nav .cfh-crumb{display:none}.cfh-nav select{max-width:150px}}
+</style>
+<script>
+function toggleTheme(){var c=document.documentElement.getAttribute("data-theme");var n=c==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);localStorage.setItem("cfh-theme",n)}
+</script>
+<script src="search.js"></script>
+</head>
+<body>
+<div class="cfh-nav">
+<a class="cfh-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="cfh-crumb">/ <a href="maq/algorithm.html">maq 多臂 Qini</a> </span>
+<span class="cfh-sp"></span>
+<select onchange="if(this.value)location.href=this.value" aria-label="切换库">
+<option value="grf-cn/index.html">grf 广义随机森林</option>
+<option value="policytree-cn/index.html">policytree 策略树</option>
+<option value="surefq/surefq.html">SURE / QRF 充分表示</option>
+<option value="maq/maq.html" selected>maq 多臂 Qini</option>
+<option value="explain-cf/explain_cf.html">解释因果森林</option>
+</select>
+<a class="cfh-sbtn" href="search.html">&#128269; 搜索本页</a>
+</div>
+<div class="topbar">
+<a class="tb-home" href="../index.html">&#127793; 因果森林知识库</a>
+<span class="sbox"><span class="si">&#128269;</span>
+<input type="search" id="s-q" placeholder="搜索本页…（按 /）" autocomplete="off" aria-label="搜索">
+<span class="spanel" id="s-panel"></span></span>
+<button class="th-btn" onclick="toggleTheme()">&#9681; 主题</button>
+</div>
+<div class="wrap">
+<div class="hero">
+<span class="tag">核心工具 · GRF Labs</span>
+<h1>MAQ 算法参考</h1>
+<div class="sub">凸包、阈值与解路径：多选背包结构如何让「按预算逐级展开最优分配」变得高效。</div>
+<div class="src">原文：<a href="https://github.com/grf-labs/maq/blob/master/REFERENCE.md" target="_blank" rel="noopener">REFERENCE.md</a>（官方算法概览）· 本页为中文译本</div>
+</div>
+<main>
+
+<h1>MAQ 算法参考</h1>
+<p>本文是 maq 官方算法参考（REFERENCE.md）的中文译本，给出多臂处理规则 Qini 曲线底层算法的高层概览。完整细节见论文 <a href="https://arxiv.org/abs/2306.11979" target="_blank" rel="noopener">arXiv:2306.11979</a>。</p>
+
+<h2 id="sec-从单臂到多臂">从单臂到多臂</h2>
+<p>构造数据驱动处理规则的一种流行做法，是用<b>条件平均处理效应（CATE）</b>的估计值来决定「给谁治疗」。下表给出三个假想个体——Alice、Bob、Eve——在两种干预（处理臂 <b>A</b> 与处理臂 <b>B</b>）下的 CATE 估计示例：</p>
+<table>
+<tr><th>个体</th><th>处理臂 A 的 CATE 估计</th><th>处理臂 B 的 CATE 估计</th></tr>
+<tr><td>Alice</td><td>30</td><td>10</td></tr>
+<tr><td>Bob</td><td>40</td><td>50</td></tr>
+<tr><td>Eve</td><td>10</td><td>55</td></tr>
+</table>
+<p>如果我们假设两个处理臂成本相同、或者分配治疗时成本完全无关，那么用上述估计来评估并可视化处理规则在概念上很直接：按 CATE 估计<b>从高到低</b>对个体排序，然后随着「被治疗的比例（或平均花费）」的增加计算增益（gain / uplift）——这就是单臂情形的 Qini 曲线。</p>
+
+<h2 id="sec-带成本的分配问题">带成本的分配问题</h2>
+<p>在许多实际应用中，不同处理臂的成本不同。例如处理臂 <b>A</b> 可能是低成本的在线学生辅导项目，而处理臂 <b>B</b> 是成本更高的有人指导项目。我们的 CATE 估计可以度量「参加培训项目相对于不接受任何处理（对照臂）能让考试分数提高多少」。假设分配 <b>A</b> 的成本是 <b>3</b>（按某种选定的货币单位），分配 <b>B</b> 的成本是 <b>6</b>。</p>
+<p>那么当我们愿意支付的平均金额变化时，<b>如何分析一个「最优地」同时使用两种处理臂</b>的处理规则？此时构造 Qini 曲线不再直接：在每个预算水平上，我们都必须在「给某个个体分配初始干预」与「把另一个个体升级为更贵但更有效的干预」之间做选择。这个受约束的选择问题是一个（线性）<b>多选背包问题</b>（multiple-choice knapsack problem）：在每个预算水平（背包容量）上，都要最优地决定给哪个个体、分配哪个臂，使平均成本不超过该预算。</p>
+
+<h2 id="sec-凸包与阈值">凸包与阈值</h2>
+<p>用另一种方式表示上面的表格会很有帮助。在下图中，我们对所有个体画出「估计的处理效应」（纵轴）与「分配该臂的成本」（横轴）：</p>
+<figure>
+<img src="figures/hulls.png" alt="每个个体的凸包">
+<figcaption>图：每个个体在成本-效应平面上的可选臂与凸包（来自官方仓库 images/hulls.png）</figcaption>
+</figure>
+<p>对于给定的背包容量，我们实际会从中选择的臂，只落在上图的<b>左上凸包</b>（upper-left convex hull）上（Kellerer 等人（2004）在第 11 章有一个很好的综述）。对 Alice 来说，处理臂 <b>B</b> 不在凸包上——因为它的成本更高、估计收益反而更低。对 Bob 来说，两个处理臂都在凸包上。可以证明：在给定背包容量下，被装入背包的臂与个体，恰是那些<b>凸包斜率高于某个阈值</b>的选项。</p>
+<p>利用这一性质可以构造一个算法，在背包容量递增的过程中给出最优选择（给哪个个体分配哪个臂）。与单臂情形一样，它依然依赖排序——只不过现在是按<b>递减的「增量凸包斜率」</b>排序。</p>
+
+<h2 id="sec-解路径动画">解路径动画</h2>
+<p>下面的动画展示了两种有成本干预 <b>A</b> 和 <b>B</b> 的处理效应估计，如何在不同的预算约束下产生多臂处理规则。纵轴是个体凸包上臂与臂之间的斜率（对应上图），横轴是个体。随着水平阈值（虚线）逐步降低，跟踪「是新给一个个体的分配一个臂，还是把已有个体升级为更贵的臂」，即可找到递增预算水平下解中处于活跃状态的个体与臂：</p>
+<figure>
+<img src="figures/lambdas.gif" alt="阈值降低与解路径">
+<figcaption>图：阈值 λ 逐步降低时最优分配的解路径（来自官方仓库 images/lambdas.gif）</figcaption>
+</figure>
+<p>这就是 maq 包所计算的多臂策略（并通过例如逆概率加权 IPW 或增广逆概率加权 AIPW 来估计其价值）。举例来说，在平均支出等于 5 时，估计出的多臂策略是：给 Alice 分配臂 A、给 Bob 分配臂 B、给 Eve 分配臂 B，总平均成本为 (3 + 6 + 6) / 3 = 5。</p>
+
+<h2 id="sec-算法参考">参考文献</h2>
+<ul>
+<li>Hans Kellerer, Ulrich Pferschy, and David Pisinger. <i>Knapsack Problems</i>. Springer, 2004.</li>
+<li>Erik Sverdrup, Han Wu, Susan Athey, and Stefan Wager. <b>Qini Curves for Multi-Armed Treatment Rules.</b> <i>Journal of Computational and Graphical Statistics</i>. 34(3), 2025. <a href="https://arxiv.org/abs/2306.11979" target="_blank" rel="noopener">arXiv:2306.11979</a></li>
+</ul>
+<div class="links">
+<a href="maq.html">maq 包总览</a>
+<a href="functions.html">函数参考</a>
+</div>
+
+</main>
+<div class="foot">
+<p>本页为 grf-labs/maq 官方文档的中文译本，仅供学习交流。原文版权归作者所有，译文均为非官方。</p>
+</div>
+</div>
+</body>
+</html>
